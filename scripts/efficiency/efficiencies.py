@@ -1,11 +1,14 @@
+from scripts.api.DataLoader import DataLoader
+from scripts.api.Settings import Params
+from scripts.utils import utils as ut
+from scripts.utils import constants as const
+
 import pandas as pd
-from scripts.utils import (utils as ut,
-                           constants as const)
 
 
 def get_optimal_points(season, week):
-    d = ut.load_weekly_data(season, week, const.LEAGUE_ID, const.SWID, const.ESPN_S2)
-    params = ut.get_params(d)
+    d = DataLoader(year=season)
+    params = Params(d)
     
     slots = const.SLOTCODES
     positions = const.ESPN_POSITION_MAP
@@ -15,10 +18,10 @@ def get_optimal_points(season, week):
                                'actual_score', 'actual_projected',
                                'best_projected_actual', 'best_projected_proj',
                                'best_lineup_actual', 'best_lineup_proj'])
-    for team in d['teams']:
+    for team in params.teams:
         roster = {}
         owr_id = team['primaryOwner']
-        owr_name = params['team_map'][owr_id]['name']['display']
+        owr_name = params.team_map[owr_id]['name']['display']
         for plr in team['roster']['entries']:
             plr_id = plr['playerId']
             plr_name = plr['playerPoolEntry']['player']['fullName']
@@ -55,8 +58,7 @@ def get_optimal_points(season, week):
             if values['slot_id'] not in [20, 21]:
                 act_pts_act += values['points']
                 act_pts_proj += values['proj']
-    
-    
+
         # get best projected lineup
         proj_pts_proj = 0
         proj_pts_act = 0

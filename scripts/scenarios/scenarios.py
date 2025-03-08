@@ -1,25 +1,23 @@
-from scripts.api.Settings import Params
-
 import pandas as pd
 
 
-def get_h2h(params: Params, season: int, week: int):
-    scores = params.scores_df
-    teams = params.teams
+def get_h2h(params: dict, season: int, week: int):
+    scores = params['scores_df']
+    teams = params['teams']
 
     df = pd.DataFrame(columns=['id', 'season', 'week', 'team', 'opp', 'result'])
     for tm1 in teams:
         for tm2 in teams:
-            tm1_disp = params.team_map[tm1]['name']['display']
-            tm2_disp = params.team_map[tm2]['name']['display']
+            tm1_disp = params['team_map'][tm1]['name']['display']
+            tm2_disp = params['team_map'][tm2]['name']['display']
             if tm1 == tm2:
-                result = 0.0
+                result = 0
             else:
                 score1 = scores[(scores.week == week)
                                 & (scores.team == tm1)].score.values[0]
                 score2 = scores[(scores.week == week)
                                 & (scores.team == tm2)].score.values[0]
-                result = 1.0 if score1 > score2 else 0.5 if score1 == score2 else 0.0
+                result = 1 if score1 > score2 else 0.5 if score1 == score2 else 0
 
             tm_id = f'{season}_{str(week).zfill(2)}_{tm1_disp}_{tm2_disp}'
             row = [tm_id, season, week, tm1_disp, tm2_disp, result]
@@ -28,10 +26,10 @@ def get_h2h(params: Params, season: int, week: int):
     return df
 
 
-def schedule_switcher(params: Params, season: int, week: int):
-    teams = params.teams
-    schedule = params.matchups_df
-    scores = params.scores_df
+def schedule_switcher(params: dict, season: int, week: int):
+    teams = params['teams']
+    schedule = params['matchup_df']
+    scores = params['scores_df']
 
     # get team 1's schedule
     hm_cols = ['week', 'team', 'score', 'opp', 'opp_score', 'team_result', 'opp_result']
@@ -40,8 +38,8 @@ def schedule_switcher(params: Params, season: int, week: int):
     for t_sched in teams:
         for t_switch in teams:
             if t_sched != t_switch:
-                t_sched_disp = params.team_map[t_sched]['name']['display']
-                t_switch_disp = params.team_map[t_switch]['name']['display']
+                t_sched_disp = params['team_map'][t_sched]['name']['display']
+                t_switch_disp = params['team_map'][t_switch]['name']['display']
 
                 # get first team's schedule
                 hm = schedule[schedule.team1_id == t_sched]
@@ -69,7 +67,7 @@ def schedule_switcher(params: Params, season: int, week: int):
 
                 # print('Schedule of', t_sched_disp, score)
                 # print('Switch with', t_switch_disp)
-                # print('New opp', params.team_map'][opp_tm]['name']['display'], opp_score)
+                # print('New opp', params['team_map'][opp_tm]['name']['display'], opp_score)
                 # print('Result:', result, end='\n\n')
                 tm_id = f'{season}_{str(week).zfill(2)}_{t_sched_disp}_{t_switch_disp}'
                 row = [tm_id, season, week, t_sched_disp, t_switch_disp, result]

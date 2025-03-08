@@ -21,7 +21,7 @@ def commit_h2h(connection, h2h_data: pd.DataFrame):
         VALUES
             (%s, %s, %s, %s, %s, %s);
         '''
-        values = (row.id, row.season, row.week, row.team, row.opp, row.win)
+        values = (row.id, row.season, row.week, row.team, row.opp, row.result)
 
         c.execute(query, values)
         connection.commit()

@@ -1,31 +1,10 @@
 import pandas as pd
-import requests
 from scripts.utils import (utils as ut,
                            constants as const)
 
 
-def load_weekly_data(season, week, league_id, swid, espn_s2):
-    url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
-          f'{int(season)}' \
-          f'/segments/0/leagues/' \
-          f'{int(league_id)}' \
-          f'?view=mMatchupScore&view=mMatchup&view=mTeam&view=mSettings'
-    r = requests.get(url,
-                     cookies={
-                         'SWID': swid,
-                         'espn_s2': espn_s2
-                     },
-                     params={
-                         'scoringPeriodId': week,
-                         'matchupPeriodId': week
-                     })
-    d = r.json()
-
-    return d
-
-
 def get_optimal_points(season, week):
-    d = load_weekly_data(season, week, const.LEAGUE_ID, const.SWID, const.ESPN_S2)
+    d = ut.load_weekly_data(season, week, const.LEAGUE_ID, const.SWID, const.ESPN_S2)
     params = ut.get_params(d)
     
     slots = const.SLOTCODES

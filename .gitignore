@@ -1,5 +1,10 @@
-/history/
-/tables/
-/screenshots/
-/venv/
-/old/
+history/
+tables/
+screenshots/
+venv/
+old/
+.idea/
+tests/
+
+.env
+pat.txt

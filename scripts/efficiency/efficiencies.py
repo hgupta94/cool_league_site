@@ -23,7 +23,7 @@ def load_weekly_data(season, week, league_id, swid, espn_s2):
 
     return d
 
-# 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
+
 def get_optimal_points(season, week):
     d = load_weekly_data(season, week, const.LEAGUE_ID, const.SWID, const.ESPN_S2)
     params = ut.get_params(d)

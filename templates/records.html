@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<br>
+<style>
+h1 {text-align: center;}
+h3 {text-align: center;}
+p {text-align: center;}
+
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+  vertical-align: middle;
+}
+</style>
+<h1>All Time Standings</h1>
+<p>Since 2014</p>
+<div class="tscroll" style="overflow-x:auto;">
+    <table class="table table-hover center content-table" style="table-layout:auto; width:60%; white-space:nowrap;">
+        <thead>
+            <tr>
+                {% for header in headings_alltime %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in data_alltime %}
+            <tr>
+                {% for cell in row %}
+                    <td>{{ cell }} </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<br>
+<h1>League Records</h1>
+<p>Since 2018</p>
+<div class="tscroll" style="overflow-x:auto;">
+    <table class="table table-hover center content-table" style="table-layout:auto; width:60%">
+        <thead>
+            <tr>
+                {% for header in headings_rec %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in data_rec %}
+            <tr>
+                {% for cell in row %}
+                    <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p>S = Season; M = Matchup; W = Week</p>
+
+{% endblock %}

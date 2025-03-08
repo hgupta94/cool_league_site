@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<br>
+<style>
+h1 {text-align: center;}
+p {text-align: center;}
+
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+  vertical-align: middle;
+}
+
+caption {font-size: small;}
+
+</style>
+<h1>{{ week }} Standings</h1>
+<div class="tscroll" style="overflow-x:auto;">
+    <table class="table table-hover center content-table standings" style="table-layout:auto; width:60%">
+        <caption>WB2/WB5-Weeks back of 2 and 5 seeds &nbsp;&nbsp;|&nbsp;&nbsp; PB6-Points back of 6 seed <br>
+                 c-Clinched bye or top 5 seed &nbsp;&nbsp;|&nbsp;&nbsp; x-Eliminated from bye or top 5 seed <br>
+                 Plus indicates team is ahead
+        </caption>
+        <thead>
+            <tr>
+                {% for header in headings_st %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in data_st %}
+            <tr>
+                {% for cell in row %}
+                    <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<br>
+<h1>{{ week }} Power Rankings</h1>
+<div class="tscroll" style="overflow-x:auto;">
+    <table class="table table-hover center content-table" style="table-layout:auto; width:50%">
+        <thead>
+            <tr>
+                {% for header in headings_pr %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in data_pr %}
+            <tr>
+                {% for cell in row %}
+                    <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

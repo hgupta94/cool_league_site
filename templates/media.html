@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<br>
+<style>
+h1 {text-align: center;}
+h3 {text-align: center;}
+p {text-align: center;}
+
+</style>
+<h1>2023</h1>
+<body>
+    <div>
+        <img src="{{url_for('www', filename=imgs)}}" alt="{{imgs}}">
+    </div>
+</body>
+{% endblock %}

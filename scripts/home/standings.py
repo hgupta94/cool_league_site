@@ -1,17 +1,18 @@
+from scripts.utils import utils as ut
+from scripts.utils import constants as const
+
 import pandas as pd
 import numpy as np
-from scripts.utils import (utils as ut,
-                           constants as const)
 
 
 def get_standings(params, season, week):
-    regular_season_end = params['regular_season_end']
+    regular_season_end = params.regular_season_end
     weeks_left = regular_season_end - week
-    teams = params['teams']
-    team_map = params['team_map']
+    teams = params.teams
+    team_map = params.team_map
     team_map = {a: b for a, b in team_map.items() if a in teams}
-    matchups = params['matchup_df']
-    n_playoff_teams = params['playoff_teams']
+    matchups = params.matchups_df
+    n_playoff_teams = params.playoff_teams
 
     flatten_first = {}
     flatten_display = {}

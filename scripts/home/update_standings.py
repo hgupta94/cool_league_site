@@ -1,7 +1,10 @@
+from scripts.api.DataLoader import DataLoader
+from scripts.api.Settings import Params
+from scripts.utils import utils as ut
+from scripts.utils import constants as const
+from scripts.home.standings import get_standings
+
 import pandas as pd
-from scripts.utils import (utils as ut,
-                           constants as const)
-from scripts.home.standings import (get_standings)
 
 
 def commit_standings_2018(connection, standings: pd.DataFrame):
@@ -48,17 +51,14 @@ def commit_standings_2021(connection, standings: pd.DataFrame):
         print('Success!', end='\n')
 
 
-def update_standings_db(season: int=const.SEASON,
-                     league_id: int=const.LEAGUE_ID,
-                     swid: str=const.SWID,
-                     espn_s2: str=const.ESPN_S2):
+def update_standings_db(season: int=const.SEASON):
+    d = DataLoader(year=season)
+    params = Params(data=d)
 
-    d = ut.load_data(league_id=league_id, swid=swid, espn_s2=espn_s2, season=season)
-    params = ut.get_params(d)
-
-    standings = get_standings(params=params, season=season, week=params['current_week'])
+    standings = get_standings(params=params, season=season, week=params.as_of_week)
     with ut.mysql_connection() as conn:
         commit_standings_2021(connection=conn, standings=standings)
+
 
 if __name__ == '__main__':
     update_standings_db()

@@ -1,7 +1,11 @@
-import pandas as pd
+from scripts.api.DataLoader import DataLoader
+from scripts.api.Settings import Params
+from scripts.utils import utils as ut
+from scripts.utils import constants as const
+from scripts.scenarios.scenarios import get_h2h
+from scripts.scenarios.scenarios import schedule_switcher
 
-from scripts.utils import (utils as ut, constants as const)
-from scripts.scenarios.scenarios import (get_h2h, schedule_switcher)
+import pandas as pd
 
 
 def commit_h2h(connection, h2h_data: pd.DataFrame):
@@ -44,15 +48,12 @@ def commit_ss(connection, ss_data: pd.DataFrame):
         print('Success!', end='\n')
 
 
-def update_scenarios_db(season: int=const.SEASON,
-                        league_id: int=const.LEAGUE_ID,
-                        swid: str=const.SWID,
-                        espn_s2: str=const.ESPN_S2):
-
-    d = ut.load_data(league_id=league_id, swid=swid, espn_s2=espn_s2, season=season)
-    params = ut.get_params(d)
-    week = params['current_week']
-    end = params['regular_season_end']
+def update_scenarios_db(season: int=const.SEASON):
+    d = DataLoader(year=season)
+    params = Params(data=d)
+    end = params.regular_season_end
+    as_of_week = params.as_of_week
+    week = as_of_week if as_of_week <= end else end
 
     if week <= end:
         h2h_data = get_h2h(params=params, season=season, week=week)

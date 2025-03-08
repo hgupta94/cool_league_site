@@ -13,13 +13,13 @@ def get_h2h(params: Params, season: int, week: int):
             tm1_disp = params.team_map[tm1]['name']['display']
             tm2_disp = params.team_map[tm2]['name']['display']
             if tm1 == tm2:
-                result = 0
+                result = 0.0
             else:
                 score1 = scores[(scores.week == week)
                                 & (scores.team == tm1)].score.values[0]
                 score2 = scores[(scores.week == week)
                                 & (scores.team == tm2)].score.values[0]
-                result = 1 if score1 > score2 else 0.5 if score1 == score2 else 0
+                result = 1.0 if score1 > score2 else 0.5 if score1 == score2 else 0.0
 
             tm_id = f'{season}_{str(week).zfill(2)}_{tm1_disp}_{tm2_disp}'
             row = [tm_id, season, week, tm1_disp, tm2_disp, result]

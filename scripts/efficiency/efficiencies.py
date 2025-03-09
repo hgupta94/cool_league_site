@@ -16,8 +16,7 @@ def get_optimal_points(season, week):
     positions = const.ESPN_POSITION_MAP
     slot_limits = settings['settings']['rosterSettings']['lineupSlotCounts']
     slot_limits = {k: v for k, v in slot_limits.items() if v > 0}
-    df = pd.DataFrame(columns=['season', 'week',
-                               'team_id', 'team_name',
+    df = pd.DataFrame(columns=['id', 'season', 'week', 'team_id', 'team',
                                'actual_score', 'actual_projected',
                                'best_projected_actual', 'best_projected_proj',
                                'best_lineup_actual', 'best_lineup_proj'])
@@ -121,11 +120,17 @@ def get_optimal_points(season, week):
         to_remove_opt_flat.append(flex_selector)
         lineup_opt = {k: v for k, v in roster.items() if k in to_remove_opt_flat}
 
-        row = [const.SEASON, week,
+        # create dataframe
+        tm_id = f'{season}_{str(week).zfill(2)}_{owr_name}'
+        row = [tm_id, season, week,
                owr_id, owr_name,
                round(act_pts_act, 2), round(act_pts_proj, 2),
                round(proj_pts_act, 2), round(proj_pts_proj, 2),
                round(opt_pts_act, 2), round(opt_pts_proj, 2)]
         df.loc[len(df)] = row
 
-    return df
+    keep = ['id', 'season', 'week', 'team',
+            'actual_score', 'actual_projected',
+            'best_projected_actual', 'best_projected_proj',
+            'best_lineup_actual', 'best_lineup_proj']
+    return df[keep]

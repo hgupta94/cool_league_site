@@ -7,7 +7,6 @@ import numpy as np
 class Params:
     def __init__(self, data):
         settings = data.settings()
-        teams = data.teams()
         matchups = data.matchups()
 
         # general settings
@@ -24,15 +23,6 @@ class Params:
         self.weeks_left = 0 if self.as_of_week > self.regular_season_end else self.regular_season_end - self.as_of_week
         self.slotcodes = const.SLOTCODES
         self.team_map = const.TEAM_IDS
-
-        # team mappings
-        self.primowner_to_teamid = {}
-        self.teamid_to_primowner = {}
-        for team in teams['teams']:
-            o_id = team['primaryOwner']
-            t_id = team['id']
-            self.primowner_to_teamid[o_id] = t_id
-            self.teamid_to_primowner[t_id] = o_id
 
         # roster construction
         self.lineup_slots = settings['settings']['rosterSettings']['lineupSlotCounts']
@@ -77,11 +67,3 @@ class Params:
         })
         away['id'] = away['team'].astype(str) + away['week'].astype(str)
         self.scores_df = pd.concat([home, away]).sort_values(['week', 'id']).drop('id', axis=1).reset_index(drop=True)
-
-        # FAAB budget remaining
-        self.faab_budget = settings['settings']['acquisitionSettings']['acquisitionBudget']
-        self.faab_remaining = {}
-        for tm in teams['teams']:
-            teamid = tm['id']
-            remaining = self.faab_budget - tm['transactionCounter']['acquisitionBudgetSpent']
-            self.faab_remaining[teamid] = remaining

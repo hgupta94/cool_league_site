@@ -5,6 +5,7 @@ venv/
 old/
 .idea/
 tests/
+**/__pycache__/
 
 .env
-pat.txt
+*.txt

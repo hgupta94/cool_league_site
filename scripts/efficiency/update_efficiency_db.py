@@ -32,3 +32,23 @@ def commit_efficiency(connection, data: pd.DataFrame):
         c.execute(query, values)
         connection.commit()
         print('Success!', end='\n')
+
+
+def update_efficiency_db(season: int=const.SEASON):
+    d = DataLoader(year=season)
+    params = Params(d)
+    settings = d.settings()
+
+    end = params.regular_season_end
+    as_of_week = params.as_of_week
+    week = as_of_week if as_of_week <= end else end
+
+    data = d.load_week(week=week)
+
+    eff = get_optimal_points(data, params, settings, season, week)
+    with ut.mysql_connection() as conn:
+        commit_efficiency(connection=conn, data=eff)
+
+
+if __name__ == '__main__':
+    update_efficiency_db()

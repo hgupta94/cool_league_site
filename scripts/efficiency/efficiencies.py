@@ -1,17 +1,10 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
 from scripts.utils import utils as ut
 from scripts.utils import constants as const
 
 import pandas as pd
 
 
-def get_optimal_points(season, week):
-    d = DataLoader(year=season)
-    data = d.load_week(week=week)
-    params = Params(d)
-    settings = d.settings()
-    
+def get_optimal_points(data, params, settings, season, week):
     slots = const.SLOTCODES
     positions = const.ESPN_POSITION_MAP
     slot_limits = settings['settings']['rosterSettings']['lineupSlotCounts']

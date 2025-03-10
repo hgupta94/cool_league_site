@@ -2,6 +2,11 @@ from scripts.utils import utils as ut
 from scripts.utils import constants as const
 
 import pandas as pd
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from adjustText import adjust_text
 
 
 def get_optimal_points(data, params, settings, season, week):
@@ -127,3 +132,49 @@ def get_optimal_points(data, params, settings, season, week):
             'best_projected_actual', 'best_projected_proj',
             'best_lineup_actual', 'best_lineup_proj']
     return df[keep]
+
+
+def plot_efficiency(season, week):
+    with ut.mysql_connection() as conn:
+        query = f'''
+        SELECT *
+        FROM efficiency
+        WHERE season={season} AND week<={week}
+        '''
+        eff = pd.read_sql(query, con=conn)
+
+    cols = eff.select_dtypes(include=['float']).columns.tolist()
+    df = eff.groupby('team')[cols].sum() / week
+    df['act_opt_perc'] = df.act_score / df.optimal_lineup_act
+    df['diff_from_opt'] = df.act_score - df.optimal_lineup_act
+    df['act_bestproj_perc'] = df.act_score / df.best_projected_act
+
+    # plot
+    teams = df.index.to_list()
+    perc = [f'{round(p * 100)}%' for p in df.act_opt_perc.to_list()]
+    x = df.diff_from_opt.to_list()
+    y = df.optimal_lineup_act.to_list()
+
+    colors = ['black', 'darkcyan', 'brown', 'chocolate', 'dodgerblue', 'crimson',
+              'forestgreen', 'slateblue', 'blueviolet', 'olivedrab', 'lightseagreen', 'grey']
+    colors = colors[:len(x)]
+    fig, ax = plt.subplots()
+    [i.set_linewidth(1.25) for i in ax.spines.values()]  # set border width
+    ax.scatter(x, y, c=colors)
+    ax.get_xlim()
+    ax.get_ylim()
+    # plt.title('Test Title')
+    texts = []
+    for i, txt in enumerate(zip(teams, perc)):
+        the_txt = f'{txt[0]} ({txt[1]})'
+        texts.append(plt.text(x[i], y[i], the_txt, color=colors[i]))
+    plt.axvline(x=np.median(x), color='grey', linestyle='--', alpha=0.3)
+    plt.axhline(y=np.median(y), color='grey', linestyle='--', alpha=0.3)
+    adjust_text(texts, autoalign='xy',
+                expand_points=(2, 2))
+    # arrowprops=dict(arrowstyle="-", color='grey', alpha=0.5))
+    plt.xlabel('Difference From Optimal Points per Week')
+    plt.ylabel('Optimal Points per Week')
+    plt.setp(ax.spines.values(), color='lightgrey')
+    # plt.figtext(0.99, 0.5, "Right Margin Text", va="center", rotation="vertical", ha="right")
+    plt.savefig('www/plots/efficiency_plot.png')

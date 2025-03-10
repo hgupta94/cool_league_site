@@ -1,24 +1,22 @@
-from scripts.api.Settings import Params
-
+from scripts.api.Teams import Teams
+from scripts.utils import constants as const
 import pandas as pd
 
 
-def get_h2h(params: Params, season: int, week: int):
-    scores = params.scores_df
-    teams = params.teams
-
+def get_h2h(teams: Teams, season: int, week: int):
+    tms = teams.team_ids
     df = pd.DataFrame(columns=['id', 'season', 'week', 'team', 'opp', 'result'])
-    for tm1 in teams:
-        for tm2 in teams:
-            tm1_disp = params.team_map[tm1]['name']['display']
-            tm2_disp = params.team_map[tm2]['name']['display']
+    for tm1 in tms:
+        for tm2 in tms:
+            owner1 = teams.teamid_to_primowner[tm1]
+            owner2 = teams.teamid_to_primowner[tm2]
+            tm1_disp = const.TEAM_IDS[owner1]['name']['display']
+            tm2_disp = const.TEAM_IDS[owner2]['name']['display']
             if tm1 == tm2:
                 result = 0.0
             else:
-                score1 = scores[(scores.week == week)
-                                & (scores.team == tm1)].score.values[0]
-                score2 = scores[(scores.week == week)
-                                & (scores.team == tm2)].score.values[0]
+                score1 = teams.team_scores(team_id=tm1)[week-1]
+                score2 = teams.team_scores(team_id=tm2)[week-1]
                 result = 1.0 if score1 > score2 else 0.5 if score1 == score2 else 0.0
 
             tm_id = f'{season}_{str(week).zfill(2)}_{tm1_disp}_{tm2_disp}'
@@ -28,51 +26,38 @@ def get_h2h(params: Params, season: int, week: int):
     return df
 
 
-def schedule_switcher(params: Params, season: int, week: int):
-    teams = params.teams
-    schedule = params.matchups_df
-    scores = params.scores_df
-
-    # get team 1's schedule
-    hm_cols = ['week', 'team', 'score', 'opp', 'opp_score', 'team_result', 'opp_result']
-    aw_cols = ['week', 'opp', 'opp_score', 'team', 'score', 'opp_result', 'team_result']
+def schedule_switcher(teams: Teams, season: int, week: int):
+    tms = teams.team_ids
     df = pd.DataFrame(columns=['id', 'season', 'week', 'team', 'schedule_of', 'result'])
-    for t_sched in teams:
-        for t_switch in teams:
-            if t_sched != t_switch:
-                t_sched_disp = params.team_map[t_sched]['name']['display']
-                t_switch_disp = params.team_map[t_switch]['name']['display']
+    for sched_of in tms:
+        for t_switch in tms:
+            if sched_of != t_switch:
+                owner1 = teams.teamid_to_primowner[sched_of]
+                owner2 = teams.teamid_to_primowner[t_switch]
+                sched_of_disp = const.TEAM_IDS[owner1]['name']['display']
+                t_switch_disp = const.TEAM_IDS[owner2]['name']['display']
 
-                # get first team's schedule
-                hm = schedule[schedule.team1_id == t_sched]
-                hm.columns = hm_cols
-                aw = schedule[schedule.team2_id == t_sched]
-                aw.columns = aw_cols
-                tm_sched = pd.concat([hm, aw]).sort_values('week')
+                # get sched_of team's schedule
+                sched_of_sched = teams.team_schedule(sched_of)[week-1]
 
-                # switch new team with first team
-                new_scores = scores[scores.team == t_switch]
-                score = new_scores[(new_scores.week == week)
-                                   & (new_scores.team == t_switch)].score.values[0]
-                opp = tm_sched[tm_sched.week == week]
-                opp_tm = opp.opp.values[0]
-                opp_score = opp.opp_score.values[0]
+                # switch sched_of team with t_switch
+                tm_sched = teams.team_schedule(t_switch)[week-1]
+                score = tm_sched['score']
+                new_opp_tm = sched_of_sched['opp']
+                new_opp_score = sched_of_sched['opp_score']
 
                 # if team and new opp are the same, need to use actual schedule results
-                if t_switch != opp_tm:
-                    result = 1.0 if score > opp_score else 0.5 if score == opp_score else 0.0
+                if t_switch != new_opp_tm:
+                    result = 1.0 if score > new_opp_score else 0.5 if score == new_opp_score else 0.0
                 else:
-                    act_match = tm_sched[(tm_sched.week == week)
-                                         & (tm_sched.team == t_sched)
-                                         & (tm_sched.opp == t_switch)]
-                    result = act_match.opp_result.values[0]
+                    result = tm_sched['result']
 
-                # print('Schedule of', t_sched_disp, score)
-                # print('Switch with', t_switch_disp)
-                # print('New opp', params.team_map'][opp_tm]['name']['display'], opp_score)
+                # print('Schedule of', sched_of_disp)
+                # print('Switch with', t_switch_disp, score)
+                # print('New opp', const.TEAM_IDS[teams.teamid_to_primowner[new_opp_tm]]['name']['display'], new_opp_score)
                 # print('Result:', result, end='\n\n')
-                tm_id = f'{season}_{str(week).zfill(2)}_{t_sched_disp}_{t_switch_disp}'
-                row = [tm_id, season, week, t_sched_disp, t_switch_disp, result]
+                tm_id = f'{season}_{str(week).zfill(2)}_{t_switch_disp}_{sched_of_disp}'
+                row = [tm_id, season, week, t_switch_disp, sched_of_disp, result]
                 df.loc[len(df)] = row
 
     return df

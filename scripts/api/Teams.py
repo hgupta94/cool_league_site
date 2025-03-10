@@ -4,8 +4,7 @@ from scripts.api.Settings import Params
 
 class Teams:
 
-    def __init__(self):
-        data = DataLoader()
+    def __init__(self, data):
         self.settings = data.settings()
         self.teams = data.teams()
         self.matchups = data.matchups()
@@ -60,10 +59,11 @@ class Teams:
                       'score1': 'score',
                       'team2': 'opp',
                       'score2': 'opp_score'}
-        away_remap = {'team1': 'opp',
+        away_remap = {'team2': 'team',
+                      'score2': 'score',
+                      'team1': 'opp',
                       'score1': 'opp_score',
-                      'team2': 'team',
-                      'score2': 'score'}
+                      }
         team_schedule_home = [x for x in matchups_list if x['team1'] == team_id]
         team_schedule_home = [{home_remap.get(k, k): v for k, v in d.items()} for d in team_schedule_home]
         team_schedule_away = [x for x in matchups_list if x['team2'] == team_id]

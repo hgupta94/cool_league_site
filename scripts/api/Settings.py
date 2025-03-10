@@ -34,36 +34,36 @@ class Params:
         self.lineup_slots_df['pos'] = self.lineup_slots_df.replace({'posID': const.SLOTCODES}).posID
         self.position = self.lineup_slots_df.pos.str.lower().to_list()
         self.position = np.setdiff1d(self.position, ['bench', 'ir']).tolist()
-        self.teams = list(self.primowner_to_teamid.keys())
+        # self.teams = list(self.primowner_to_teamid.keys())
 
         # schedules
-        self.matchups_df = pd.DataFrame()
-        for game in matchups['schedule']:
-            if game['matchupPeriodId'] <= self.regular_season_end:
-                week = game['matchupPeriodId']
-                team1 = self.teamid_to_primowner[game['home']['teamId']]
-                score1 = game['home']['totalPoints']
-                team2 = self.teamid_to_primowner[game['away']['teamId']]
-                score2 = game['away']['totalPoints']
-                matchups = pd.DataFrame([[week, team1, score1, team2, score2]],
-                                        columns=['week', 'team1_id', 'score1', 'team2_id', 'score2'])
-                self.matchups_df = pd.concat([self.matchups_df, matchups])
-        self.matchups_df['team1_result'] = np.where(self.matchups_df['score1'] > self.matchups_df['score2'], 1.0, 0.0)
-        self.matchups_df['team2_result'] = np.where(self.matchups_df['score2'] > self.matchups_df['score1'], 1.0, 0.0)
-        mask = (self.matchups_df.score1 == self.matchups_df.score2)\
-               & (self.matchups_df.score1 > 0)\
-               & (self.matchups_df.score2 > 0)  # Account for ties
-        self.matchups_df.loc[mask, ['team1_result', 'team2_result']] = 0.5
-        home = self.matchups_df.iloc[:, [0, 1, 2, 5]].rename(columns={
-            'team1_id': 'team',
-            'score1': 'score',
-            'team1_result': 'result'
-        })
-        home['id'] = home['team'].astype(str) + home['week'].astype(str)
-        away = self.matchups_df.iloc[:, [0, 3, 4, 6]].rename(columns={
-            'team2_id': 'team',
-            'score2': 'score',
-            'team2_result': 'result'
-        })
-        away['id'] = away['team'].astype(str) + away['week'].astype(str)
-        self.scores_df = pd.concat([home, away]).sort_values(['week', 'id']).drop('id', axis=1).reset_index(drop=True)
+        # self.matchups_df = pd.DataFrame()
+        # for game in matchups['schedule']:
+        #     if game['matchupPeriodId'] <= self.regular_season_end:
+        #         week = game['matchupPeriodId']
+        #         team1 = self.teamid_to_primowner[game['home']['teamId']]
+        #         score1 = game['home']['totalPoints']
+        #         team2 = self.teamid_to_primowner[game['away']['teamId']]
+        #         score2 = game['away']['totalPoints']
+        #         matchups = pd.DataFrame([[week, team1, score1, team2, score2]],
+        #                                 columns=['week', 'team1_id', 'score1', 'team2_id', 'score2'])
+        #         self.matchups_df = pd.concat([self.matchups_df, matchups])
+        # self.matchups_df['team1_result'] = np.where(self.matchups_df['score1'] > self.matchups_df['score2'], 1.0, 0.0)
+        # self.matchups_df['team2_result'] = np.where(self.matchups_df['score2'] > self.matchups_df['score1'], 1.0, 0.0)
+        # mask = (self.matchups_df.score1 == self.matchups_df.score2)\
+        #        & (self.matchups_df.score1 > 0)\
+        #        & (self.matchups_df.score2 > 0)  # Account for ties
+        # self.matchups_df.loc[mask, ['team1_result', 'team2_result']] = 0.5
+        # home = self.matchups_df.iloc[:, [0, 1, 2, 5]].rename(columns={
+        #     'team1_id': 'team',
+        #     'score1': 'score',
+        #     'team1_result': 'result'
+        # })
+        # home['id'] = home['team'].astype(str) + home['week'].astype(str)
+        # away = self.matchups_df.iloc[:, [0, 3, 4, 6]].rename(columns={
+        #     'team2_id': 'team',
+        #     'score2': 'score',
+        #     'team2_result': 'result'
+        # })
+        # away['id'] = away['team'].astype(str) + away['week'].astype(str)
+        # self.scores_df = pd.concat([home, away]).sort_values(['week', 'id']).drop('id', axis=1).reset_index(drop=True)

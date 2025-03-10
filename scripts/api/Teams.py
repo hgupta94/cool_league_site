@@ -1,9 +1,10 @@
-from scripts.api.DataLoader import DataLoader
 from scripts.api.Settings import Params
+from scripts.utils.utils import flatten_list
+
+import numpy as np
 
 
 class Teams:
-
     def __init__(self, data):
         self.settings = data.settings()
         self.teams = data.teams()
@@ -62,8 +63,7 @@ class Teams:
         away_remap = {'team2': 'team',
                       'score2': 'score',
                       'team1': 'opp',
-                      'score1': 'opp_score',
-                      }
+                      'score1': 'opp_score'}
         team_schedule_home = [x for x in matchups_list if x['team1'] == team_id]
         team_schedule_home = [{home_remap.get(k, k): v for k, v in d.items()} for d in team_schedule_home]
         team_schedule_away = [x for x in matchups_list if x['team2'] == team_id]
@@ -81,3 +81,15 @@ class Teams:
 
     def team_faab_remaining(self, team_id):
         return self.faab_remaining[team_id]
+
+    def week_median(self, week):
+        matchups = self._fetch_matchups()
+        scores = flatten_list(
+            [
+                list({
+                    d[k] for k in ['score1', 'score2'] if k in d
+                })
+                for d in matchups if d['week'] == week
+            ]
+        )
+        return float(round(np.median(scores), 2))

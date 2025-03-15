@@ -94,7 +94,7 @@ class DataLoader:
     def nav(self):
         return self._loader(view='mNav')
 
-    def players_kona(self):
+    def players(self):
         return self._loader(view='kona_player_info')
 
     def transactions(self):

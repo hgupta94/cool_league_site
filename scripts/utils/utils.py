@@ -1,7 +1,5 @@
 from scripts.utils import constants as const
-import sshtunnel
 import pandas as pd
-import numpy as np
 import requests
 import json
 import difflib
@@ -10,11 +8,25 @@ pd.options.mode.chained_assignment = None
 
 
 def flatten_list(lst: list) -> list:
+    """Flattens a list of lists into a single list"""
     return [
         x
         for xs in lst
         for x in xs
     ]
+
+
+def mysql_connection():
+    """Creates a MySQL connection obejct"""
+
+    conn = mysql.connector.connect(
+        host=const.DB_HOST,
+        user=const.USERNAME,
+        password=const.DB_PASS,
+        database=const.DB
+    )
+
+    return conn
 
 
 def get_espn_players(season: str | int):
@@ -91,27 +103,14 @@ def match_players_to_espn(df: pd.DataFrame,
     return matched_df
 
 
-def ssh_tunnel():
-    """Creates an SSH tunnel obejct to connect to MySQL"""
-
-    tunnel = sshtunnel.SSHTunnelForwarder(
-            const.SSH_HOST,
-            ssh_username=const.USERNAME,
-            ssh_password=const.SSH_PASS,
-            remote_bind_address=(const.DB_HOST, 3306)
-    )
-
-    return tunnel
-
-
-def mysql_connection():
-    """Creates a MySQL connection obejct"""
-
-    conn = mysql.connector.connect(
-        host=const.DB_HOST,
-        user=const.USERNAME,
-        password=const.DB_PASS,
-        database=const.DB
-    )
-
-    return conn
+# def ssh_tunnel():
+#     """Creates an SSH tunnel obejct to connect to MySQL"""
+#
+#     tunnel = sshtunnel.SSHTunnelForwarder(
+#             const.SSH_HOST,
+#             ssh_username=const.USERNAME,
+#             ssh_password=const.SSH_PASS,
+#             remote_bind_address=(const.DB_HOST, 3306)
+#     )
+#
+#     return tunnel

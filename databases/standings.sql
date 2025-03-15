@@ -1,12 +1,12 @@
-CREATE TABLE standings_2018 (
+CREATE TABLE standings (
     id VARCHAR(255) PRIMARY KEY,
     season INT,
     week INT,
-    `rank` INT,
     team VARCHAR(255),
-    record VARCHAR(255),
-    win_perc VARCHAR(255),
-    total_pf VARCHAR(255),
-    wb4 VARCHAR(255),
+    m_wins DECIMAL(4, 1),
+    m_losses DECIMAL(4, 1),
+    th_wins DECIMAL(4, 1),
+    th_losses DECIMAL(4, 1),
+    total_pf DECIMAL(6, 2),
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

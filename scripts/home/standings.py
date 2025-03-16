@@ -38,23 +38,5 @@ def get_standings(season: int,
     return rows
 
 
-def commit_standings(connection,
-                     standings: list):
-    print(f'Writing standings to database')
-
-    for row in standings:
-        print(f'Committing {row[0]}...', end='\n')
-        c = connection.cursor()
-        query = '''
-        INSERT INTO
-        standings
-            (id, season, week, team, m_wins, m_losses, th_wins, th_losses, total_pf)
-        VALUES
-            (%s, %s, %s, %s, %s, %s, %s, %s, %s);
-        '''
-        values = (row[0], row[1], row[2], row[3], row[4],
-                  row[5], row[6], row[7], row[8])
-
-        c.execute(query, values)
-        connection.commit()
-        print('Success!', end='\n')
+def format_standings():
+    ...

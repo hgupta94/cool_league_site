@@ -1,25 +1,33 @@
+from scripts.api.DataLoader import DataLoader
+from scripts.api.Settings import Params
+from scripts.api.Rosters import Rosters
 from scripts.utils import utils as ut
 from scripts.utils import constants as const
 
 import pandas as pd
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from adjustText import adjust_text
+import matplotlib
+matplotlib.use('Agg')
 
 
-def get_optimal_points(data, params, settings, season, week):
+def get_optimal_points(data: DataLoader,
+                       week_data: dict,
+                       season: int,
+                       week: int):
+    params = Params(data)
+    rosters = Rosters()
+
     slots = const.SLOTCODES
-    positions = const.ESPN_POSITION_MAP
-    slot_limits = settings['settings']['rosterSettings']['lineupSlotCounts']
-    slot_limits = {k: v for k, v in slot_limits.items() if v > 0}
+    positions = const.POSITION_MAP
+    slot_limits = rosters.slot_limits
     df = pd.DataFrame(columns=['id', 'season', 'week', 'team_id', 'team',
                                'actual_score', 'actual_projected',
                                'best_projected_actual', 'best_projected_proj',
                                'best_lineup_actual', 'best_lineup_proj'])
 
-    for team in data['teams']:
+    for team in week_data['teams']:
         roster = {}
         owr_id = team['primaryOwner']
         owr_name = params.team_map[owr_id]['name']['display']
@@ -67,13 +75,13 @@ def get_optimal_points(data, params, settings, season, week):
         proj_pts_proj = 0
         proj_pts_act = 0
         to_remove_proj = []
-        for plid, pos in positions.items():
-            limit = slot_limits[str(plid)]  # position limit
+        for posid, pos in positions.items():
+            limit = slot_limits[posid]  # position limit
             tm_player_pool = {k: v for k, v in roster.items() if v['position'] == pos}
             selector = sorted(tm_player_pool, key=lambda x: tm_player_pool[x]['proj'], reverse=True)[0:limit]  # highest projected player/s
             to_remove_proj.append(selector)  # to remove player from available pool
             the_players = {k: v for k, v in tm_player_pool.items() if k in selector}  # selected player/s in current position
-            for plid, vals in the_players.items():
+            for posid, vals in the_players.items():
                 proj_pts_proj += vals['proj']  # best projected lineup projected points
                 proj_pts_act += vals['points']  # best projected lineup actual points
 

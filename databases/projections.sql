@@ -1,9 +1,11 @@
 CREATE TABLE projections (
     id VARCHAR(255) PRIMARY KEY,
-    espn_id INT,
     season INT,
     week INT,
+    name VARCHAR(225),
+    espn_id INT,
+    position VARCHAR(255),
     receptions FLOAT,
-    fantasy_points FLOAT,
+    projection FLOAT,
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

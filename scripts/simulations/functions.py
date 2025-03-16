@@ -2,17 +2,17 @@ import pandas as pd
 import numpy as np
 import random
 from functools import reduce
-
 from scripts.utils.constants import SLOTCODES
 
 
-def get_week_projections(params):
+def get_week_projections(week):
     """Return current week's projections for all positions"""
     positions = ['qb', 'rb', 'wr', 'te', 'dst']
 
     projections = pd.DataFrame()
     for pos in positions:
-        url = f"https://www.fantasypros.com/nfl/projections/{pos}.php?scoring=HALF&week={params['matchup_week']}"
+        print(pos)
+        url = f"https://www.fantasypros.com/nfl/projections/{pos}.php?scoring=HALF&week={week}"
         df = pd.read_html(url)[0]
 
         # drop multi index column

@@ -1,16 +1,17 @@
 from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
 from scripts.api.Teams import Teams
 from scripts.api.Rosters import Rosters
 from scripts.utils import constants as const
 from scripts.utils import utils as ut
+
 import difflib
+import scipy.stats as st
 import pandas as pd
 pd.options.mode.chained_assignment = None
 
 
 def match_player_to_espn(the_player: str,
-                         players: list):
+                         players: list) -> int | None:
     player_lookup = [f"{p['player']['fullName']}|{const.NFL_TEAM_MAP[p['player']['proTeamId']]}" for p in players]
 
     calc = [difflib.SequenceMatcher(None, the_player, m).ratio() for m in player_lookup]
@@ -22,7 +23,7 @@ def match_player_to_espn(the_player: str,
         return None
 
 
-def get_week_projections(week):
+def get_week_projections(week) -> pd.DataFrame:
     """Return current week's projections for all positions"""
     data = DataLoader()
     players = data.players()['players']
@@ -79,7 +80,7 @@ def get_week_projections(week):
 
 
 def query_projections_db(season: int,
-                         week: int):
+                         week: int) -> pd.DataFrame:
     cols = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receeptions', 'projection', 'created']
     with ut.mysql_connection() as conn:
         c = conn.cursor()
@@ -96,12 +97,12 @@ def query_projections_db(season: int,
 
 
 def get_best_lineup(data: DataLoader,
-                    season: int,
+                    rosters: Rosters,
+                    projections: pd.DataFrame,
                     week: int,
-                    team_id: int):
-    rosters = Rosters(year=season)
+                    team_id: int,
+                    season: int = const.SEASON) -> dict:
     week_data = data.load_week(week=week)
-    projections = query_projections_db(season, week)
 
     slots = const.SLOTCODES
     positions = const.POSITION_MAP
@@ -176,3 +177,93 @@ def get_best_lineup(data: DataLoader,
               in roster.items()
               if k in selected_flat}
     return lineup
+
+
+def simulate_lineup(lineup: dict) -> float:
+    gamma_map = const.GAMMA_VALUES
+    proj_points = 0
+    for _, plr in lineup.items():
+        vals = gamma_map[plr['position']]
+        sim = st.gamma.rvs(a=vals['a'], loc=vals['loc'], scale=vals['scale'], size=1).item()
+        proj_points += sim
+        # print(plr['player_name'], round(sim,2))
+    # print(proj_points-base)
+    return proj_points
+
+
+def simulate_matchup(data: DataLoader,
+                     teams: Teams,
+                     rosters: Rosters,
+                     season: int,
+                     week: int,
+                     projections: pd.DataFrame) -> list[dict]:
+    matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
+
+    matchup_sim = []
+    for idx, m in enumerate(matchups):
+        gmid = idx + 1
+
+        tm1 = m['away']['teamId']
+        lineup1 = get_best_lineup(data=data, rosters=rosters, projections=projections, season=season, week=week, team_id=tm1)
+        sim1 = simulate_lineup(lineup1)
+
+        tm2 = m['home']['teamId']
+        lineup2 = get_best_lineup(data=data, rosters=rosters,projections=projections, season=season, week=week, team_id=tm2)
+        sim2 = simulate_lineup(lineup2)
+
+        # redo sim if they are somehow equal
+        if sim1 == sim2:
+            print('redoing sim')
+            sim1 = simulate_lineup(lineup1)
+            sim2 = simulate_lineup(lineup2)
+
+        matchup_sim.append({
+            'game_id': gmid,
+            'team': tm1,
+            'score': sim1,
+            'result': 1 if sim1 > sim2 else 0
+        })
+
+        matchup_sim.append({
+            'game_id': gmid,
+            'team': tm2,
+            'score': sim2,
+            'result': 1 if sim2 > sim1 else 0
+        })
+
+    return matchup_sim
+
+
+def simulate_week(data: DataLoader,
+                  teams: Teams,
+                  rosters: Rosters,
+                  projections: pd.DataFrame,
+                  season: int,
+                  week: int,
+                  n_sims: int = 10) -> list:
+    scores = {key: 0 for key in teams.team_ids}
+    n_wins = {key: 0 for key in teams.team_ids}
+    n_tophalf = {key: 0 for key in teams.team_ids}
+    n_highest = {key: 0 for key in teams.team_ids}
+    n_lowest = {key: 0 for key in teams.team_ids}
+    for sim in range(n_sims):
+        print(sim+1)
+        matchup_sim = simulate_matchup(data=data,
+                                       teams=teams,
+                                       rosters=rosters,
+                                       season=season,
+                                       week=week,
+                                       projections=projections)
+        for tm in matchup_sim:
+            scores[tm['team']] += tm['score']
+            if tm['result'] == 1:
+                n_wins[tm['team']] += 1
+
+        for_tophalf = sorted(matchup_sim, key=lambda d: d['score'], reverse=True)[:int((len(teams.team_ids)/2))]
+        for tm in for_tophalf:
+            n_tophalf[tm['team']] += 1
+
+        n_highest[max(matchup_sim, key=lambda x: x['score'])['team']] += 1
+        n_lowest[min(matchup_sim, key=lambda x: x['score'])['team']] += 1
+
+    return [scores, n_wins, n_tophalf, n_highest, n_lowest]

@@ -45,7 +45,6 @@ GAMMA_VALUES = {
     },
 }
 
-
 # ESPN mappings
 NFL_TEAM_MAP = {
     0:  'None',

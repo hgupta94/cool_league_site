@@ -17,7 +17,7 @@ def get_optimal_points(data: DataLoader,
                        season: int,
                        week: int):
     params = Params(data)
-    rosters = Rosters()
+    rosters = Rosters(year=season)
 
     slots = const.SLOTCODES
     positions = const.POSITION_MAP

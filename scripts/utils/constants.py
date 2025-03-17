@@ -16,6 +16,36 @@ DB_PASS = 'Yucca090616!'
 DB_HOST = '127.0.0.1'
 DB = 'chill'
 
+# values for sim
+GAMMA_VALUES = {
+    'QB': {
+        'a': 25.0963,
+        'loc': -20.3195,
+        'scale': 1.582
+    },
+    'RB': {
+        'a': 2.9539,
+        'loc': -0.2592,
+        'scale': 4.6404
+    },
+    'WR': {
+        'a': 2.1777,
+        'loc': 0.5273,
+        'scale': 5.2803
+    },
+    'TE': {
+        'a': 1.7211,
+        'loc': 0.8828,
+        'scale': 4.9674
+    },
+    'DST': {
+        'a': 2.2054,
+        'loc': 1.0673,
+        'scale': 3.3139
+    },
+}
+
+
 # ESPN mappings
 NFL_TEAM_MAP = {
     0:  'None',
@@ -59,6 +89,7 @@ POSITION_MAP = {
     4:  'WR',
     6:  'TE',
     16: 'DST'
+    # 17: 'K'
 }
 
 SLOTCODES = {

@@ -1,5 +1,9 @@
 from scripts.api.DataLoader import DataLoader
+from scripts.api.Settings import Params
+from scripts.api.Teams import Teams
+from scripts.api.Rosters import Rosters
 from scripts.utils import constants as const
+from scripts.utils import utils as ut
 import difflib
 import pandas as pd
 pd.options.mode.chained_assignment = None
@@ -72,3 +76,103 @@ def get_week_projections(week):
     projections['espn_id'] = projections.apply(lambda x: match_player_to_espn(x['match_on'], players), axis=1)
 
     return projections[~projections.espn_id.isnull()]
+
+
+def query_projections_db(season: int,
+                         week: int):
+    cols = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receeptions', 'projection', 'created']
+    with ut.mysql_connection() as conn:
+        c = conn.cursor()
+        query = f'''
+        SELECT *
+        FROM projections
+        WHERE season={season} and week={week};
+        '''
+        c.execute(query)
+        result = c.fetchall()
+        df = pd.DataFrame(result)
+        df.columns = cols
+    return df[['name', 'espn_id', 'projection']].set_index('espn_id').to_dict(orient='index')
+
+
+def get_best_lineup(data: DataLoader,
+                    season: int,
+                    week: int,
+                    team_id: int):
+    rosters = Rosters(year=season)
+    week_data = data.load_week(week=week)
+    projections = query_projections_db(season, week)
+
+    slots = const.SLOTCODES
+    positions = const.POSITION_MAP
+    slot_limits = rosters.slot_limits
+    team = [t for t in week_data['teams'] if t['id'] == team_id][0]
+    roster = {}
+    for plr in team['roster']['entries']:
+        # general player data
+        plr_id = plr['playerId']
+        plr_name = plr['playerPoolEntry']['player']['fullName']
+        slot_id = plr['lineupSlotId']
+        lineup_slot = slots[slot_id]
+        psns = plr['playerPoolEntry']['player']['eligibleSlots']
+        for p in psns:
+            # get NFL position
+            try:
+                psn = positions[p]
+                psn_id = p
+            except KeyError:
+                continue
+
+        # get actual and projected
+        # TODO: need to know what this looks like when player hasn't played yet
+        # TODO: what happens if player is not in projections db?
+        act = 0
+        proj = 0
+        for stat in plr['playerPoolEntry']['player']['stats']:
+            if stat['scoringPeriodId'] == week:
+                if stat['statSourceId'] == 0:
+                    pass
+                    # act = stat['appliedTotal']
+                try:
+                    proj = projections[plr_id]['projection']
+                except KeyError:
+                    if stat['statSourceId'] == 1:
+                        proj = stat['appliedTotal']
+
+        roster[plr_id] = {
+            'player_name': plr_name,
+            'slot_id': slot_id,
+            'lineup_slot': lineup_slot,
+            'position_id': psn_id,
+            'position': psn,
+            'points': act,
+            'proj': proj
+        }
+
+    # get best projected lineup
+    selected = []
+    for plid, pos in positions.items():
+        pos_limit = slot_limits[plid]
+        pos_player_pool = {k: v for k, v in roster.items() if v['position'] == pos}
+        selector = sorted(pos_player_pool,
+                          key=lambda x: pos_player_pool[x]['proj'],
+                          reverse=True)[0:pos_limit]  # highest projected player(s)
+        selected.append(selector)  # remove player from available pool
+        # selected = {k: v
+        #             for k, v
+        #             in pos_player_pool.items()
+        #             if k in selector}  # selected player(s) in current position
+    selected_flat = ut.flatten_list(selected)
+
+    # get flex player
+    flex_pool = {k: v for k, v in roster.items() if k not in selected_flat and v['position_id'] in [2, 4, 6]}
+    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['proj'], reverse=True)[0:1][0]
+    the_flex = flex_pool[flex_selector]
+
+    # best projected lineup
+    selected_flat.append(flex_selector)
+    lineup = {k: v
+              for k, v
+              in roster.items()
+              if k in selected_flat}
+    return lineup

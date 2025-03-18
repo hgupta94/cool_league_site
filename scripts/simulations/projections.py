@@ -188,12 +188,10 @@ def simulate_lineup(lineup: dict) -> float:
 
 
 def simulate_matchup(week_data: DataLoader,
-                     teams: Teams,
                      rosters: Rosters,
                      week: int,
+                     matchups: list,
                      projections: pd.DataFrame) -> list[dict]:
-    matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
-
     matchup_sim = []
     for idx, m in enumerate(matchups):
         gmid = idx + 1
@@ -232,6 +230,7 @@ def simulate_matchup(week_data: DataLoader,
 def simulate_week(week_data: DataLoader,
                   teams: Teams,
                   rosters: Rosters,
+                  matchups: list,
                   projections: pd.DataFrame,
                   week: int,
                   n_sims: int = 10) -> list:
@@ -242,11 +241,10 @@ def simulate_week(week_data: DataLoader,
     n_lowest = {key: 0 for key in teams.team_ids}
     for sim in range(n_sims):
         random.seed(random.randrange(n_sims))
-        # print(sim+1)
         matchup_sim = simulate_matchup(week_data=week_data,
-                                       teams=teams,
                                        rosters=rosters,
                                        week=week,
+                                       matchups=matchups,
                                        projections=projections)
         for tm in matchup_sim:
             n_scores[tm['team']] += tm['score']
@@ -261,3 +259,35 @@ def simulate_week(week_data: DataLoader,
         n_lowest[min(matchup_sim, key=lambda x: x['score'])['team']] += 1
 
     return [n_scores, n_wins, n_tophalf, n_highest, n_lowest]
+
+
+def calculate_odds(sim_result: dict,
+                   n_sims: int) -> dict:
+    odds_dict = {}
+    for k, v in sim_result.items():
+        ip = v / n_sims
+        if ip / (1 - ip) >= 1:
+            odds = (-1 * ip / (1 - ip)) * 100
+            odds_dict[k] = f'{max(-10000, round(odds / 5) * 5)}'
+        else:
+            odds = (1 * (1 - ip) / ip) * 100
+            odds_dict[k] = f'+{min(10000, round(odds / 5) * 5)}'
+    return odds_dict
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

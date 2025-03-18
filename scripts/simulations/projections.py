@@ -6,6 +6,8 @@ from scripts.utils import utils as ut
 
 import difflib
 import scipy.stats as st
+import random
+import numpy as np
 import pandas as pd
 pd.options.mode.chained_assignment = None
 
@@ -96,14 +98,11 @@ def query_projections_db(season: int,
     return df[['name', 'espn_id', 'projection']].set_index('espn_id').to_dict(orient='index')
 
 
-def get_best_lineup(data: DataLoader,
+def get_best_lineup(week_data: DataLoader,
                     rosters: Rosters,
                     projections: pd.DataFrame,
                     week: int,
-                    team_id: int,
-                    season: int = const.SEASON) -> dict:
-    week_data = data.load_week(week=week)
-
+                    team_id: int) -> dict:
     slots = const.SLOTCODES
     positions = const.POSITION_MAP
     slot_limits = rosters.slot_limits
@@ -147,7 +146,7 @@ def get_best_lineup(data: DataLoader,
             'position_id': psn_id,
             'position': psn,
             'points': act,
-            'proj': proj
+            'projection': proj
         }
 
     # get best projected lineup
@@ -156,19 +155,14 @@ def get_best_lineup(data: DataLoader,
         pos_limit = slot_limits[plid]
         pos_player_pool = {k: v for k, v in roster.items() if v['position'] == pos}
         selector = sorted(pos_player_pool,
-                          key=lambda x: pos_player_pool[x]['proj'],
+                          key=lambda x: pos_player_pool[x]['projection'],
                           reverse=True)[0:pos_limit]  # highest projected player(s)
         selected.append(selector)  # remove player from available pool
-        # selected = {k: v
-        #             for k, v
-        #             in pos_player_pool.items()
-        #             if k in selector}  # selected player(s) in current position
     selected_flat = ut.flatten_list(selected)
 
     # get flex player
     flex_pool = {k: v for k, v in roster.items() if k not in selected_flat and v['position_id'] in [2, 4, 6]}
-    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['proj'], reverse=True)[0:1][0]
-    the_flex = flex_pool[flex_selector]
+    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['projection'], reverse=True)[0:1][0]
 
     # best projected lineup
     selected_flat.append(flex_selector)
@@ -184,17 +178,18 @@ def simulate_lineup(lineup: dict) -> float:
     proj_points = 0
     for _, plr in lineup.items():
         vals = gamma_map[plr['position']]
-        sim = st.gamma.rvs(a=vals['a'], loc=vals['loc'], scale=vals['scale'], size=1).item()
+        loc = vals['loc'] + (plr['projection'] - vals['mean'])
+        sim = st.gamma.rvs(a=vals['a'], loc=loc, scale=vals['scale'], size=1).item()
+        # sim = abs(random.gammavariate(alpha=vals['a'], beta=vals['scale']) + loc)
         proj_points += sim
         # print(plr['player_name'], round(sim,2))
     # print(proj_points-base)
     return proj_points
 
 
-def simulate_matchup(data: DataLoader,
+def simulate_matchup(week_data: DataLoader,
                      teams: Teams,
                      rosters: Rosters,
-                     season: int,
                      week: int,
                      projections: pd.DataFrame) -> list[dict]:
     matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
@@ -204,11 +199,11 @@ def simulate_matchup(data: DataLoader,
         gmid = idx + 1
 
         tm1 = m['away']['teamId']
-        lineup1 = get_best_lineup(data=data, rosters=rosters, projections=projections, season=season, week=week, team_id=tm1)
+        lineup1 = get_best_lineup(week_data=week_data, rosters=rosters, projections=projections, week=week, team_id=tm1)
         sim1 = simulate_lineup(lineup1)
 
         tm2 = m['home']['teamId']
-        lineup2 = get_best_lineup(data=data, rosters=rosters,projections=projections, season=season, week=week, team_id=tm2)
+        lineup2 = get_best_lineup(week_data=week_data, rosters=rosters, projections=projections, week=week, team_id=tm2)
         sim2 = simulate_lineup(lineup2)
 
         # redo sim if they are somehow equal
@@ -234,28 +229,27 @@ def simulate_matchup(data: DataLoader,
     return matchup_sim
 
 
-def simulate_week(data: DataLoader,
+def simulate_week(week_data: DataLoader,
                   teams: Teams,
                   rosters: Rosters,
                   projections: pd.DataFrame,
-                  season: int,
                   week: int,
                   n_sims: int = 10) -> list:
-    scores = {key: 0 for key in teams.team_ids}
+    n_scores = {key: 0 for key in teams.team_ids}
     n_wins = {key: 0 for key in teams.team_ids}
     n_tophalf = {key: 0 for key in teams.team_ids}
     n_highest = {key: 0 for key in teams.team_ids}
     n_lowest = {key: 0 for key in teams.team_ids}
     for sim in range(n_sims):
-        print(sim+1)
-        matchup_sim = simulate_matchup(data=data,
+        random.seed(random.randrange(n_sims))
+        # print(sim+1)
+        matchup_sim = simulate_matchup(week_data=week_data,
                                        teams=teams,
                                        rosters=rosters,
-                                       season=season,
                                        week=week,
                                        projections=projections)
         for tm in matchup_sim:
-            scores[tm['team']] += tm['score']
+            n_scores[tm['team']] += tm['score']
             if tm['result'] == 1:
                 n_wins[tm['team']] += 1
 
@@ -266,4 +260,4 @@ def simulate_week(data: DataLoader,
         n_highest[max(matchup_sim, key=lambda x: x['score'])['team']] += 1
         n_lowest[min(matchup_sim, key=lambda x: x['score'])['team']] += 1
 
-    return [scores, n_wins, n_tophalf, n_highest, n_lowest]
+    return [n_scores, n_wins, n_tophalf, n_highest, n_lowest]

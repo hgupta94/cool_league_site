@@ -37,7 +37,7 @@
     border: 0;
 }
 
-.custom-toggler: focux,
+.custom-toggler: focus,
 .custom-toggler: active,
 .navbar-toggler-icon: focus {
     outline: none;

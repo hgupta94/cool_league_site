@@ -1,6 +1,7 @@
-CREATE TABLE switcher (
+CREATE TABLE matchup_results (
     id VARCHAR(255) PRIMARY KEY,
-    schedule_of VARCHAR(255),
-    result DECIMAL(2, 1),
+    opponent INT,
+    result DECIMAL,
+    points DECIMAL,
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

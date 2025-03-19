@@ -180,6 +180,7 @@ def simulate_lineup(lineup: dict) -> float:
         vals = gamma_map[plr['position']]
         loc = vals['loc'] + (plr['projection'] - vals['mean'])
         sim = st.gamma.rvs(a=vals['a'], loc=loc, scale=vals['scale'], size=1).item()
+        # TODO: figure out a way to use a player's variance to adjust scale
         # sim = abs(random.gammavariate(alpha=vals['a'], beta=vals['scale']) + loc)
         proj_points += sim
         # print(plr['player_name'], round(sim,2))

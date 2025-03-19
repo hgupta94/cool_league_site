@@ -1,5 +1,10 @@
+import datetime as dt
+
+
 # ESPN API parameters
-SEASON = 2024
+current_year = dt.datetime.now().year
+current_month = dt.datetime.now().month
+SEASON = current_year if current_month in [1, 8, 9, 10, 11, 12] else current_year-1
 LEAGUE_ID = 1382012
 SWID = "{E01C2393-2E6F-420B-9C23-932E6F720B61}"
 ESPN_S2 = "AEAVE3tAjA%2B4WQ04t%2FOYl15Ye5f640g8AHGEycf002gEwr1Q640iAvRF%2BRYFiNw5T8GSED%2FIG9HYOx7iwYegtyVzOeY%2BDhSYCOJrCGevkDgBrhG5EhXMnmiO2GpeTbrmtHmFZAsao0nYaxiKRvfYNEVuxrCHWYewD3tKFa923lw3NC8v5qjjtljN%2BkwFXSkj91k2wxBjrdaL5Pp1Y77%2FDzQza4%2BpyJq225y4AUPNB%2FCKOXYF7DTZ5B%2BbuHfyUKImvLaNJUTpwVXR74dk2VUMD9St"
@@ -16,34 +21,47 @@ DB_PASS = 'Yucca090616!'
 DB_HOST = '127.0.0.1'
 DB = 'chill'
 
-# values for sim
+# Database table column names for inserts
+MATCHUP_COLS = 'id, opponent, result, points'
+POWER_RANKS_COLS = ''
+PROJECTIONS_COLS = ''
+H2H_COLS = 'id, opponent, result'
+SCH_SW_COLS = 'id, schedule_of, result'
+WEEK_SIM_COLS = 'id, avg_score, p_win, p_tophalf, p_highest, p_lowest'
+SSN_SIM_COLS = ''
+
+# Gamma distribution values for weekly sim
+    # mean: average score of starters since 2021
+    # a: alpha parameter for gamma distribution
+    # loc: location parameter for gamma distribution
+    # scale: scale parameter for gamma distribution
 GAMMA_VALUES = {
     'QB': {
-        'mean': 19.3829,
+        'mean': 19.5,
         'a': 25.0963,
         'loc': -20.3195,
         'scale': 1.5820
     },
     'RB': {
-        'mean': 13.4477,
+        'mean': 13.5,
         'a': 2.9539,
         'loc': -0.2592,
         'scale': 4.6404
     },
     'WR': {
-        'mean': 12.0263,
+        'mean': 12.0,
         'a': 2.1777,
         'loc': 0.5273,
         'scale': 5.2803
     },
     'TE': {
-        'mean': 9.4322,
+        'mean': 9.5,
         'a': 1.7211,
         'loc': 0.8828,
         'scale': 4.9673
     },
     'DST': {
-        'mean': 8.3759,
+        'mean': 8.5,
         'a': 2.2054,
         'loc': 1.0673,
         'scale': 3.3139

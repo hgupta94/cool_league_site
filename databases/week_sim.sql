@@ -1,8 +1,5 @@
 CREATE TABLE week_sim (
     id VARCHAR(255) PRIMARY KEY,
-    season INT,
-    week INT,
-    team VARCHAR(255),
     avg_score DECIMAL(6, 2),
     p_win DECIMAL(4, 1),
     p_tophalf DECIMAL(4, 1),

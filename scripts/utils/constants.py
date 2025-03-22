@@ -1,28 +1,23 @@
+import os
+from dotenv import load_dotenv
 import datetime as dt
 
 
-# ESPN API parameters
-current_year = dt.datetime.now().year
-current_month = dt.datetime.now().month
-SEASON = current_year if current_month in [1, 8, 9, 10, 11, 12] else current_year-1
-LEAGUE_ID = 1382012
-SWID = "{E01C2393-2E6F-420B-9C23-932E6F720B61}"
-ESPN_S2 = "AEAVE3tAjA%2B4WQ04t%2FOYl15Ye5f640g8AHGEycf002gEwr1Q640iAvRF%2BRYFiNw5T8GSED%2FIG9HYOx7iwYegtyVzOeY%2BDhSYCOJrCGevkDgBrhG5EhXMnmiO2GpeTbrmtHmFZAsao0nYaxiKRvfYNEVuxrCHWYewD3tKFa923lw3NC8v5qjjtljN%2BkwFXSkj91k2wxBjrdaL5Pp1Y77%2FDzQza4%2BpyJq225y4AUPNB%2FCKOXYF7DTZ5B%2BbuHfyUKImvLaNJUTpwVXR74dk2VUMD9St"
+load_dotenv()
+DB_USER = os.getenv('DB_USER_LOCAL')
+DB_PASS = os.getenv('DB_PASS_LOCAL')
+DB_HOST = os.getenv('DB_HOST_LOCAL')
+DB_NAME = os.getenv('DB_NAME_LOCAL')
 
-# MySQL parameters
-# SSH_HOST = 'ssh.pythonanywhere.com'
-# SSH_PASS = '!)2EJ2*PbzwWVUY'
-# USERNAME = 'hgupta'
-# DB_PASS = 'chillffl'
-# DB_HOST = 'hgupta.mysql.pythonanywhere-services.com'
-# DB = 'hgupta$chill'
-USERNAME = 'root'
-DB_PASS = 'Yucca090616!'
-DB_HOST = '127.0.0.1'
-DB = 'chill'
+# ESPN API parameters
+_CURRENT_YEAR = dt.datetime.now().year
+_CURRENT_MONTH = dt.datetime.now().month
+SEASON = _CURRENT_YEAR if _CURRENT_MONTH in [1, 8, 9, 10, 11, 12] else _CURRENT_YEAR-1
+SWID = os.getenv('SWID')
+ESPN_S2 = os.getenv('ESPN_S2')
 
 # Database table column names for inserts
-MATCHUP_COLS = 'id, opponent, result, points'
+MATCHUP_COLS = 'id, opponent, m_result, th_result, points'
 POWER_RANKS_COLS = ''
 PROJECTIONS_COLS = ''
 H2H_COLS = 'id, opponent, result'

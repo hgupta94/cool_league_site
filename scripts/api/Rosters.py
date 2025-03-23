@@ -4,7 +4,7 @@ from scripts.utils import constants as const
 
 
 class Rosters:
-    def __init__(self, year):
+    def __init__(self, year=const.SEASON):
         self.data = DataLoader(year=year)
         settings = self.data.settings()
         slot_limits = settings['settings']['rosterSettings']['lineupSlotCounts']

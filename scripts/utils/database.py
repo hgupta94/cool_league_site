@@ -1,71 +1,66 @@
-from scripts.utils import (utils,
-                           constants)
+from scripts.utils import constants
 import mysql.connector
 import pandas as pd
 
 
-def mysql_connection() -> mysql.connector:
-    """Creates a MySQL connection object"""
+class Database:
+    def __init__(self,
+                 data: dict|list|pd.DataFrame,
+                 table: str,
+                 columns: str,
+                 values: tuple):
+        """
+        Initializes a Database object
+        data: the data object to be committed to the database
+        table: name of the table to commit to
+        columns: columns of the table to commit to
+        values:
+        """
+        self.connection = mysql.connector.connect(
+            host=constants.DB_HOST,
+            user=constants.DB_USER,
+            password=constants.DB_PASS,
+            database=constants.DB_NAME
+        )
+        self.data = data
+        self.table = table
+        self.columns = columns
+        self.values = values
 
-    conn = mysql.connector.connect(
-        host=constants.DB_HOST,
-        user=constants.USERNAME,
-        password=constants.DB_PASS,
-        database=constants.DB
-    )
+    def sql_insert_query(self) -> str:
+        """Generates a SQL INSERT query for the specified table"""
 
-    return conn
-
-def sql_insert_query(table: str,
-                     columns: str) -> str:
-    """Generates a SQL INSERT query for the specified table"""
-
-    query = f'''
-            INSERT INTO
-            {table}
-                {columns}
-            VALUES
-                {('%s',) * len(columns.split(', '))};
-            '''
-    return query
+        query = f'''
+                INSERT INTO
+                {self.table}
+                    ({self.columns})
+                VALUES
+                    ({', '.join(('%s',) * len(self.columns.split(', ')))});
+                '''
+        return query
 
 
-def commit_row(connection,
-               table: str,
-               columns: str,
-               values: tuple) -> None:
-    """Commits a row to the specified table"""
+    def commit_row(self) -> None:
+        """Commits a row to the specified table"""
 
-    c = connection.cursor()
-    query = sql_insert_query(table=table, columns=columns)
-    c.execute(query, values)
-    connection.commit()
+        c = self.connection.cursor()
+        query = self.sql_insert_query()
+        c.execute(query, self.values)
+        self.connection.commit()
 
 
-def commit_data(data: dict|list|pd.DataFrame,
-                table: str,
-                columns: str,
-                values: tuple) -> None:
-    """Commits data to the database"""
+    def commit_data(self) -> None:
+        """Commits data to the database"""
 
-    with mysql_connection() as conn:
-        if isinstance(data, dict):
-            for _, _ in data.items():
-                commit_row(connection=conn,
-                           table=table,
-                           columns=columns,
-                           values=values)
+        with self.connection:
+            if isinstance(self.data, dict):
+                for _, _ in self.data.items():
+                    self.commit_row()
 
-        if isinstance(data, list):
-            for _ in data:
-                commit_row(connection=conn,
-                           table=table,
-                           columns=columns,
-                           values=values)
+            if isinstance(self.data, list):
+                for _ in self.data:
+                    self.commit_row()
 
-        if isinstance(data, pd.DataFrame):
-            for _, _ in data.iterrows():
-                commit_row(connection=conn,
-                           table=table,
-                           columns=columns,
-                           values=values)
+            if isinstance(self.data, pd.DataFrame):
+                for _, _ in self.data.iterrows():
+                    self.commit_row()

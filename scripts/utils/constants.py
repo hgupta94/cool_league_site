@@ -13,16 +13,17 @@ DB_NAME = os.getenv('DB_NAME_LOCAL')
 _CURRENT_YEAR = dt.datetime.now().year
 _CURRENT_MONTH = dt.datetime.now().month
 SEASON = _CURRENT_YEAR if _CURRENT_MONTH in [1, 8, 9, 10, 11, 12] else _CURRENT_YEAR-1
+LEAGUE_ID = os.getenv('LEAGUE_iD')
 SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')
 
 # Database table column names for inserts
-MATCHUP_COLS = 'id, opponent, m_result, th_result, points'
+MATCHUP_COLS = 'id, season, week, opponent, m_result, th_result, points'
 POWER_RANKS_COLS = ''
-PROJECTIONS_COLS = ''
-H2H_COLS = 'id, opponent, result'
-SCH_SW_COLS = 'id, schedule_of, result'
-WEEK_SIM_COLS = 'id, avg_score, p_win, p_tophalf, p_highest, p_lowest'
+PROJECTIONS_COLS = 'id, season, week, name, espn_id, position, receptions, projection'
+H2H_COLS = 'id, season, week, opponent, result'
+SCH_SW_COLS = 'id, season, week, schedule_of, result'
+WEEK_SIM_COLS = 'id, season, week, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SSN_SIM_COLS = ''
 
 # Gamma distribution values for weekly sim

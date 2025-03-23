@@ -4,6 +4,7 @@ from scripts.api.Rosters import Rosters
 from scripts.utils import constants as const
 from scripts.utils import utils as ut
 
+import re
 import difflib
 import scipy.stats as st
 import random
@@ -73,7 +74,7 @@ def get_week_projections(week) -> pd.DataFrame:
     dst_mask = (projections.position == 'DST') & (projections.fpts > 3)
     projections = projections[qb_mask | rb_mask | wr_mask | te_mask | dst_mask]
     projections['match_on'] = projections.player + '|' + projections.team
-    projections['id'] = (projections.player.str.replace(' ', '')
+    projections['id'] = (projections.player.str.replace(r'[^a-zA-Z]', '', regex=True)
                          + '_' + projections.season.astype(str)
                          + '_' + projections.week.astype(str).str.zfill(2))
     projections['espn_id'] = projections.apply(lambda x: match_player_to_espn(x['match_on'], players), axis=1)

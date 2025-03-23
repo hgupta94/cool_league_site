@@ -11,11 +11,14 @@ class Database:
                  values: tuple = None):
         """
         Initializes a Database object
-        data: the data object to be committed to the database
-        table: name of the table to commit to
-        columns: columns of the table to commit to
-        values:
+
+        Args:
+            data: the data object to be committed
+            table: name of the table in SQL
+            columns: columns of the table in SQL
+            values: table cell values to be commited
         """
+
         self.connection = mysql.connector.connect(
             host=constants.DB_HOST,
             user=constants.DB_USER,
@@ -28,7 +31,7 @@ class Database:
         self.values = values
 
     def sql_insert_query(self) -> str:
-        """Generates a SQL INSERT query for the specified table"""
+        """Generate the SQL INSERT query for the specified table"""
 
         query = f'''
                 INSERT INTO
@@ -41,7 +44,7 @@ class Database:
 
 
     def commit_row(self) -> None:
-        """Commits a row to the specified table"""
+        """Commit a row to the specified table"""
 
         c = self.connection.cursor()
         query = self.sql_insert_query()
@@ -50,7 +53,7 @@ class Database:
 
 
     def commit_data(self) -> None:
-        """Commits data to the database"""
+        """Commit data to the database"""
 
         with self.connection:
             if isinstance(self.data, dict):

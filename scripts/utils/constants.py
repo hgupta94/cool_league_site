@@ -12,26 +12,26 @@ DB_NAME = os.getenv('DB_NAME_LOCAL')
 # ESPN API parameters
 _CURRENT_YEAR = dt.datetime.now().year
 _CURRENT_MONTH = dt.datetime.now().month
-SEASON = _CURRENT_YEAR if _CURRENT_MONTH in [1, 8, 9, 10, 11, 12] else _CURRENT_YEAR-1
+SEASON = _CURRENT_YEAR if _CURRENT_MONTH in [1, 9, 10, 11, 12] else _CURRENT_YEAR-1
 LEAGUE_ID = os.getenv('LEAGUE_iD')
 SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')
 
-# Database table column names for inserts
+# Database columns for inserts
 MATCHUP_COLUMNS = 'id, season, week, team, opponent, matchup_result, tophalf_result, score'
-POWER_RANKS_COLUMNS = ''
+POWER_RANK_COLUMNS = ''
 PROJECTIONS_COLUMNS = 'id, season, week, name, espn_id, position, receptions, projection'
 H2H_COLUMNS = 'id, season, week, team, opponent, result'
 EFFICIENCY_COLUMNS = 'id, season, week, team, actual_lineup_score, actual_lineup_projected, best_projected_lineup_score, best_projected_lineup_projected, optimal_lineup_score, optimal_lineup_projected'
 SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
-WEEK_SIM_COLUMNS = 'id, season, week, avg_score, p_win, p_tophalf, p_highest, p_lowest'
-SSN_SIM_COLUMNS = ''
+WEEK_SIM_COLUMNS = 'id, season, week, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
+SEASON_SIM_COLUMNS = ''
 
-# Gamma distribution values for weekly sim
+# Gamma distribution values for simulations
     # mean: average score of starters since 2021
-    # a: alpha parameter for gamma distribution
-    # loc: location parameter for gamma distribution
-    # scale: scale parameter for gamma distribution
+    # a: alpha (shape)
+    # loc: location
+    # TODO: add replacement scores of bench/unrostered players?
 GAMMA_VALUES = {
     'QB': {
         'mean': 19.5,
@@ -65,8 +65,8 @@ GAMMA_VALUES = {
     },
 }
 
-# ESPN mappings
 NFL_TEAM_MAP = {
+    # NFL team ID to team abbreviation
     0:  'None',
     1:  'ATL',
     2:  'BUF',
@@ -103,6 +103,8 @@ NFL_TEAM_MAP = {
 }
 
 POSITION_MAP = {
+    # position ID to position name
+    # only for NFL positions
     0:  'QB',
     2:  'RB',
     4:  'WR',
@@ -112,6 +114,8 @@ POSITION_MAP = {
 }
 
 SLOTCODES = {
+    # position ID to position
+    # all fantasy positions
     0:  'QB',
     1:  'TQB',
     2:  'RB',
@@ -141,6 +145,7 @@ SLOTCODES = {
 }
 
 PLAYER_STATS_MAP = {
+    # stat ID to stat name
     # Passing
     0: 'passingAttempts',  # PA
     1: 'passingCompletions',  # PC
@@ -222,7 +227,7 @@ PLAYER_STATS_MAP = {
     87: 'attemptedExtraPoints',  # PATA
     88: 'missedExtraPoints',  # PATM
 
-    # Defense/Special Teams
+    # Defense
     89: 'defensive0PointsAllowed',  # PA0
     90: 'defensive1To6PointsAllowed',  # PA1
     91: 'defensive7To13PointsAllowed',  # PA7
@@ -246,10 +251,12 @@ PLAYER_STATS_MAP = {
     109: 'defensiveTotalTackles',  # TK
     113: 'defensivePassesDefensed',  # PD
 
+    # Kick/Punt Returns
     114: 'kickoffReturnYards',  # KR
     115: 'puntReturnYards',  # PR
     118: 'puntsReturned',  # PTR
 
+    # Team Defense Points Allowed
     120: 'defensivePointsAllowed',  # PA
     121: 'defensive18To21PointsAllowed',  # PA18
     122: 'defensive22To27PointsAllowed',  # PA22
@@ -257,6 +264,7 @@ PLAYER_STATS_MAP = {
     124: 'defensive35To45PointsAllowed',  # PA35
     125: 'defensive45PlusPointsAllowed',  # PA46
 
+    # Team Defense Yards Allowed
     127: 'defensiveYardsAllowed',  # YA
     128: 'defensiveLessThan100YardsAllowed',  # YA100
     129: 'defensive100To199YardsAllowed',  # YA199
@@ -290,7 +298,6 @@ PLAYER_STATS_MAP = {
     156: 'teamLoss',  # TL
     157: 'teamTie',  # TIE
     158: 'pointsScored',  # PTS
-
     160: 'pointsMargin',
     161: '25+pointWinMargin',  # WM25
     162: '20-24pointWinMargin',  # WM20
@@ -308,6 +315,7 @@ PLAYER_STATS_MAP = {
 
     187: 'defensivePointsAllowed',  # TODO: figure out what the difference is between 187 and 120
 
+    # Field Goal extra
     201: 'madeFieldGoalsFrom60Plus',  # FG60
     202: 'attemptedFieldGoalsFrom60Plus',  # FGA60
     203: 'missedFieldGoalsFrom60Plus',  # FGM60

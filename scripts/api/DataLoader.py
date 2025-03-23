@@ -4,17 +4,22 @@ import json
 
 
 class DataLoader:
+    """Load a view from ESPN's API"""
+
     def __init__(self,
-                 year=const.SEASON,
-                 league_id=const.LEAGUE_ID,
-                 swid=const.SWID,
-                 espn_s2=const.ESPN_S2):
+                 year: int = const.SEASON,
+                 league_id: int = const.LEAGUE_ID,
+                 swid: str = const.SWID,
+                 espn_s2: str = const.ESPN_S2,
+                 week: int = None):
         self.year = year
         self.league_id = league_id
         self.swid = swid
         self.espn_s2 = espn_s2
+        self.week = week
 
-    def _loader(self, view):
+    def _loader(self, view: str):
+        # construct url, headers, and parameters
         url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
               f'{int(self.year)}' \
               f'/segments/0/leagues/' \
@@ -38,35 +43,25 @@ class DataLoader:
                 'x-fantasy-filter': json.dumps(filters)
             }
 
+        params = {
+            'scoringPeriodId': self.week,
+            'matchupPeriodId': self.week
+        }
+
         r = requests.get(url,
                          cookies={
                              'SWID': self.swid,
                              'espn_s2': self.espn_s2
                          },
-                         headers=headers)
+                         headers=headers,
+                         params=params)
 
         d = r.json()
 
         return d
 
-    def load_week(self, week):
-        url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
-              f'{int(self.year)}' \
-              f'/segments/0/leagues/' \
-              f'{int(self.league_id)}' \
-              f'?view=mMatchupScore&view=mMatchup&view=mTeam&view=mSettings'
-        r = requests.get(url,
-                         cookies={
-                             'SWID': self.swid,
-                             'espn_s2': self.espn_s2
-                         },
-                         params={
-                             'scoringPeriodId': week,
-                             'matchupPeriodId': week
-                         })
-        d = r.json()
-
-        return d
+    def load_week(self):
+        return self._loader(view='mMatchupScore&view=mMatchup&view=mTeam&view=mSettings')
 
     def settings(self):
         return self._loader(view='mSettings')
@@ -77,17 +72,17 @@ class DataLoader:
     def teams(self):
         return self._loader(view='mTeam')
 
-    def scores(self, week=None):
+    def scores(self):
         data = self._loader(view='mMatchupScore')
-        if week:
-            return {'schedule': [x for x in data['schedule'] if x["matchupPeriodId"] == week]}
+        if self.week:
+            return {'schedule': [x for x in data['schedule'] if x["matchupPeriodId"] == self.week]}
         else:
             return {'schedule': data['schedule']}
 
-    def matchups(self, week=None):
+    def matchups(self):
         data = self._loader(view='mMatchup')
-        if week:
-            return {'schedule': [x for x in data['schedule'] if x["matchupPeriodId"] == week]}
+        if self.week:
+            return {'schedule': [x for x in data['schedule'] if x["matchupPeriodId"] == self.week]}
         else:
             return {'schedule': data['schedule']}
 
@@ -96,6 +91,9 @@ class DataLoader:
 
     def players(self):
         return self._loader(view='kona_player_info')
+
+    def players_wl(self):
+        return self._loader(view='players_wl')
 
     def transactions(self):
         return self._loader(view='mTransactions2')

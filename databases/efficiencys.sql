@@ -1,10 +1,13 @@
 CREATE TABLE efficiency (
-    id VARCHAR(255) PRIMARY KEY,
-    act_score FLOAT(6, 2),
-    act_proj FLOAT(6, 2),
-    best_projected_act FLOAT(6, 2),
-    best_projected_proj FLOAT(6, 2),
-    optimal_lineup_act FLOAT(6, 2),
-    optimal_lineup_proj FLOAT(6, 2),
+    id VARCHAR(16) PRIMARY KEY,
+    season INT,
+    week INT,
+    team VARCHAR(8),
+    actual_lineup_score FLOAT(6, 2),
+    actual_lineup_projected FLOAT(6, 2),
+    best_projected_lineup_score FLOAT(6, 2),
+    best_projected_lineup_projected FLOAT(6, 2),
+    optimal_lineup_score FLOAT(6, 2),
+    optimal_lineup_projected FLOAT(6, 2),
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

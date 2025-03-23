@@ -5,10 +5,10 @@ import pandas as pd
 
 class Database:
     def __init__(self,
-                 data: dict|list|pd.DataFrame,
-                 table: str,
-                 columns: str,
-                 values: tuple):
+                 data: dict|list|pd.DataFrame = None,
+                 table: str = None,
+                 columns: str = None,
+                 values: tuple = None):
         """
         Initializes a Database object
         data: the data object to be committed to the database

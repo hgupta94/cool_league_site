@@ -1,8 +1,10 @@
 from scripts.api.DataLoader import DataLoader
 from scripts.api.Settings import Params
 from scripts.api.Rosters import Rosters
-from scripts.utils import utils as ut
-from scripts.utils import constants as const
+
+from scripts.utils.database import Database
+from scripts.utils import utils
+from scripts.utils import constants
 
 import pandas as pd
 import numpy as np
@@ -19,8 +21,8 @@ def get_optimal_points(data: DataLoader,
     params = Params(data)
     rosters = Rosters(year=season)
 
-    slots = const.SLOTCODES
-    positions = const.POSITION_MAP
+    slots = constants.SLOTCODES
+    positions = constants.POSITION_MAP
     slot_limits = rosters.slot_limits
     df = pd.DataFrame(columns=['id', 'season', 'week', 'team_id', 'team',
                                'actual_score', 'actual_projected',
@@ -85,7 +87,7 @@ def get_optimal_points(data: DataLoader,
                 proj_pts_proj += vals['proj']  # best projected lineup projected points
                 proj_pts_act += vals['points']  # best projected lineup actual points
 
-        to_remove_proj_flat = ut.flatten_list(to_remove_proj)  # flatten list
+        to_remove_proj_flat = utils.flatten_list(to_remove_proj)  # flatten list
     
         # get flex player
         flex_pool = {k: v for k, v in roster.items() if k not in to_remove_proj_flat and v['position_id'] in [2, 4, 6]}
@@ -104,7 +106,7 @@ def get_optimal_points(data: DataLoader,
         opt_pts_act = 0
         to_remove_opt = []
         for plid, pos in positions.items():
-            limit = slot_limits[str(plid)]
+            limit = slot_limits[plid]
             player_pool = {k: v for k, v in roster.items() if v['position'] == pos}
             selector = sorted(player_pool, key=lambda x: player_pool[x]['points'], reverse=True)[0:limit]
             to_remove_opt.append(selector)
@@ -113,7 +115,7 @@ def get_optimal_points(data: DataLoader,
                 opt_pts_proj += vals['proj']
                 opt_pts_act += vals['points']
 
-        to_remove_opt_flat = ut.flatten_list(to_remove_opt)  # flatten list
+        to_remove_opt_flat = utils.flatten_list(to_remove_opt)  # flatten list
     
         # get flex player
         flex_pool = {k: v for k, v in roster.items() if k not in to_remove_opt_flat and v['position_id'] in [2, 4, 6]}
@@ -142,8 +144,10 @@ def get_optimal_points(data: DataLoader,
     return df[keep]
 
 
-def plot_efficiency(season, week):
-    with ut.mysql_connection() as conn:
+def plot_efficiency(database: Database,
+                    season: int,
+                    week: int):
+    with database.connection as conn:
         query = f'''
         SELECT *
         FROM efficiency

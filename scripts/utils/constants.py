@@ -18,7 +18,7 @@ SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')
 
 # Database table column names for inserts
-MATCHUP_COLUMNS = 'id, season, week, opponent, m_result, th_result, points'
+MATCHUP_COLUMNS = 'id, season, week, team, opponent, matchup_result, tophalf_result, score'
 POWER_RANKS_COLUMNS = ''
 PROJECTIONS_COLUMNS = 'id, season, week, name, espn_id, position, receptions, projection'
 H2H_COLUMNS = 'id, season, week, team, opponent, result'

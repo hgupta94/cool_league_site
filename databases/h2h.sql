@@ -4,6 +4,6 @@ CREATE TABLE h2h (
     week INT,
     team VARCHAR(6),
     opponent VARCHAR(6),
-    result DECIMAL(2, 1), # number of wins team1 has vs team2
+    result DECIMAL(2, 1),
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

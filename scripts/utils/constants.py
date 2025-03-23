@@ -21,9 +21,9 @@ ESPN_S2 = os.getenv('ESPN_S2')
 MATCHUP_COLUMNS = 'id, season, week, opponent, m_result, th_result, points'
 POWER_RANKS_COLUMNS = ''
 PROJECTIONS_COLUMNS = 'id, season, week, name, espn_id, position, receptions, projection'
-H2H_COLUMNS = 'id, season, week, opponent, result'
+H2H_COLUMNS = 'id, season, week, team, opponent, result'
 EFFICIENCY_COLUMNS = 'id, season, week, team, actual_lineup_score, actual_lineup_projected, best_projected_lineup_score, best_projected_lineup_projected, optimal_lineup_score, optimal_lineup_projected'
-SCHEDULE_SWITCH_COLUMNS = 'id, season, week, schedule_of, result'
+SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
 WEEK_SIM_COLUMNS = 'id, season, week, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SSN_SIM_COLUMNS = ''
 

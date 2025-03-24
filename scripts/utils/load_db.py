@@ -136,7 +136,7 @@ for week in range(12,15):
         continue
 
 
-# proj.calculate_odds(sim_result=sim_wins, n_sims=n_sims)
-# proj.calculate_odds(sim_result=sim_tophalf, n_sims=n_sims)
-# proj.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
-# proj.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)
+proj.calculate_odds(sim_result=sim_wins, n_sims=n_sims)
+proj.calculate_odds(sim_result=sim_tophalf, n_sims=n_sims)
+proj.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
+proj.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)

@@ -1,8 +1,5 @@
 from scripts.utils import constants as const
 
-import pandas as pd
-import numpy as np
-
 
 class Params:
     def __init__(self, data):

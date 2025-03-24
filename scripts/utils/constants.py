@@ -13,7 +13,7 @@ DB_NAME = os.getenv('DB_NAME_LOCAL')
 _CURRENT_YEAR = dt.datetime.now().year
 _CURRENT_MONTH = dt.datetime.now().month
 SEASON = _CURRENT_YEAR if _CURRENT_MONTH in [1, 9, 10, 11, 12] else _CURRENT_YEAR-1
-LEAGUE_ID = os.getenv('LEAGUE_iD')
+LEAGUE_ID = os.getenv('LEAGUE_ID')
 SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')
 
@@ -67,7 +67,7 @@ GAMMA_VALUES = {
 
 NFL_TEAM_MAP = {
     # NFL team ID to team abbreviation
-    0:  'None',
+    # 0:  'None',
     1:  'ATL',
     2:  'BUF',
     3:  'CHI',

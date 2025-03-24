@@ -1,5 +1,4 @@
 from scripts.api.DataLoader import DataLoader
-# from scripts.api.Teams import Teams
 from scripts.utils import constants as const
 
 

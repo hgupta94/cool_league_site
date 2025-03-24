@@ -110,7 +110,7 @@ def query_projections_db(season: int,
     return df[['name', 'espn_id', 'projection']].set_index('espn_id').to_dict(orient='index')
 
 
-def get_best_lineup(week_data: DataLoader,
+def get_best_lineup(week_data: dict,
                     rosters: Rosters,
                     projections: list[dict],
                     week: int,

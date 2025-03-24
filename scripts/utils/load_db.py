@@ -75,7 +75,7 @@ for s in range(2018, 2024):
 ##### Projections
 from scripts.api.Rosters import Rosters
 from scripts.api.Teams import Teams
-from scripts.simulations import projections as proj
+from scripts.simulations import week_sim as proj
 from datetime import datetime as dt
 import time
 proj_table = 'projections'

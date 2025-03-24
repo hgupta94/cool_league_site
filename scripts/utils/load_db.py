@@ -97,7 +97,7 @@ week_sim_cols = constants.WEEK_SIM_COLUMNS
 day = dt.now().strftime('%a')
 n_sims = 100_000
 
-for week in range(9,12):
+for week in range(12,15):
     print(f'Simulating week {week}', end='...')
     try:
         data = DataLoader(year=season, week=week)

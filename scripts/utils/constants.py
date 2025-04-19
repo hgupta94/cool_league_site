@@ -9,10 +9,15 @@ DB_PASS = os.getenv('DB_PASS_LOCAL')
 DB_HOST = os.getenv('DB_HOST_LOCAL')
 DB_NAME = os.getenv('DB_NAME_LOCAL')
 
+CLINCHED = -99
+ELIMINATED = 99
+CLINCHED_DISP = 'c'
+ELIMINATED_DISP = 'x'
+
 # ESPN API parameters
 _CURRENT_YEAR = dt.datetime.now().year
 _CURRENT_MONTH = dt.datetime.now().month
-SEASON = _CURRENT_YEAR if _CURRENT_MONTH in [1, 9, 10, 11, 12] else _CURRENT_YEAR-1
+SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
 LEAGUE_ID = os.getenv('LEAGUE_ID')
 SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')

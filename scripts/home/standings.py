@@ -1,13 +1,14 @@
 import pandas as pd
 
 from scripts.api.Teams import Teams
-from scripts.simulations.season_simulation import regular_season_end
+from scripts.api.DataLoader import DataLoader
+from scripts.api.Settings import Params
 from scripts.utils import constants
 
 
 def get_matchup_results(teams: Teams,
-                        season: int,
-                        week: int):
+                        week: int,
+                        season: int = constants.SEASON) -> list[dict]:
     tm_ids = teams.team_ids
 
     # get median for the week
@@ -40,15 +41,10 @@ def get_matchup_results(teams: Teams,
     return rows
 
 
-def format_standings(week):
-    from scripts.api.DataLoader import DataLoader
-    from scripts.api.Settings import Params
-    from scripts.utils import utils
-    import pandas as pd
-
-    season, week = 2023, 12
-    data = DataLoader(year=season)
-    teams = Teams(data)
+def format_standings(data: DataLoader,
+                     teams: Teams,
+                     week: int,
+                     season: int = constants.SEASON):
     params = Params(data)
     n_playoff_teams = params.playoff_teams
     regular_season_end = params.regular_season_end
@@ -61,6 +57,7 @@ def format_standings(week):
 
     rows = []
     for team in teams.team_ids:
+        # standings data for each team
         display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
         team_matchups = [m for m in results if m['team'] == display_name]
 
@@ -77,8 +74,7 @@ def format_standings(week):
         ov_record = f'{int(ov_wins)}-{int(ov_losses)}'
 
         win_pct = f'{(ov_wins / (week*2)):.3f}'
-
-        total_points = f"{sum(d['score'] for d in team_matchups):.2f}"
+        total_points = round(sum(d['score'] for d in team_matchups), 2)
 
         rows.append([display_name, ov_record, ov_wins, win_pct, m_record, th_record, total_points])
 
@@ -103,66 +99,75 @@ def format_standings(week):
         standings = pd.concat([top5, sixth, rest], axis=0)
         standings['rank'] = range(1, len(standings)+1)
 
-        # TODO: need to check these calculations - subtract from seed or seed+1?
+        # for weeks back
         two_seed_wins = standings.iloc[1].overall_wins
-        two_seed_points = standings.iloc[1].total_points
         five_seed_wins = standings.iloc[4].overall_wins
-        five_seed_points = standings.iloc[4].total_points
         six_seed_points = standings.iloc[5].total_points
+
+        # for clinching/eliminations
+        three_seed_wins = standings.iloc[2].overall_wins
+        sixth_wins = standings.sort_values(['overall_wins', 'total_points'], ascending=False).iloc[5].overall_wins
 
         standings['wb2'] = (two_seed_wins - standings.overall_wins) / 2
         standings['wb5'] = (five_seed_wins - standings.overall_wins) / 2
-        standings['pb6'] = float(six_seed_points) - standings.total_points.astype(float)
+        standings['pb6'] = round(float(six_seed_points) - standings.total_points.astype(float), 2)
 
-        for idx, row in standings.iterrows():
-            break
-
-        # check if team clinched a bye
-        def clinch_bye(row, week):
+        # check clinching scenarios
+        def clinch_bye(row, week, three_seed_wins):
+            weeks_ahead = (three_seed_wins - row.overall_wins) / 2
+            weeks_behind = row['wb2']
             if week < regular_season_end:
-                if row['wb2'] < -weeks_left:
-                    return -99  # clinched
+                if weeks_ahead > weeks_left:
+                    return constants.CLINCHED
 
-                elif row['wb2'] > weeks_left:
-                    return 99  # eliminated
+                elif weeks_behind > weeks_left:
+                    return constants.ELIMINATED
 
                 else:
-                    return row['wb2']
+                    return weeks_behind
 
-        def clinch_playoff(row, week):
+        def clinch_playoff(row, week, sixth_wins):
+            weeks_ahead = (sixth_wins - row.overall_wins) / 2
+            weeks_behind = row['wb5']
             if week < regular_season_end:
-                if row['wb5'] < -weeks_left:
-                    return -99  # clinched
+                if weeks_ahead > weeks_left:
+                    return constants.CLINCHED
 
-                elif row['wb5'] > weeks_left:
-                    return 99  # eliminated
+                elif weeks_behind > weeks_left:
+                    return constants.ELIMINATED
 
                 else:
-                    return row['wb5']
+                    return weeks_behind
 
         def format_weeks_back(value):
-            if value == -99:
-                return 'c'
-            elif value == 99:
-                return 'x'
+            if value == constants.CLINCHED:
+                return constants.CLINCHED_DISP
+            elif value == constants.ELIMINATED:
+                return constants.ELIMINATED_DISP
             elif value < 0:
-                return f'+{abs(value)}'
+                return f'+{abs(value)}'  # weeks ahead
             elif value > 0:
-                return f'{value}'
+                return f'{value}'  # weeks behind
             else:
-                return '-'
+                return '-'  # current seed or tied
 
         def format_points_back(value):
             if value < 0:
-                return f'+{abs(value):.2f}'
+                return f'+{abs(value):.2f}'  # points ahead
             elif value == 0:
-                return '-'
+                return '-'  # current seed or tied
             else:
-                return f'{value:.2f}'
+                return f'{value:.2f}'  # points behind
 
-        standings['wb2'] = standings.apply(lambda x: clinch_bye(x, week), axis=1)
-        standings['wb2'] = standings.wb2.apply(lambda x: format_weeks_back(x))
-        standings['wb5'] = standings.apply(lambda x: clinch_playoff(x, week), axis=1)
-        standings['wb5'] = standings.wb5.apply(lambda x: format_weeks_back(x))
-        standings['pb6'] = standings.pb6.apply(lambda x: format_points_back(x))
+        def format_points(value):
+            return f'{value:,.2f}'
+
+        standings['total_points_disp'] = standings.total_points.apply(lambda x: format_points(x))
+        standings['wb2_disp'] = standings.apply(lambda x: clinch_bye(x, week=week, three_seed_wins=three_seed_wins), axis=1)
+        standings['wb2_disp'] = standings.wb2.apply(lambda x: format_weeks_back(x))
+        standings['wb5_disp'] = standings.apply(lambda x: clinch_playoff(x, week=week,sixth_wins=sixth_wins), axis=1)
+        standings['wb5_disp'] = standings.wb5.apply(lambda x: format_weeks_back(x))
+        standings['pb6_disp'] = standings.pb6.apply(lambda x: format_points_back(x))
+
+        return standings
 

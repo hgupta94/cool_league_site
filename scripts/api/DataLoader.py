@@ -82,7 +82,7 @@ class DataLoader:
     def matchups(self):
         data = self._loader(view='mMatchup')
         if self.week:
-            return {'schedule': [x for x in data['schedule'] if x["matchupPeriodId"] == self.week]}
+            return {'schedule': [x for x in data['schedule'] if x["matchupPeriodId"] <= self.week]}
         else:
             return {'schedule': data['schedule']}
 

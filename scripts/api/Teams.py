@@ -41,7 +41,7 @@ class Teams:
                 score1 = m['home']['totalPoints']
                 team2 = m['away']['teamId']
                 score2 = m['away']['totalPoints']
-                type = 'REG' if week <= self.params.regular_season_end else 'POST'
+                game_type = 'REG' if week <= self.params.regular_season_end else 'POST'
 
                 temp = {
                     'week': week,
@@ -49,7 +49,7 @@ class Teams:
                     'score1': score1,
                     'team2': team2,
                     'score2': score2,
-                    'type': type
+                    'type': game_type
                 }
                 matchups_list.append(temp)
         return matchups_list

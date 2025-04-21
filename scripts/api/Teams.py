@@ -1,5 +1,5 @@
 from scripts.api.Settings import Params
-from scripts.utils.utils import flatten_list
+from scripts.utils import utils
 
 import numpy as np
 
@@ -30,7 +30,11 @@ class Teams:
             remaining = self.faab_budget - tm['transactionCounter']['acquisitionBudgetSpent']
             self.faab_remaining[teamid] = remaining
 
-    def _fetch_matchups(self):
+    def _fetch_matchups(self) -> dict:
+        """
+        Fetch and format all matchups for the current season
+        :returns: Dictionary containing matchup data
+        """
         matchups_list = []
         for m in self.matchups['schedule']:
             if all(name in m.keys() for name in ['home', 'away']):
@@ -54,7 +58,12 @@ class Teams:
                 matchups_list.append(temp)
         return matchups_list
 
-    def team_schedule(self, team_id):
+    def team_schedule(self, team_id: int) -> dict:
+        """
+        Get full schedule and results for a team for the current season
+        :param team_id: ESPN fantasy team ID
+        :returns: Dictionary containing a team's matchup results
+        """
         matchups_list = self._fetch_matchups()
         home_remap = {'team1': 'team',
                       'score1': 'score',
@@ -74,17 +83,32 @@ class Teams:
             d['result'] = 1.0 if d['score'] > d['opp_score'] else 0.5 if d['score'] == d['opp_score'] else 0.0
         return team_schedule
 
-    def team_scores(self, team_id):
+    def team_scores(self, team_id: int) -> list[float]:
+        """
+        Get all scores for a given team for the current season
+        :param team_id: ESPN fantasy team ID
+        :returns: All scores for a fantasy team
+        """
         team_schedule = self.team_schedule(team_id=team_id)
         team_scores = [d['score'] for d in team_schedule if 'score' in d]
         return team_scores
 
-    def team_faab_remaining(self, team_id):
+    def team_faab_remaining(self, team_id: int) -> int:
+        """
+        Get Free Agent Acquisition Budget (FAAB) remaining for a given team
+        :param team_id: ESPN fantasy team ID
+        :returns: FAAB amount for a team
+        """
         return self.faab_remaining[team_id]
 
-    def week_median(self, week):
+    def week_median(self, week: int) -> float:
+        """
+        Calculate median score for a given week
+        :param week: current league week
+        :returns: League median score used to calculate top half results
+        """
         matchups = self._fetch_matchups()
-        scores = flatten_list(
+        scores = utils.flatten_list(
             [
                 list({
                     d[k] for k in ['score1', 'score2'] if k in d

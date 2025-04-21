@@ -1,5 +1,20 @@
 import time
 from functools import wraps
+import pandas as pd
+
+
+def flask_get_columns(data: pd.DataFrame) -> tuple[str]:
+    """
+    Return columns for Flask front end table
+    """
+    return tuple(data.columns)
+
+
+def flask_get_data(data: pd.DataFrame) -> list[tuple]:
+    """
+    Return data formated for Flask front end table
+    """
+    return [tuple(x) for x in data.to_numpy()]
 
 
 def flatten_list(lst: list) -> list:

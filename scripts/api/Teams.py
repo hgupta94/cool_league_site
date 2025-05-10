@@ -24,11 +24,7 @@ class Teams:
             self.teamid_to_primowner[t_id] = o_id
 
         self.faab_budget = self.settings['settings']['acquisitionSettings']['acquisitionBudget']
-        self.faab_remaining = {}
-        for tm in self.teams['teams']:
-            teamid = tm['id']
-            remaining = self.faab_budget - tm['transactionCounter']['acquisitionBudgetSpent']
-            self.faab_remaining[teamid] = remaining
+        self.faab_remaining = None
 
     def _fetch_matchups(self) -> dict:
         """
@@ -117,3 +113,24 @@ class Teams:
             ]
         )
         return float(round(np.median(scores), 2))
+
+    def get_all_faab_remaining(self):
+        """
+        Get remaining FAAB amount for all teams
+        """
+        self.faab_remaining = {}
+        for tm in self.teams['teams']:
+            teamid = tm['id']
+            remaining = self.faab_budget - tm['transactionCounter']['acquisitionBudgetSpent']
+            self.faab_remaining[teamid] = remaining
+        return self.faab_remaining
+
+    def get_single_faab_remaining(self, teamid):
+        """
+        Get FAAB remaining for a single team
+        """
+        if not self.faab_remaining:
+            faab = self.get_all_faab_remaining()
+            return faab[teamid]
+        else:
+            return self.faab_remaining[teamid]

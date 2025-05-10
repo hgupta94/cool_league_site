@@ -3,7 +3,7 @@ from functools import wraps
 import pandas as pd
 
 
-def flask_get_columns(data: pd.DataFrame) -> tuple[str]:
+def flask_get_columns(data: pd.DataFrame) -> tuple[list[str]]:
     """
     Return columns for Flask front end table
     """

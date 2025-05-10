@@ -8,18 +8,19 @@ from scripts.utils import constants
 
 ##### MATCHUPS
 from scripts.api.Teams import Teams
-from scripts.home.standings import get_matchup_results
+from scripts.home.standings import Standings
+data = DataLoader()
+teams = Teams(data=data)
+params = Params(data=data)
 matchups_table = 'matchups'
 matchup_cols = constants.MATCHUP_COLUMNS
 for s in range(2018, 2024):
-    data = DataLoader(year=s)
-    params = Params(data)
-    teams = Teams(data)
     for w in range(1, params.regular_season_end+1):
+        standings = Standings(season=s, week=w)
         print(s, w)
-        matchups = get_matchup_results(teams=teams, season=s, week=w)
-        for row in matchups:
-            m_vals = tuple(value for value in row)
+        for t in teams.team_ids:
+            matchups = standings.get_matchup_results(week=w, team_id=t)
+            m_vals = tuple(matchups.values())
             db = Database(data=matchups, table=matchups_table, columns=matchup_cols, values=m_vals)
             db.commit_row()
 
@@ -78,11 +79,10 @@ from scripts.api.Teams import Teams
 from scripts.simulations import week_sim as proj
 from datetime import datetime as dt
 import time
-proj_table = 'projections'
+proj_table = 'player_projections'
 proj_cols = constants.PROJECTIONS_COLUMNS
-for w in range(1, 19):
+for w in range(3, 19):
     print(w)
-    w = 3
     projections = proj.get_week_projections(w)
     for idx, row in projections.iterrows():
         vals = (row.id, row.season, row.week, row.player, row.espn_id, row.position, row.rec, row.fpts)
@@ -91,13 +91,13 @@ for w in range(1, 19):
 
 ##### Week sim
 # load parameters
-season = 2023
+season = 2024
 week_sim_table = 'betting_table'
 week_sim_cols = constants.WEEK_SIM_COLUMNS
 day = dt.now().strftime('%a')
 n_sims = 100_000
 
-for week in range(12,15):
+for week in range(3,15):
     print(f'Simulating week {week}', end='...')
     try:
         data = DataLoader(year=season, week=week)

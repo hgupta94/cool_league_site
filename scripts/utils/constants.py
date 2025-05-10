@@ -31,6 +31,8 @@ EFFICIENCY_COLUMNS = 'id, season, week, team, actual_lineup_score, actual_lineup
 SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
 WEEK_SIM_COLUMNS = 'id, season, week, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SEASON_SIM_COLUMNS = ''
+STANDINGS_COLUMNS = ['seed', 'team', 'overall', 'win_perc', 'matchup', 'top_half',
+                     'total_points_disp', 'wb2_disp', 'wb5_disp', 'pb6_disp']
 
 # Gamma distribution values for simulations
     # mean: average score of starters since 2021
@@ -72,7 +74,7 @@ GAMMA_VALUES = {
 
 NFL_TEAM_MAP = {
     # NFL team ID to team abbreviation
-    # 0:  'None',
+    0:  'None',
     1:  'ATL',
     2:  'BUF',
     3:  'CHI',

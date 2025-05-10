@@ -24,7 +24,17 @@ def _match_player_to_espn(the_player: str,
     Returns:
         matching ESPN player ID
     """
-    player_lookup = [f"{p['player']['fullName']}|{constants.NFL_TEAM_MAP[p['player']['proTeamId']]}" for p in players]
+
+    player_lookup = []
+    for p in players:
+        try:
+            pl_name = p['player']['fullName']
+            pl_pos = constants.POSITION_MAP[list(set(constants.POSITION_MAP) & set(p['player']['eligibleSlots']))[0]]
+            pl_team = constants.NFL_TEAM_MAP[p['player']['proTeamId']]
+            pl_lookup = f"{pl_name}|{pl_pos}|{pl_team}"
+        except (KeyError, IndexError):
+            continue
+        player_lookup.append(pl_lookup)
 
     calc = [difflib.SequenceMatcher(None, the_player, m).ratio() for m in player_lookup]
     if max(calc) > 0.8:
@@ -38,7 +48,7 @@ def get_week_projections(week: int) -> pd.DataFrame:
     """Return Fantasy Pros projections for all positions"""
 
     data = DataLoader()
-    players = data.players()['players']
+    players = data.players_info()['players']
     positions = ['qb', 'rb', 'wr', 'te', 'dst']
 
     projections = pd.DataFrame()
@@ -82,10 +92,11 @@ def get_week_projections(week: int) -> pd.DataFrame:
     projections = projections[qb_mask | rb_mask | wr_mask | te_mask | dst_mask]
 
     # match player to ESPN
-    projections['match_on'] = projections.player + '|' + projections.team
+    projections['match_on'] = projections.player + '|' + projections.position + '|' + projections.team
     projections['id'] = (projections.player.str.replace(r'[^a-zA-Z]', '', regex=True)
                          + '_' + projections.season.astype(str)
                          + '_' + projections.week.astype(str).str.zfill(2))
+
     projections['espn_id'] = projections.apply(
         lambda x: _match_player_to_espn(x['match_on'], players), axis=1
     ).astype('Int64')
@@ -336,21 +347,3 @@ def calculate_odds(sim_result: dict,
             odds = (1 * (1 - init_prob) / init_prob) * 100
             odds_dict[k] = f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
     return odds_dict
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

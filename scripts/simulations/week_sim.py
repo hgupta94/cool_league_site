@@ -333,17 +333,26 @@ def simulate_week(week_data: DataLoader,
     return [n_scores, n_wins, n_tophalf, n_highest, n_lowest]
 
 
-def calculate_odds(sim_result: dict,
+def calculate_odds(sim_value: dict,
                    n_sims: int) -> dict:
     """Convert counters from simulation into american odds"""
 
-    odds_dict = {}
-    for k, v in sim_result.items():
-        init_prob = v / n_sims
-        if init_prob / (1 - init_prob) >= 1:
-            odds = (-1 * init_prob / (1 - init_prob)) * 100
-            odds_dict[k] = f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
-        else:
-            odds = (1 * (1 - init_prob) / init_prob) * 100
-            odds_dict[k] = f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
-    return odds_dict
+    init_prob = sim_value / n_sims
+    if init_prob >= 0.5:
+        odds = (-1 * init_prob / (1 - init_prob)) * 100
+        return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
+    else:
+        odds = (1 * (1 - init_prob) / init_prob) * 100
+        return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
+
+
+def get_matchup_id(teams: Teams,
+                   week: int,
+                   display_name: str):
+    """Get ESPN matchup ID for a team's matchup to display in UI table"""
+    tm_matchup = [m for m in teams._fetch_matchups() if (
+            constants.TEAM_IDS[teams.teamid_to_primowner[m['team1']]]['name']['display'] == display_name or
+            constants.TEAM_IDS[teams.teamid_to_primowner[m['team2']]]['name']['display'] == display_name) and m[
+                      'week'] == week][0]
+    matchup_id = int((len(teams.team_ids) / 2) - ((week * len(teams.team_ids) / 2) - tm_matchup['matchup_id']))
+    return matchup_id

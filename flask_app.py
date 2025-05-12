@@ -17,32 +17,6 @@ db = Database(table='betting_table', season=season, week=week)
 betting_table = db.retrieve_data()
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 
-# from scripts.utils.constants import TEAM_IDS
-# from scripts.api.Teams import Teams
-# betting_table = pd.read_csv(r'tables/betting_table.csv')
-# betting_table['matchup_id'] = None
-# data23 = DataLoader(year=2023)
-# teams23 = Teams(data23)
-# data24 = DataLoader(year=2024)
-# teams24 = Teams(data24)
-# for idx, row in betting_table.iterrows():
-#     tm = row.id[8:12]
-#     if row.season == 2023:
-#         matchups = teams23._fetch_matchups()
-#         tm_matchup = [m for m in matchups if (TEAM_IDS[teams23.teamid_to_primowner[m['team1']]]['name']['display'] == tm or TEAM_IDS[teams23.teamid_to_primowner[m['team2']]]['name']['display'] == tm) and m['week'] == row.week][0]
-#         betting_table.loc[idx, 'matchup_id'] = int((len(teams23.team_ids) / 2) - ((row.week * len(teams23.team_ids) / 2) - tm_matchup['matchup_id']))
-#     if row.season == 2024:
-#         matchups = teams24._fetch_matchups()
-#         tm_matchup = [m for m in matchups if (TEAM_IDS[teams24.teamid_to_primowner[m['team1']]]['name']['display'] == tm or TEAM_IDS[teams24.teamid_to_primowner[m['team2']]]['name']['display'] == tm) and m['week'] == row.week][0]
-#         betting_table.loc[idx, 'matchup_id'] = int((len(teams24.team_ids) / 2) - ((row.week * len(teams24.team_ids) / 2) - tm_matchup['matchup_id']))
-#
-# betting_table = betting_table.sort_values(['season', 'week', 'matchup_id', 'p_win'])
-# betting_table.to_csv(r'tables/betting_table.csv', index=False)
-
-
-
-
-
 
 # create flask app
 app = Flask(__name__)

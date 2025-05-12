@@ -14,6 +14,8 @@ ELIMINATED = 99
 CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
+N_SIMS = 1_000
+
 # ESPN API parameters
 _CURRENT_YEAR = dt.datetime.now().year
 _CURRENT_MONTH = dt.datetime.now().month

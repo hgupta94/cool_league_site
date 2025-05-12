@@ -19,18 +19,16 @@ class Standings:
 
     def _clinch_bye(self,
                     row: pd.Series,
-                    week: int,
                     three_seed_wins: float) -> int:
         """
         Calculate if a team clinched playoff BYE week (top 2 seed)
         :param row: A team's standings data
-        :param week: Current league week
         :param three_seed_wins: Overall wins from third seed, to compare top 2 seeds against
         :returns: -99 if team clinched, 99 if team is eliminated, or # weeks behind 2 seed
         """
         weeks_ahead = (row.overall_wins - three_seed_wins) / 2
         weeks_behind = row['wb2']
-        if week-1 <= self.params.regular_season_end:
+        if self.week-1 <= self.params.regular_season_end:
             if weeks_ahead > self.params.weeks_left:
                 return constants.CLINCHED
 
@@ -41,19 +39,17 @@ class Standings:
                 return weeks_behind
 
     def _clinch_playoff(self,
-                    row: pd.Series,
-                    week: int,
-                    sixth_wins: float):
+                        row: pd.Series,
+                        sixth_wins: float):
         """
         Calculate if a team clinched playoff spot week (top 5 seed by wins)
         :param row: A team's standings data
-        :param week: Current league week
         :param sixth_wins: Overall wins from sixth seed by wins, to compare top 5 seeds against
         :returns: -99 if team clinched, 99 if team is eliminated, or # weeks behind 2 seed
         """
         weeks_ahead = (row.overall_wins - sixth_wins) / 2
         weeks_behind = row['wb5']
-        if week-1 <= self.params.regular_season_end:
+        if self.week-1 <= self.params.regular_season_end:
             if weeks_ahead > self.params.weeks_left:
                 return constants.CLINCHED
 
@@ -277,9 +273,10 @@ class Standings:
         as_of_week = self.params.as_of_week
 
         for team_id in self.teams.team_ids:
-            results = []
-            for wk in range(1, as_of_week+1):
-                results.append(self.get_matchup_results(week=wk, team_id=team_id))
+            # results = []
+            # for wk in range(1, as_of_week+1):
+            #     results.append(self.get_matchup_results(week=wk, team_id=team_id))
+            results = [self.get_matchup_results(week=wk, team_id=team_id) for wk in range(1, as_of_week+1)]
                 
             # standings data for each team
             display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[team_id]]['name']['display']

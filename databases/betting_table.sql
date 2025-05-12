@@ -2,6 +2,7 @@ CREATE TABLE betting_table (
     id VARCHAR(20) PRIMARY KEY,
     season INT,
     week INT,
+    matchup_id INT,
     team VARCHAR(6),
     avg_score DECIMAL(6, 2),
     p_win DECIMAL(4, 4),

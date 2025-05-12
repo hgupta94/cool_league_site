@@ -73,60 +73,55 @@ for s in range(2018, 2024):
             db.commit_row()
 
 
-##### Projections
-from scripts.api.Rosters import Rosters
+##### Projections & Week Sim
+from scripts.simulations.week_sim import WeekSim
 from scripts.api.Teams import Teams
-from scripts.simulations import week_sim as proj
+from scripts.api.Rosters import Rosters
 from datetime import datetime as dt
 import time
+# load parameters
+season = 2023
+data_loader = DataLoader(year=season)
+teams = Teams(data_loader)
+
 proj_table = 'player_projections'
 proj_cols = constants.PROJECTIONS_COLUMNS
-for w in range(3, 19):
-    print(w)
-    projections = proj.get_week_projections(w)
-    for idx, row in projections.iterrows():
-        vals = (row.id, row.season, row.week, row.player, row.espn_id, row.position, row.rec, row.fpts)
-        db = Database(data=projections, table=proj_table, columns=proj_cols, values=vals)
-        db.commit_row()
 
-##### Week sim
-# load parameters
-season = 2024
 week_sim_table = 'betting_table'
 week_sim_cols = constants.WEEK_SIM_COLUMNS
+
 day = dt.now().strftime('%a')
-n_sims = 100_000
+n_sims = 1000
 
 for week in range(3,15):
     print(f'Simulating week {week}', end='...')
+    ws = WeekSim(season=season, week=week, data_loader=data_loader, teams=teams)
     try:
-        data = DataLoader(year=season, week=week)
-        rosters = Rosters(year=season)
-        teams = Teams(data=data)
-        week_data = data.load_week()
+        # get current projections and load to db
+        projections = ws.get_week_projections()
+        for idx, row in projections.iterrows():
+            vals = (row.id, row.season, row.week, row.player, row.espn_id, row.position, row.rec, row.fpts)
+            db = Database(data=projections, table=proj_table, columns=proj_cols, values=vals)
+            db.commit_row()
+
         matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
-        projections = proj.get_week_projections(week)
-        projections = projections.to_dict(orient='records')
+        projections_dict = projections.to_dict(orient='records')
 
         start = time.perf_counter()
-        sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = proj.simulate_week(week_data=week_data,
-                                                                                        teams=teams,
-                                                                                        rosters=rosters,
-                                                                                        matchups=matchups,
-                                                                                        projections=projections,
-                                                                                        week=week,
-                                                                                        n_sims=n_sims)
+        sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = ws.simulate_week(matchups=matchups,
+                                                                                      projections=projections_dict,
+                                                                                      n_sims=n_sims)
         end = time.perf_counter()
 
         for team in teams.team_ids:
             display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
             db_id = f'{season}_{str(week).zfill(2)}_{display_name}_{day}'
             avg_score = sim_scores[team] / n_sims
-            p_win = sim_wins[team] / n_sims
-            p_tophalf = sim_tophalf[team] / n_sims
-            p_highest = sim_highest[team] / n_sims
-            p_lowest = sim_lowest[team] / n_sims
-            week_sim_vals = (db_id, season, week, display_name, avg_score, p_win, p_tophalf, p_highest, p_lowest)
+            o_win = ws.calculate_odds(sim_result=sim_wins, n_sims=n_sims)
+            o_tophalf = ws.calculate_odds(sim_result=sim_tophalf, n_sims=n_sims)
+            o_highest = ws.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
+            o_lowest = ws.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)
+            week_sim_vals = (db_id, season, week, display_name, avg_score, o_win, o_tophalf, o_highest, o_lowest)
             db = Database(table=week_sim_table, columns=week_sim_cols, values=week_sim_vals)
             db.sql_insert_query()
             db.commit_row()
@@ -134,9 +129,3 @@ for week in range(3,15):
     except Exception as e:
         print(f'Could not commit week {week}: {e}', end='\n')
         continue
-
-
-proj.calculate_odds(sim_result=sim_wins, n_sims=n_sims)
-proj.calculate_odds(sim_result=sim_tophalf, n_sims=n_sims)
-proj.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
-proj.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)

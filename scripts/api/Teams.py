@@ -37,6 +37,7 @@ class Teams:
                 # checks if a matchup has a home and away team
                 # playoff bye weeks do not have both
                 week = m['matchupPeriodId']
+                matchup_id = m['id']
                 team1 = m['home']['teamId']
                 score1 = m['home']['totalPoints']
                 team2 = m['away']['teamId']
@@ -45,6 +46,7 @@ class Teams:
 
                 temp = {
                     'week': week,
+                    'matchup_id': matchup_id,
                     'team1': team1,
                     'score1': score1,
                     'team2': team2,
@@ -89,14 +91,6 @@ class Teams:
         team_scores = [d['score'] for d in team_schedule if 'score' in d]
         return team_scores
 
-    def team_faab_remaining(self, team_id: int) -> int:
-        """
-        Get Free Agent Acquisition Budget (FAAB) remaining for a given team
-        :param team_id: ESPN fantasy team ID
-        :returns: FAAB amount for a team
-        """
-        return self.faab_remaining[team_id]
-
     def week_median(self, week: int) -> float:
         """
         Calculate median score for a given week
@@ -116,7 +110,7 @@ class Teams:
 
     def get_all_faab_remaining(self):
         """
-        Get remaining FAAB amount for all teams
+        Get Free Agent Acquisition Budget (FAAB) remaining for all teams
         """
         self.faab_remaining = {}
         for tm in self.teams['teams']:
@@ -125,9 +119,9 @@ class Teams:
             self.faab_remaining[teamid] = remaining
         return self.faab_remaining
 
-    def get_single_faab_remaining(self, teamid):
+    def get_team_faab_remaining(self, teamid: int):
         """
-        Get FAAB remaining for a single team
+        Get Free Agent Acquisition Budget (FAAB) remaining for a given team
         """
         if not self.faab_remaining:
             faab = self.get_all_faab_remaining()

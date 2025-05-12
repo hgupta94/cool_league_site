@@ -8,7 +8,9 @@ class Database:
                  data: dict|list|pd.DataFrame = None,
                  table: str = None,
                  columns: str = None,
-                 values: tuple = None):
+                 values: tuple = None,
+                 season: int = None,
+                 week: int = None):
         """
         Initializes a Database object
 
@@ -29,10 +31,22 @@ class Database:
         self.table = table
         self.columns = columns
         self.values = values
+        self.season = season
+        self.week = week
+
+    def retrieve_data(self):
+        query = f'''
+                SELECT *
+                FROM {self.table}
+                WHERE season = {self.season}
+                    AND week = {self.week};
+                '''
+        with self.connection as conn:
+            df = pd.read_sql(query, conn)
+        return df
 
     def sql_insert_query(self) -> str:
         """Generate the SQL INSERT query for the specified table"""
-
         query = f'''
                 INSERT INTO
                 {self.table}
@@ -45,7 +59,6 @@ class Database:
 
     def commit_row(self) -> None:
         """Commit a row to the specified table"""
-
         c = self.connection.cursor()
         query = self.sql_insert_query()
         c.execute(query, self.values)
@@ -54,7 +67,6 @@ class Database:
 
     def commit_data(self) -> None:
         """Commit data to the database"""
-
         with self.connection:
             if isinstance(self.data, dict):
                 for _, _ in self.data.items():

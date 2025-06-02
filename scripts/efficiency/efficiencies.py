@@ -157,15 +157,15 @@ def plot_efficiency(database: Database,
 
     cols = eff.select_dtypes(include=['float']).columns.tolist()
     df = eff.groupby('team')[cols].sum() / week
-    df['act_opt_perc'] = df.act_score / df.optimal_lineup_act
-    df['diff_from_opt'] = df.act_score - df.optimal_lineup_act
-    df['act_bestproj_perc'] = df.act_score / df.best_projected_act
+    df['act_opt_perc'] = df.actual_lineup_score / df.optimal_lineup_score
+    df['diff_from_opt'] = df.actual_lineup_score - df.optimal_lineup_score
+    df['act_bestproj_perc'] = df.actual_lineup_score / df.best_projected_lineup_score
 
     # plot
     teams = df.index.to_list()
     perc = [f'{round(p * 100)}%' for p in df.act_opt_perc.to_list()]
     x = df.diff_from_opt.to_list()
-    y = df.optimal_lineup_act.to_list()
+    y = df.optimal_lineup_score.to_list()
 
     colors = ['black', 'darkcyan', 'brown', 'chocolate', 'dodgerblue', 'crimson',
               'forestgreen', 'slateblue', 'blueviolet', 'olivedrab', 'lightseagreen', 'grey']

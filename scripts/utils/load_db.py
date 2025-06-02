@@ -25,6 +25,30 @@ for s in range(2018, 2024):
             db.commit_row()
 
 
+##### POWER RANKS
+from scripts.home.power_ranks import power_rank
+import pandas as pd
+
+pr_table = 'power_ranks'
+pr_cols = constants.POWER_RANK_COLUMNS
+for s in range(2018, 2024):
+    data = DataLoader(year=s)
+    params = Params(data=data)
+    for wk in range(1, params.regular_season_end+1):
+        df = pd.DataFrame(power_rank(s, wk)).transpose()
+        df['season'] = s
+        df['week'] = wk
+        df = df.reset_index().rename(columns={'index': 'team'})
+        df['id'] = df['season'].astype(str) + '_' + df['week'].astype(str) + '_' + df['team']
+        df['power_rank'] = df.power_score_norm.rank(ascending=False)
+        df = df[pr_cols.split(', ')]
+        for _, row in df.iterrows():
+            pr_vals = tuple(row)
+            db = Database(data=df, table=pr_table, columns=pr_cols, values=pr_vals)
+            db.commit_row()
+
+
+
 ##### SCENARIOS
 from scripts.api.Teams import Teams
 from scripts.scenarios.scenarios import get_h2h, schedule_switcher

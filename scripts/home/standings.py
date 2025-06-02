@@ -333,9 +333,9 @@ class Standings:
             self.standings_df['pb6'] = round(float(six_seed_points) - self.standings_df.total_points.astype(float), 2)
 
             self.standings_df['total_points_disp'] = self.standings_df.total_points.apply(lambda x: self._format_points(x))
-            self.standings_df['wb2'] = self.standings_df.apply(lambda x: self._clinch_bye(x, week=self.week, three_seed_wins=three_seed_wins), axis=1)
+            self.standings_df['wb2'] = self.standings_df.apply(lambda x: self._clinch_bye(x, three_seed_wins=three_seed_wins), axis=1)
             self.standings_df['wb2_disp'] = self.standings_df.wb2.apply(lambda x: self._format_weeks_back(x))
-            self.standings_df['wb5'] = self.standings_df.apply(lambda x: self._clinch_playoff(x, week=self.week, sixth_wins=sixth_wins), axis=1)
+            self.standings_df['wb5'] = self.standings_df.apply(lambda x: self._clinch_playoff(x, sixth_wins=sixth_wins), axis=1)
             self.standings_df['wb5_disp'] = self.standings_df.wb5.apply(lambda x: self._format_weeks_back(x))
             self.standings_df['pb6_disp'] = self.standings_df.pb6.apply(lambda x: self._format_points_back(x))
 

@@ -34,13 +34,21 @@ class Database:
         self.season = season
         self.week = week
 
-    def retrieve_data(self):
-        query = f'''
-                SELECT *
-                FROM {self.table}
-                WHERE season = {self.season}
-                    AND week = {self.week};
-                '''
+    def retrieve_data(self, how: str):
+        if how == 'week':
+            query = f'''
+                    SELECT *
+                    FROM {self.table}
+                    WHERE season = {self.season}
+                        AND week = {self.week};
+                    '''
+        if how == 'all':
+            query = f'''
+                    SELECT *
+                    FROM {self.table}
+                    WHERE season = {self.season}
+                        AND week <= {self.week};
+                    '''
         with self.connection as conn:
             df = pd.read_sql(query, conn)
         return df

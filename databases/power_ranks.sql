@@ -10,5 +10,8 @@ CREATE TABLE power_ranks (
     power_score_raw DECIMAL(5, 4),
     power_score_norm DECIMAL(5, 4),
     power_rank INT,
+    score_raw_change DECIMAL(5, 4),
+    score_norm_change DECIMAL(5, 4),
+    rank_change INT,
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

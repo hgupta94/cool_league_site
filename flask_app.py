@@ -1,4 +1,5 @@
 import pandas as pd
+import json
 from flask import Flask, render_template
 from flask_fontawesome import FontAwesome
 
@@ -8,13 +9,24 @@ import scripts.utils.utils as ut
 from scripts.utils.constants import STANDINGS_COLUMNS
 from scripts.home.standings import Standings
 
-season, week = 2024, 10  # just finished previous week
+season, week = 2023, 10  # just finished previous week
 standings = Standings(season=season, week=week)
 standings_df = standings.format_standings()
 clinches = standings.clinching_scenarios()
 
+db = Database(table='power_ranks', season=season, week=week)
+pr_data = db.retrieve_data(how='all')
+pr_data[['power_score_norm', 'score_norm_change']] = round(pr_data[['power_score_norm', 'score_norm_change']] * 100).astype('Int32')
+pr_table = pr_data[pr_data.week == week]
+pr_table = pr_table.sort_values('power_score_norm', ascending=False)
+pr_table[['total_points', 'weekly_points', 'consistency', 'luck']] = pr_table[['season_idx', 'week_idx', 'consistency_idx', 'luck_idx']].rank(ascending=False, method='min').astype('Int32')
+pr_cols = ['team', 'total_points', 'weekly_points', 'consistency', 'luck', 'power_rank', 'rank_change', 'power_score_norm', 'score_norm_change']
+rank_data = pr_data[['team', 'week', 'power_rank', 'power_score_norm']].sort_values(['week', 'power_score_norm'], ascending=[True, False]).to_dict(orient='records')
+rank_data = json.dumps(rank_data, indent=2)
+rank_data = {'rank_data': rank_data}
+
 db = Database(table='betting_table', season=season, week=week)
-betting_table = db.retrieve_data()
+betting_table = db.retrieve_data(how='week')
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 
 
@@ -32,11 +44,14 @@ def home():
     headings_st = tuple(['Seed', 'Team', 'Overall', 'Win%', 'Matchup', 'THW', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
     data_st = ut.flask_get_data(standings_df[STANDINGS_COLUMNS])
 
+    headings_pr = tuple(['Team', 'Total Pts', 'Weekly Pts', 'Consistency', 'Luck', 'Power Rank', '1 Week Change', 'Power Score', '1 Week Change'])
+    data_pr = ut.flask_get_data(pr_table[pr_cols])
+
     return render_template(
         "powerrank.html", week=f'Week {week}',
         headings_st=headings_st, data_st=data_st,
-        # headings_pr=headings_pr, data_pr=data_pr,
-        # rank_data=rank_data
+        headings_pr=headings_pr, data_pr=data_pr,
+        rank_data=rank_data
     )
 
 @app.route("/simulations/")

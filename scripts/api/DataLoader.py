@@ -60,8 +60,17 @@ class DataLoader:
 
         return d
 
-    def load_week(self):
-        return self._loader(view='mMatchupScore&view=mMatchup&view=mTeam&view=mSettings')
+    def load_week(self, week):
+        url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
+              f'{int(self.year)}' \
+              f'/segments/0/leagues/' \
+              f'{int(self.league_id)}'
+        r = requests.get(url + '?view=mMatchup&view=mMatchupScore',
+                         params={'scoringPeriodId': week, 'matchupPeriodId': week},
+                         cookies={'SWID': self.swid, 'espn_s2': self.espn_s2})
+
+        return r.json()
+        # return self._loader(view='mMatchupScore&view=mMatchup&view=mTeam&view=mSettings')
 
     def settings(self):
         return self._loader(view='mSettings')

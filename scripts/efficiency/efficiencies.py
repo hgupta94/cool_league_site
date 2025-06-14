@@ -1,6 +1,7 @@
 from scripts.api.DataLoader import DataLoader
 from scripts.api.Settings import Params
 from scripts.api.Rosters import Rosters
+from scripts.api.Teams import Teams
 
 from scripts.utils.database import Database
 from scripts.utils import utils
@@ -14,15 +15,15 @@ import matplotlib
 matplotlib.use('Agg')
 
 
-def get_optimal_points(data: DataLoader,
+def get_optimal_points(params: Params,
+                       teams: Teams,
+                       rosters: Rosters,
                        week_data: dict,
                        season: int,
                        week: int):
-    params = Params(data)
-    rosters = Rosters(year=season)
-
-    slots = constants.SLOTCODES
-    positions = constants.POSITION_MAP
+    slots = rosters.slotcodes
+    starters = {k: v for k, v in rosters.slot_limits.items() if k not in [20, 21, 23]}
+    positions = {k: v for k, v in slots.items() if k in starters.keys()}
     slot_limits = rosters.slot_limits
     df = pd.DataFrame(columns=['id', 'season', 'week', 'team_id', 'team',
                                'actual_score', 'actual_projected',
@@ -31,7 +32,7 @@ def get_optimal_points(data: DataLoader,
 
     for team in week_data['teams']:
         roster = {}
-        owr_id = team['primaryOwner']
+        owr_id = teams.teamid_to_primowner[team['id']]
         owr_name = params.team_map[owr_id]['name']['display']
         for plr in team['roster']['entries']:
             # loop thru each player to get relevant data
@@ -70,6 +71,7 @@ def get_optimal_points(data: DataLoader,
         act_pts_proj = 0
         for _, values in roster.items():
             if values['slot_id'] not in [20, 21]:
+                print(values['player_name'], values['position'], values['points'])
                 act_pts_act += values['points']  # actual lineup actual points
                 act_pts_proj += values['proj']  # actual lineup projected points
 

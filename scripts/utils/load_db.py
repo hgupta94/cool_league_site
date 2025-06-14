@@ -1,9 +1,9 @@
 from scripts.api.DataLoader import DataLoader
 from scripts.api.Settings import Params
-
+from scripts.api.Teams import Teams
+from scripts.api.Rosters import Rosters
 from scripts.utils.database import Database
 from scripts.utils import constants
-# from scripts.utils.utils import timer
 
 
 ##### MATCHUPS
@@ -86,11 +86,13 @@ eff_table = 'efficiency'
 eff_cols = constants.EFFICIENCY_COLUMNS
 for s in range(2018, 2024):
     data = DataLoader(year=s)
+    rosters = Rosters(year=s)
     params = Params(data)
+    teams = Teams(data=data)
     for w in range(1, params.regular_season_end+1):
         print(s, w)
         week_data = data.load_week(week=w)
-        eff = get_optimal_points(data=data, week_data=week_data, season=s, week=w)
+        eff = get_optimal_points(params=params, teams=teams, rosters=rosters, week_data=week_data, season=s, week=w)
         for idx, row in eff.iterrows():
             vals = (row.id, row.season, row.week, row.team,
                     row.actual_score, row.actual_projected,
@@ -129,10 +131,10 @@ n_sims = constants.N_SIMS
 for week in range(3,15):
     print(f'Simulating week {week}', end='...')
     try:
-        data = DataLoader(year=season, week=week)
+        data = DataLoader(year=season)
         rosters = Rosters(year=season)
         teams = Teams(data=data)
-        week_data = data.load_week()
+        week_data = data.load_week(week=week)
         matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
         projections = ws.get_week_projections(week)
         projections = projections.to_dict(orient='records')

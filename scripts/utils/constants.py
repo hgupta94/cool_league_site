@@ -118,8 +118,8 @@ POSITION_MAP = {
     2:  'RB',
     4:  'WR',
     6:  'TE',
-    16: 'DST'
-    # 17: 'K'
+    16: 'DST',
+    17: 'K'
 }
 
 SLOTCODES = {

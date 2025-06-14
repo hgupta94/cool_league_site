@@ -44,8 +44,10 @@ def home():
     headings_st = tuple(['Seed', 'Team', 'Overall', 'Win%', 'Matchup', 'THW', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
     data_st = ut.flask_get_data(standings_df[STANDINGS_COLUMNS])
 
-    headings_pr = tuple(['Team', 'Total Pts', 'Weekly Pts', 'Consistency', 'Luck', 'Power Rank', '1 Week Change', 'Power Score', '1 Week Change'])
+    headings_pr = tuple(['Team', 'Season', 'Recency', 'Consistency', 'Luck', 'Power Rank', '1 Week Change', 'Power Score', '1 Week Change'])
     data_pr = ut.flask_get_data(pr_table[pr_cols])
+    # TODO: add vertical line to separate inputs from outputs
+    # TODO: use delta triangle for 'Change' in headers
 
     return render_template(
         "powerrank.html", week=f'Week {week}',

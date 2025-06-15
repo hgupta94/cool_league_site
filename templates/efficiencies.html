@@ -4,16 +4,9 @@
 <br>
 <style>
 h1 {text-align: center;}
-}
 </style>
 <h1>Lineup Efficiency</h1>
 <div style="text-align: center;">
-  <img src="data:image/png;base64,{{ eff_plot }}">
+  <img src="{{ eff_plot }}" alt="Lineup Efficiency Plot" width="700" height="525">
 </div>
-<br>
-<h1>Positional Efficiency</h1>
-<div style="text-align: center;">
-  <img src="data:image/png;base64,{{ pos_plot }}">
-</div>
-<p>Dashed line represents average league lineup efficiency</p>
 {% endblock %}

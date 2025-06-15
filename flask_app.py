@@ -8,6 +8,7 @@ from scripts.utils.database import Database
 import scripts.utils.utils as ut
 from scripts.utils.constants import STANDINGS_COLUMNS
 from scripts.home.standings import Standings
+from scripts.efficiency.efficiencies import get_optimal_points, plot_efficiency
 
 season, week = 2023, 10  # just finished previous week
 standings = Standings(season=season, week=week)
@@ -29,6 +30,12 @@ db = Database(table='betting_table', season=season, week=week)
 betting_table = db.retrieve_data(how='week')
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 
+eff_plot = plot_efficiency(database=Database(),
+                           season=season, week=week,
+                           x='actual_lineup_score', y='optimal_lineup_score',
+                           xlab='Difference From Optimal Points per Week',
+                           ylab='Optimal Points per Week',
+                           title='')
 
 # create flask app
 app = Flask(__name__)
@@ -61,7 +68,7 @@ def sims():
     headings_bets = tuple(['ID', 'Team', 'Points', 'Matchup', 'THW', 'Highest', 'Lowest'])
     data_bets = ut.flask_get_data(betting_table[['matchup_id', 'team', 'avg_score', 'p_win', 'p_tophalf', 'p_highest', 'p_lowest']])
     return render_template(
-        "simulations.html",
+        "simulations.html", week=f'Week {week+1}',
         headings_bets=headings_bets, data_bets=data_bets,
         # headings_s=headings_s, data_s=data_s,
         # headings_w=headings_w, data_w=data_w,
@@ -79,8 +86,7 @@ def scen():
 
 @app.route("/efficiency/")
 def eff():
-    pass
-#     return render_template("efficiencies.html", eff_plot=eff_plot2, pos_plot=pos_plot2)
+    return render_template("efficiencies.html", eff_plot=eff_plot)
 
 @app.route("/champions/")
 def champs():

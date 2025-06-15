@@ -81,7 +81,8 @@ for s in range(2018, 2024):
 
 
 ##### Efficiency
-from scripts.efficiency.efficiencies import get_optimal_points
+from scripts.efficiency.efficiencies import get_optimal_points, plot_efficiency
+
 eff_table = 'efficiency'
 eff_cols = constants.EFFICIENCY_COLUMNS
 for s in range(2018, 2024):
@@ -101,6 +102,8 @@ for s in range(2018, 2024):
             db = Database(data=eff, table=eff_table, columns=eff_cols, values=vals)
             db.sql_insert_query()
             db.commit_row()
+
+plot = plot_efficiency(database=Database(), season=2023, week=10)
 
 
 ##### Projections
@@ -177,3 +180,7 @@ for week in range(3,15):
 ws.calculate_odds(sim_result=sim_tophalf, n_sims=n_sims)
 ws.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
 ws.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)
+
+
+for x in range(100, 140):
+    print(x, x * 0.88)

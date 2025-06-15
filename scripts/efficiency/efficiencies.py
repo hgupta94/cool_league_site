@@ -1,4 +1,6 @@
-from scripts.api.DataLoader import DataLoader
+import io
+import base64
+
 from scripts.api.Settings import Params
 from scripts.api.Rosters import Rosters
 from scripts.api.Teams import Teams
@@ -12,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from adjustText import adjust_text
 import matplotlib
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 matplotlib.use('Agg')
 
 
@@ -148,7 +151,12 @@ def get_optimal_points(params: Params,
 
 def plot_efficiency(database: Database,
                     season: int,
-                    week: int):
+                    week: int,
+                    x: str,
+                    y: str,
+                    xlab: str,
+                    ylab: str,
+                    title: str):
     with database.connection as conn:
         query = f'''
         SELECT *
@@ -159,7 +167,7 @@ def plot_efficiency(database: Database,
 
     cols = eff.select_dtypes(include=['float']).columns.tolist()
     df = eff.groupby('team')[cols].sum() / week
-    df['act_opt_perc'] = df.actual_lineup_score / df.optimal_lineup_score
+    df['act_opt_perc'] = df[x] / df[y]
     df['diff_from_opt'] = df.actual_lineup_score - df.optimal_lineup_score
     df['act_bestproj_perc'] = df.actual_lineup_score / df.best_projected_lineup_score
 
@@ -173,11 +181,14 @@ def plot_efficiency(database: Database,
               'forestgreen', 'slateblue', 'blueviolet', 'olivedrab', 'lightseagreen', 'grey']
     colors = colors[:len(x)]
     fig, ax = plt.subplots()
+    fig.patch.set_facecolor('#f5f5f5')
+    ax.set_facecolor('#f5f5f5')
     [i.set_linewidth(1.25) for i in ax.spines.values()]  # set border width
     ax.scatter(x, y, c=colors)
     ax.get_xlim()
     ax.get_ylim()
-    # plt.title('Test Title')
+
+    # add team names and percentages
     texts = []
     for i, txt in enumerate(zip(teams, perc)):
         the_txt = f'{txt[0]} ({txt[1]})'
@@ -186,9 +197,18 @@ def plot_efficiency(database: Database,
     plt.axhline(y=np.median(y), color='grey', linestyle='--', alpha=0.3)
     adjust_text(texts, autoalign='xy',
                 expand_points=(2, 2))
-    # arrowprops=dict(arrowstyle="-", color='grey', alpha=0.5))
-    plt.xlabel('Difference From Optimal Points per Week')
-    plt.ylabel('Optimal Points per Week')
+
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
     plt.setp(ax.spines.values(), color='lightgrey')
     # plt.figtext(0.99, 0.5, "Right Margin Text", va="center", rotation="vertical", ha="right")
-    plt.savefig('www/plots/efficiency_plot.png')
+    # plt.savefig('www/plots/efficiency_plot.png')
+
+    # Convert plot to PNG image
+    png_img = io.BytesIO()
+    FigureCanvas(fig).print_png(png_img)
+
+    # Encode PNG image to base64 string
+    png_str = "data:image/png;base64,"
+    png_str += base64.b64encode(png_img.getvalue()).decode('utf8')
+    return png_str

@@ -333,11 +333,10 @@ def simulate_week(week_data: DataLoader,
     return [n_scores, n_wins, n_tophalf, n_highest, n_lowest]
 
 
-def calculate_odds(sim_value: dict,
-                   n_sims: int) -> dict:
+def calculate_odds(init_prob: dict) -> dict:
     """Convert counters from simulation into american odds"""
 
-    init_prob = sim_value / n_sims
+    # init_prob = sim_value / n_sims
     if init_prob >= 0.5:
         odds = (-1 * init_prob / (1 - init_prob)) * 100
         return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5

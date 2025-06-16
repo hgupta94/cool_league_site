@@ -302,7 +302,7 @@ class Standings:
 
         self.standings_df.sort_values(['win_perc', 'total_points'], ascending=[False, False], inplace=True)
 
-        if self.season >= 2021:
+        if self.season >= 2000:
             playoff_list = []
 
             top5 = self.standings_df.head(n_playoff_teams-1)

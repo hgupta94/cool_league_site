@@ -107,6 +107,14 @@ body {
 /* end format standings */
 
 
+/* add vline to pr table to separate columns */
+.pr td:nth-child(6){
+  border-left: 2px solid #909090;
+}
+/* end format standings */
+
+
+
 /* format all tables */
 .content-table {
   border-collapse: collapse;

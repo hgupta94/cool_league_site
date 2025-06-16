@@ -42,12 +42,17 @@ class Database:
                     WHERE season = {self.season}
                         AND week = {self.week};
                     '''
-        if how == 'all':
+        if how == 'season':
             query = f'''
                     SELECT *
                     FROM {self.table}
                     WHERE season = {self.season}
                         AND week <= {self.week};
+                    '''
+        if how == 'all':
+            query = f'''
+                    SELECT *
+                    FROM {self.table};
                     '''
         with self.connection as conn:
             df = pd.read_sql(query, conn)

@@ -10,11 +10,15 @@ def flask_get_columns(data: pd.DataFrame) -> tuple[list[str]]:
     return tuple(data.columns)
 
 
-def flask_get_data(data: pd.DataFrame) -> list[tuple]:
+def flask_get_data(data) -> list[tuple]:
     """
     Return data formated for Flask front end table
     """
-    return [tuple(x) for x in data.to_numpy()]
+    if type(data) == pd.DataFrame:
+        return [tuple(x) for x in data.to_numpy()]
+
+    if type(data) == list:
+        return [tuple(x) for x in data]
 
 
 def flatten_list(lst: list) -> list:

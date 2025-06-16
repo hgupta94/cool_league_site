@@ -14,7 +14,7 @@ ELIMINATED = 99
 CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
-N_SIMS = 1_000
+N_SIMS = 100_000
 
 # ESPN API parameters
 _CURRENT_YEAR = dt.datetime.now().year
@@ -33,8 +33,11 @@ EFFICIENCY_COLUMNS = 'id, season, week, team, actual_lineup_score, actual_lineup
 SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
 WEEK_SIM_COLUMNS = 'id, season, week, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SEASON_SIM_COLUMNS = ''
-STANDINGS_COLUMNS = ['seed', 'team', 'overall', 'win_perc', 'matchup', 'top_half',
-                     'total_points_disp', 'wb2_disp', 'wb5_disp', 'pb6_disp']
+RECORDS_COLUMNS = 'id, category, record, holder, season, week'
+
+STANDINGS_COLUMNS_FLASK = ['seed', 'team', 'overall', 'win_perc', 'matchup', 'top_half', 'total_points_disp', 'wb2_disp', 'wb5_disp', 'pb6_disp']
+RECORDS_COLUMNS_FLASK = ['category', 'record', 'holder', 'season', 'week']
+
 
 # Gamma distribution values for simulations
     # mean: average score of starters since 2021
@@ -128,9 +131,9 @@ SLOTCODES = {
     0:  'QB',
     1:  'TQB',
     2:  'RB',
-    3:  'FLEX',  # RB/WR
+    3:  'Flex',  # RB/WR
     4:  'WR',
-    5:  'FLEX',  # WR/TE
+    5:  'Flex',  # WR/TE
     6:  'TE',
     7:  'OP',
     8:  'DT',
@@ -156,11 +159,11 @@ SLOTCODES = {
 PLAYER_STATS_MAP = {
     # stat ID to stat name
     # Passing
-    0: 'passingAttempts',  # PA
-    1: 'passingCompletions',  # PC
-    2: 'passingIncompletions',  # INC
-    3: 'passingYards',  # PY
-    4: 'passingTouchdowns',  # PTD
+    0: {'name': 'passingAttempts', 'display': 'Passing Attempts'},  # PA
+    1: {'name': 'passingCompletions', 'display': 'Completions'},  # PC
+    2: {'name': 'passingIncompletions', 'display': 'Incompletions'},  # INC
+    3: {'name': 'passingYards', 'display': 'Passing Yards'},  # PY
+    4: {'name': 'passingTouchdowns', 'display': 'Passing TDs'},  # PTD
     # 5-14 appear for passing players
     # 5-7: 6 is half of 5 (integer divide by 2), 7 is half of 6 (integer divide by 2)
     # 8-10: 9 is half of 8 (integer divide by 2), 10 is half of 9 (integer divide by 2)
@@ -171,14 +174,14 @@ PLAYER_STATS_MAP = {
     17: 'passing300To399YardGame',  # P300
     18: 'passing400PlusYardGame',  # P400
     19: 'passing2PtConversions',  # 2PC
-    20: 'passingInterceptions',  # INT
+    20: {'name': 'passingInterceptions', 'display': 'Passing INTs'},  # INT
     21: 'passingCompletionPercentage',
     22: 'passingYardsPerGame',  # PY - avg per game
 
     # Rushing
-    23: 'rushingAttempts',  # RA
-    24: 'rushingYards',  # RY
-    25: 'rushingTouchdowns',  # RTD
+    23: {'name': 'rushingAttempts', 'display': 'Rushing Attempts'},  # RA
+    24: {'name': 'rushingYards', 'display': 'Rushing Yards'},  # RY
+    25: {'name': 'rushingTouchdowns', 'display': 'Rushing TDs'},  # RTD
     26: 'rushing2PtConversions',  # 2PR
     # 27-34 appear for rushing players
     # 27-29: 28 is half of 27 (integer divide by 2), 29 is half of 28 (integer divide by 2)
@@ -192,21 +195,21 @@ PLAYER_STATS_MAP = {
     40: 'rushingYardsPerGame',  # RY - avg per game
 
     # Receiving
-    41: 'receivingReceptions',  # REC
-    42: 'receivingYards',  # REY
-    43: 'receivingTouchdowns',  # RETD
+    41: {'name': 'receivingReceptions', 'display': 'Receptions'},  # REC
+    42: {'name': 'receivingYards', 'display': 'Receiving Yards'},  # REY
+    43: {'name': 'receivingTouchdowns', 'display': 'Receiving TDs'},  # RETD
     44: 'receiving2PtConversions',  # 2PRE
     45: 'receiving40PlusYardTD',  # RETD40
     46: 'receiving50PlusYardTD',  # RETD50
     # 47-52 appear for receiving players
     # 47-49: 48 is half of 47 (integer divide by 2), 49 is half of 48 (integer divide by 2)
     # 50-52: 51 is half of 50 (integer divide by 2), 52 is half of 51 (integer divide by 2)
-    53: 'receivingReceptions',  # REC - TODO: figure out what the difference is between 53 and 41
+    53: {'name': 'receivingReceptions', 'display': 'Receptions'},  # REC - TODO: figure out what the difference is between 53 and 41
     # 54-55 appear for receiving players
     # 54-55: 55 is half of 54 (integer divide by 2)
     56: 'receiving100To199YardGame',  # REY100
     57: 'receiving200PlusYardGame',  # REY200
-    58: 'receivingTargets',  # RET
+    58: {'name': 'receivingTargets', 'display': 'Targets'},  # RET
     59: 'receivingYardsAfterCatch',
     60: 'receivingYardsPerReception',
     61: 'receivingYardsPerGame',  # REY - avg per game
@@ -215,8 +218,8 @@ PLAYER_STATS_MAP = {
     64: 'passingTimesSacked',  # SK
 
     # Turnovers
-    68: 'fumbles',  # FUM
-    72: 'lostFumbles',  # FUML
+    68: {'name': 'fumbles', 'display': 'Fumbles'},  # FUM
+    72: {'name': 'lostFumbles', 'display': 'Fumbles Lost'},  # FUML
     73: 'turnovers',
 
     # Kicking
@@ -253,7 +256,7 @@ PLAYER_STATS_MAP = {
     102: 'puntReturnTouchdowns',  # PRTD
     103: 'interceptionReturnTouchdowns',  # INTTD
     104: 'fumbleReturnTouchdowns',  # FRTD
-    105: 'defensivePlusSpecialTeamsTouchdowns',  # Includes defensive blocked kick for touchdowns (BLKKRTD) and kickoff/punt return touchdowns
+    105: 'DSTTouchdowns',  # Includes defensive blocked kick for touchdowns (BLKKRTD) and kickoff/punt return touchdowns
     106: 'defensiveForcedFumbles',  # FF
     107: 'defensiveAssistedTackles',  # TKA
     108: 'defensiveSoloTackles',  # TKS

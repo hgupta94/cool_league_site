@@ -161,10 +161,6 @@ for week in range(3,15):
             p_tophalf = sim_tophalf[team] / n_sims
             p_highest = sim_highest[team] / n_sims
             p_lowest = sim_lowest[team] / n_sims
-            o_win = ws.calculate_odds(sim_value=sim_wins[team], n_sims=n_sims)
-            o_tophalf = ws.calculate_odds(sim_value=sim_tophalf[team], n_sims=n_sims)
-            o_highest = ws.calculate_odds(sim_value=sim_highest[team], n_sims=n_sims)
-            o_lowest = ws.calculate_odds(sim_value=sim_lowest[team], n_sims=n_sims)
             week_sim_vals = (db_id, season, week, matchup_id, display_name, avg_score, p_win, p_tophalf, p_highest, p_lowest)
             print(week_sim_vals)
             db = Database(table=week_sim_table, columns=week_sim_cols, values=week_sim_vals)
@@ -182,5 +178,19 @@ ws.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
 ws.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)
 
 
-for x in range(100, 140):
-    print(x, x * 0.88)
+##### Records
+from scripts.records.initialize import *
+standings_recs = get_standings_records()
+matchups_recs = get_matchup_records()
+per_stat_recs = get_per_stat_records()
+stat_group_records = get_stat_group_records()
+points_by_position = get_most_points_by_position()
+records = pd.concat([standings_recs, matchups_recs, per_stat_recs, stat_group_records, points_by_position])
+records = records.reset_index(drop=True).reset_index().rename(columns={'index': 'id'})
+
+records_table = 'records'
+records_cols = constants.RECORDS_COLUMNS
+for idx, row in records.iterrows():
+    db = Database(table=records_table, columns=records_cols, values=tuple(row))
+    db.sql_insert_query()
+    db.commit_row()

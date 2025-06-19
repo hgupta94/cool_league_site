@@ -273,9 +273,6 @@ class Standings:
         as_of_week = self.params.as_of_week
 
         for team_id in self.teams.team_ids:
-            # results = []
-            # for wk in range(1, as_of_week+1):
-            #     results.append(self.get_matchup_results(week=wk, team_id=team_id))
             results = [self.get_matchup_results(week=wk, team_id=team_id) for wk in range(1, as_of_week+1)]
                 
             # standings data for each team

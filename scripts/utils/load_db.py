@@ -1,3 +1,5 @@
+import mysql.connector.errors
+
 from scripts.api.DataLoader import DataLoader
 from scripts.api.Settings import Params
 from scripts.api.Teams import Teams
@@ -55,6 +57,7 @@ for s in range(2018, 2024):
 
 
 ##### SCENARIOS
+import mysql
 from scripts.api.Teams import Teams
 from scripts.scenarios.scenarios import get_h2h, schedule_switcher
 h2h_table = 'h2h'
@@ -75,9 +78,12 @@ for s in range(2018, 2024):
 
         switcher = schedule_switcher(teams=teams, season=s, week=w)
         for idx, row in switcher.iterrows():
-            ss_vals = (row.id, row.season, row.week, row.team, row.schedule_of, row.result)
-            db = Database(data=switcher, table=sch_sw_table, columns=sch_sw_cols, values=ss_vals)
-            db.commit_row()
+            try:
+                ss_vals = (row.id, row.season, row.week, row.team, row.schedule_of, row.result)
+                db = Database(data=switcher, table=sch_sw_table, columns=sch_sw_cols, values=ss_vals)
+                db.commit_row()
+            except mysql.connector.errors.IntegrityError:
+                continue
 
 
 ##### Efficiency
@@ -125,10 +131,12 @@ for w in range(3, 19):
 ##### Week sim
 # TODO only run simulation if a roster move was made
 # load parameters
-season = 2023
+from datetime import datetime as dt
+season = 2022
 week_sim_table = 'betting_table'
 week_sim_cols = constants.WEEK_SIM_COLUMNS
-day = dt.now().strftime('%a')
+# day = dt.now().strftime('%a')
+day = 'Sun'
 n_sims = constants.N_SIMS
 
 for week in range(3,15):

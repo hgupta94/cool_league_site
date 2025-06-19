@@ -208,17 +208,20 @@ table tr th {
 }
 */
 
+/* highlight cells for record by week */
+.perfect-week {
+    font-weight: bold;
+    color: #0D1641;
+}
+
+.winless-week {
+    font-weight: bold;
+    color: #B1233C;
+}
+/* end highlight cells */
+
 /* highlight diagonal for schedule switcher */
-.diagonal tbody tr:nth-child(1) td:nth-child(2),
-.diagonal tbody tr:nth-child(2) td:nth-child(3),
-.diagonal tbody tr:nth-child(3) td:nth-child(4),
-.diagonal tbody tr:nth-child(4) td:nth-child(5),
-.diagonal tbody tr:nth-child(5) td:nth-child(6),
-.diagonal tbody tr:nth-child(6) td:nth-child(7),
-.diagonal tbody tr:nth-child(7) td:nth-child(8),
-.diagonal tbody tr:nth-child(8) td:nth-child(9),
-.diagonal tbody tr:nth-child(9) td:nth-child(10),
-.diagonal tbody tr:nth-child(10) td:nth-child(11) {
+.diagonal {
     color: #0EB04B;
     font-weight: bold;
 }
@@ -270,3 +273,9 @@ circle {
   opacity: 0.5;
 }
 /* end power ranks chart formatting */
+
+/* color trophy icons */
+.icon-gold {
+  color: #e3b902
+}
+/* end color trophy icons */

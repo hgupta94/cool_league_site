@@ -48,7 +48,7 @@ table.center {
         {% for row in data_cc %}
             <tr>
                 {% for cell in row %}
-                    <td>{{ cell }}</td>
+                    <td>{{ cell|safe }}</td>
                 {% endfor %}
             </tr>
         {% endfor %}

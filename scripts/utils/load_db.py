@@ -9,14 +9,13 @@ from scripts.utils import constants
 
 
 ##### MATCHUPS
-from scripts.api.Teams import Teams
 from scripts.home.standings import Standings
-data = DataLoader()
-teams = Teams(data=data)
-params = Params(data=data)
 matchups_table = 'matchups'
 matchup_cols = constants.MATCHUP_COLUMNS
 for s in range(2018, 2024):
+    data = DataLoader(year=s)
+    teams = Teams(data=data)
+    params = Params(data=data)
     for w in range(1, params.regular_season_end+1):
         standings = Standings(season=s, week=w)
         print(s, w)

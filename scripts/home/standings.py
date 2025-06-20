@@ -242,7 +242,7 @@ class Standings:
         week_median = self.teams.week_median(week)
 
         display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[team_id]]['name']['display']
-        db_id = f'{self.season}_{str(self.week).zfill(2)}_{display_name}'
+        db_id = f'{self.season}_{str(week).zfill(2)}_{display_name}'
 
         matchups = self.teams.team_schedule(team_id)
         matchups_filter = [{k: v for k, v in d.items()} for d in matchups if d.get('week') == week][0]
@@ -250,17 +250,18 @@ class Standings:
         matchup_result = matchups_filter['result']
         th_result = 1.0 if matchups_filter['score'] > week_median else 0.5 if matchups_filter['score'] == week_median else 0.0
         score = matchups_filter['score']
+        opp_score = matchups_filter['opp_score']
 
         return {
             'id': db_id,
             'season': self.season,
             'week': week,
             'team': display_name,
+            'score': score,
             'opponent': opponent_display_name,
+            'opponent_score': opp_score,
             'matchup_result': matchup_result,
-            'top_half_result': th_result,
-            'median_score': week_median,
-            'score': score
+            'top_half_result': th_result
         }
 
     def format_standings(self) -> pd.DataFrame:

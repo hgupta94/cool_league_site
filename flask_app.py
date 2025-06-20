@@ -15,7 +15,7 @@ from scripts.scenarios.scenarios import get_total_wins, get_wins_by_week, get_wi
 from scripts.simulations import week_sim as ws
 from scripts.efficiency.efficiencies import plot_efficiency
 
-season, week = 2023, 6  # just finished previous week
+season, week = 2023, 7  # just finished previous week
 data = DataLoader(season)
 week_data = data.load_week(week=week)
 params = Params(data)
@@ -30,7 +30,8 @@ db_pr = Database(table='power_ranks', season=season, week=week-1)
 pr_data = db_pr.retrieve_data(how='season')
 pr_data[['power_score_norm', 'score_norm_change']] = round(pr_data[['power_score_norm', 'score_norm_change']] * 100).astype('Int32')
 pr_table = pr_data[pr_data.week == week-1]
-pr_table = pr_table.sort_values('power_score_norm', ascending=False)
+pr_table = pr_table.sort_values('power_score_raw', ascending=False)
+pr_table['rank_change'] = -pr_table.rank_change
 pr_table[['total_points', 'weekly_points', 'consistency', 'luck']] = pr_table[['season_idx', 'week_idx', 'consistency_idx', 'luck_idx']].rank(ascending=False, method='min').astype('Int32')
 pr_cols = ['team', 'total_points', 'weekly_points', 'consistency', 'luck', 'power_rank', 'rank_change', 'power_score_norm', 'score_norm_change']
 rank_data = pr_data[['team', 'week', 'power_rank', 'power_score_norm']].sort_values(['week', 'power_score_norm'], ascending=[True, False]).to_dict(orient='records')
@@ -57,7 +58,7 @@ ss_data = db_ss.retrieve_data(how='season')
 ss_disp = get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, params=params, week=week)
 
 eff_plot = plot_efficiency(database=Database(),
-                           season=season, week=week,
+                           season=season, week=week-1,
                            x='actual_lineup_score', y='optimal_lineup_score',
                            xlab='Difference From Optimal Points per Week',
                            ylab='Optimal Points per Week',
@@ -67,7 +68,7 @@ db = Database(table='records')
 records_df = db.retrieve_data(how='all')
 
 # champs = pd.read_csv("//home//hgupta//fantasy-football-league-report//champions.csv")
-champs = pd.read_csv('C:\Dev\hgupta94\cool_league\champions.csv')
+champs = pd.read_csv('C:\Dev\hgupta94\cool_league\champions.csv').sort_values('Season', ascending=False)
 champs["Count"] = champs.groupby("Team").cumcount()+1
 champs = champs.assign(Icon=champs["Count"].apply(
     lambda n: ''.join(

@@ -15,18 +15,22 @@ from scripts.scenarios.scenarios import get_total_wins, get_wins_by_week, get_wi
 from scripts.simulations import week_sim as ws
 from scripts.efficiency.efficiencies import plot_efficiency
 
-season, week = 2023, 7  # just finished previous week
+# TODO: webpage errors out if past regular season
+season, week = 2023, 14  # just finished previous week
 data = DataLoader(season)
-week_data = data.load_week(week=week)
 params = Params(data)
 teams = Teams(data)
-rosters = Rosters()
+
+week = params.regular_season_end+1 if week > params.regular_season_end+1 else week
+# week_data = data.load_week(week=week)
+# rosters = Rosters()
 
 standings = Standings(season=season, week=week)
 standings_df = standings.format_standings()
 clinches = standings.clinching_scenarios()
+# TODO: fix last week clinches/elims. if team is ahead (cl) or behind (el), net wins should be 0?
 
-db_pr = Database(table='power_ranks', season=season, week=week-1)
+db_pr = Database(table='power_ranks', season=season, week=week)
 pr_data = db_pr.retrieve_data(how='season')
 pr_data[['power_score_norm', 'score_norm_change']] = round(pr_data[['power_score_norm', 'score_norm_change']] * 100).astype('Int32')
 pr_table = pr_data[pr_data.week == week-1]
@@ -47,13 +51,13 @@ betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: ws.calculat
 betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: ws.calculate_odds(init_prob=x))
 betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: ws.calculate_odds(init_prob=x))
 
-db_h2h = Database(table='h2h', season=season, week=week-1)
+db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')
 total_wins = get_total_wins(h2h_data=h2h_data, params=params, teams=teams, week=week)
 wins_by_week = get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, teams=teams)
 wins_vs_opp = get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, params=params, week=week)
 
-db_ss = Database(table='switcher', season=season, week=week-1)
+db_ss = Database(table='switcher', season=season, week=week)
 ss_data = db_ss.retrieve_data(how='season')
 ss_disp = get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, params=params, week=week)
 
@@ -102,12 +106,15 @@ def home():
     headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'THW', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
     data_st = ut.flask_get_data(standings_df[STANDINGS_COLUMNS_FLASK])
 
-    headings_cl = tuple(['Team', 'To Clinch', 'Net Wins', 'Clinched Over']) if clinches['clinches'] else tuple()
-    headings_el = tuple(['Team', 'Eliminated From', 'Net Wins', 'Eliminated By']) if clinches['eliminations'] else tuple()
+    cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if week == params.regular_season_end else 'Clinch Over']
+    headings_cl = tuple(cl_cols) if clinches['clinches'] else tuple()
     data_cl = ut.flask_get_data(clinches['clinches']) if clinches['clinches'] else tuple()
+
+    el_cols = ['Team', 'Elim. From', 'Net Wins', 'Elim. By (Net Pts)' if week == params.regular_season_end else 'Elim. By']
+    headings_el = tuple(el_cols) if clinches['eliminations'] else tuple()
     data_el = ut.flask_get_data(clinches['eliminations']) if clinches['eliminations'] else tuple()
 
-    headings_pr = tuple(['Team', 'Season', 'Recency', 'Consistency', 'Luck', 'Power Rank', '1 Week \u0394', 'Power Score', '1 Week \u0394'])
+    headings_pr = tuple(['Team', 'Season', 'Recency', 'Consistency', 'Luck', 'Rank', '1 Week \u0394', 'Score', '1 Week \u0394'])
     data_pr = ut.flask_get_data(pr_table[pr_cols])
     # TODO: add vertical line to separate inputs from outputs
 
@@ -156,8 +163,8 @@ def scenarios():
     data_wk = ut.flask_get_data(wins_by_week)
     data_styled = ut.flask_get_data([
         [
-            f'<span class="perfect-week">{cell}</span>' if cell == '11-0'
-            else f'<span class="winless-week">{cell}</span>' if cell == '0-11'
+            f'<span class="perfect-week">{cell}</span>' if cell.endswith('-0')
+            else f'<span class="winless-week">{cell}</span>' if cell.startswith('0-')
             else cell
             for cell in row
         ]

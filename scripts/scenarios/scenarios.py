@@ -49,9 +49,11 @@ def get_wins_by_week(h2h_data: pd.DataFrame,
     wins_by_week = h2h_data.groupby(['team', 'week']).result.sum().reset_index()
     wins_by_week['losses'] = (len(teams.team_ids) -1) - wins_by_week.result
     wins_by_week['record'] = wins_by_week.result.astype('Int32').astype(str) + '-' + wins_by_week.losses.astype('Int32').astype(str)
+    best_str = f'{int(wins_by_week.result.max())}-{int(wins_by_week.result.min())}'
+    worst_str = f'{int(wins_by_week.result.min())}-{int(wins_by_week.result.max())}'
     wins_by_week_p = wins_by_week.pivot(index='team', columns='week', values='record')
-    wins_by_week_p['weeks_best'] = (wins_by_week_p == '11-0').sum(axis=1)
-    wins_by_week_p['weeks_worst'] = (wins_by_week_p == '0-11').sum(axis=1)
+    wins_by_week_p['weeks_best'] = (wins_by_week_p == best_str).sum(axis=1).astype(str)
+    wins_by_week_p['weeks_worst'] = (wins_by_week_p == worst_str).sum(axis=1).astype(str)
     return (
         pd.merge(wins_by_week_p, total_wins, on='team')
         .sort_values('result', ascending=False)

@@ -30,7 +30,7 @@ class DataLoader:
         if view == 'kona_player_info':
             filters = {
                 'players': {
-                    'limit': 500,
+                    'limit': 1000,
                     'sortDraftRanks': {
                         'sortPriority': 100,
                         'sortAsc': True,

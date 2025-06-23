@@ -16,10 +16,11 @@ from scripts.simulations import week_sim as ws
 from scripts.efficiency.efficiencies import plot_efficiency
 
 # TODO: webpage errors out if past regular season
-season, week = 2023, 14  # just finished previous week
+season, week = 2024, 12  # just finished previous week
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
+matchups = data.matchups()
 
 week = params.regular_season_end+1 if week > params.regular_season_end+1 else week
 # week_data = data.load_week(week=week)
@@ -82,7 +83,7 @@ champs = champs.assign(Icon=champs["Count"].apply(
         ]
     ) + '<br>'
 ))
-prev_champs = champs[['Season', 'Team']]
+prev_champs = champs[['Season', 'Team', 'Runner Up']]
 champ_count = (
     champs
     .drop_duplicates(subset='Team', keep='last')

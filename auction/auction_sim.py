@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import requests
 import copy
 import random
+import math
 from sklearn.mixture import GaussianMixture as gm
 import scipy.stats as stats
 import pandas as pd
@@ -20,9 +21,22 @@ MIN_BID = 1
 N_TEAMS = 10
 N_BENCH = 6
 POSITIONS = ['QB', 'RB', 'WR', 'TE', 'DST']
+STARTERS = [1, 2, 3, 1, 1]
 FLEX_POSITIONS = ['RB', 'WR']
 N_FLEX = 1
-STARTERS = [1, 2, 3, 1, 1]
+N_PLAYOFFS = 6
+
+
+def flatten_list(lst: list) -> list:
+    """
+    Flattens a list of lists into a single list
+    Only works for 2D lists
+    """
+    return [
+        x
+        for xs in lst
+        for x in xs
+    ]
 
 
 def get_byes(season):
@@ -100,7 +114,7 @@ def calculate_prices(
         n_flex: int = 1,
         starters: list[int] = [1, 2, 3, 1, 1]
 ):
-    backups = [0.5/n_bench, 2.5/n_bench, 2.5/n_bench, 0.5/n_bench, 0]  # percent of bench spots occupied by position
+    backups = [0.5/n_bench, 2.5/n_bench, 2.5/n_bench, 0.5/n_bench, 0]  # number of bench spots occupied by position
     bench_allocation = round(1 - starter_allocation, 2)  # percent of budget allocated to bench
     total_dollars = budget * n_teams
     roster_size = sum(starters) + n_bench + n_flex
@@ -181,45 +195,43 @@ def nominate_player(players_data: dict,
     return random.choices(list(players), probs)[0]
 
 
-def appetites(players_data, can_draft, max_slots, draft_state, position):
+def appetites(can_draft, max_slots, draft_state, position, pick, draft_data):
     """
     Calculate each team's 'appetite' to draft the current player.
     position scarcity: player's value compared to rest of players in tier
     position scarcity: # players at position a team has compared to the league. fewer players vs league => higher scarcity
     roster scarcity: # of total players team has compared to league
     """
-    # players_data = player_prices.copy()
+    # players_data = player_pool.copy()
     # position = nom_position
-    appetites = {}
+    tm_appetites = {}
     total_appetite = 0
-    position_scarcity = players_data[nom_id]['vor_tot'] / (sum(v['vor_tot'] for k, v in players_data.items() if (v['tier'] == players_data[nom_id]['tier']))+1) / 0.5
-    for o in owners:
-        if o in can_draft:
-            aggression = draft_state[o]['aggression'] / sum(v['aggression'] for k,v in draft_state.items()) * position_scarcity
+    for o in can_draft:
+        aggression = draft_state[o]['aggression']# / (sum(v['aggression'] for k,v in draft_state.items()) / 10)
 
-            tm_position_val = max_slots[position] / (draft_state[o][position] + 1)
-            lg_position_val = (
-                                    (max_slots[position] * (N_TEAMS - 1))  # league position slots, except current team
-                                    / (sum(v[position] for k, v in draft_state.items() if k != o) + 1)  # total players drafted at position, except for current team
-                            ) / (N_TEAMS - 1)  # average of league, except current team
-            lineup_slot_scarcity = tm_position_val / lg_position_val
+        tm_position_val = max_slots[position] / (draft_state[o][position] + 1)
+        lg_position_val = (
+                                (max_slots[position] * (N_TEAMS - 1))  # league position slots, except current team
+                                / (sum(v[position] for k, v in draft_state.items() if k != o) + 1)  # total players drafted at position, except for current team
+                        ) / (N_TEAMS - 1)  # average of league, except current team
+        lineup_slot_scarcity = tm_position_val / lg_position_val
 
-            try:
-                pick_scarcity = pick - draft_picks[o][-1]['pick']
-            except IndexError:
-                pick_scarcity = pick - 1
+        try:
+            pick_scarcity = pick - draft_data[o][-1]['pick']
+        except IndexError:
+            pick_scarcity = pick
 
-            tm_roster_val = 15 - draft_state[o]['slots_left']
-            lg_roster_val = (
-                                    (pick - tm_roster_val)  # total picks made, except current team
-                            ) / (N_TEAMS - 1)  # average of league, except current team
-            roster_scarcity = lg_roster_val / (tm_roster_val + 1)
+        tm_roster_val = 15 - draft_state[o]['slots_left']
+        lg_roster_val = (
+                                (pick - tm_roster_val)  # total picks made, except current team
+                        ) / (N_TEAMS - 1)  # average of league, except current team
+        roster_scarcity = lg_roster_val / (tm_roster_val + 1)
 
-            tm_appetite = (lineup_slot_scarcity / (aggression + 1)) * (roster_scarcity + (pick_scarcity/10))
-            appetites[o] = tm_appetite
-            total_appetite += tm_appetite
+        tm_appetite = ((lineup_slot_scarcity * roster_scarcity) + (pick_scarcity/10)) / aggression
+        tm_appetites[o] = tm_appetite
+        total_appetite += tm_appetite
 
-    return {k: (v/total_appetite) for k, v in appetites.items()}
+    return {k: (v/total_appetite) for k, v in tm_appetites.items()}
 
 
 def inflation(remaining_prices: list,
@@ -229,146 +241,6 @@ def inflation(remaining_prices: list,
     return ((budget * n_teams) - total_spent) / sum(remaining_prices)
 
 
-##### LOAD DATA #####
-season = 2025
-byes = get_byes(season)
-price_data = calculate_prices(players_data=load_espn_data(season=season, byes=byes))
-values = np.array([v['vor_tot'] for k, v in price_data.items()]).reshape(-1, 1)
-gmcl = gm(n_components=10, covariance_type='full').fit(values)
-gmcl.bic(values)
-preds = gmcl.predict(values)
-for i, (k, v) in enumerate(price_data.items()):
-    price_data[k]['tier'] = preds[i]
-
-
-##### SIMULATE AUCTION DRAFT #####
-start = time.perf_counter()
-n_sims = 100
-sim = 1
-all_draft_data = []
-while sim <= n_sims:
-    if sim % 1000 == 0:
-        print(sim)
-    # initiate draft data
-    player_prices = copy.deepcopy(price_data)
-    owners = ['Aaro', 'Adit', 'Aksh', 'Arju', 'Ayaz', 'Char', 'Faiz', 'Hirs', 'Nick', 'Varu']
-    total_slots = sum(STARTERS) + N_FLEX + N_BENCH
-    max_slots = {
-        'QB': 2,
-        'RB': 7,
-        'WR': 8,
-        'TE': 2,
-        'DST': 1
-    }  # realistic max slots, not ESPN max
-
-    draft_picks = {o: [] for o in owners}
-    draft_state = {
-        o: {
-            'aggression': random.choices([1,2,3], [0.2, 0.6, 0.2])[0],
-            'funds_left': BUDGET,
-            'slots_left': total_slots,
-            'QB': 0,
-            'RB': 0,
-            'WR': 0,
-            'TE': 0,
-            'DST': 0
-        } for o in owners
-    }
-    pick = 1
-    total_spend = 0
-
-    while pick <= (total_slots * N_TEAMS):
-
-        # positions remaining to nominate
-        positions_to_draft = []
-        for o in owners:
-            if draft_state[o]['slots_left'] > 0:
-                for p in POSITIONS:
-                    if draft_state[o][p] < max_slots[p]:
-                        if p not in positions_to_draft:
-                            positions_to_draft.append(p)
-
-        # nominate a player and get stats
-        nom_id = nominate_player(player_prices, positions_to_draft)
-        nom_player = player_prices[nom_id]['name']
-        nom_team = player_prices[nom_id]['team']
-        nom_bye = player_prices[nom_id]['bye']
-        nom_position = player_prices[nom_id]['position']
-        nom_ppg = player_prices[nom_id]['ppg']
-        nom_vor = player_prices[nom_id]['vor_tot']
-
-        # get teams that have a slot available for player
-        possible_teams = {k for k, v in draft_state.items() if v[nom_position] < max_slots[nom_position] and v['slots_left'] > 0}
-
-        # get an initial bid amount
-        team_factor = len(possible_teams) / len(owners)  # scale bid price to account for competition
-        min_bid = player_prices[nom_id]['price'] * (0.2 + team_factor)
-        max_bid = player_prices[nom_id]['value'] * (0.2 + team_factor)
-        bid_amt = 1 if round(random.uniform(min_bid, max_bid)) <= 0 else round(random.uniform(min_bid, max_bid))
-
-        # get which of possible teams can draft player at price and select a random team
-        # team must have:
-        #   $1 / roster spot remaining after drafting OR have enough funds to draft player as the last pick AND
-        #   not need another position filled with final pick(s)
-        can_draft = []
-        while len(can_draft) == 0:
-            for o in possible_teams:
-                over_dppr = (draft_state[o]['funds_left'] - bid_amt) - (draft_state[o]['slots_left'] - 1) >= 0
-                last_player_funds = (draft_state[o]['funds_left'] - bid_amt >= 0) and draft_state[o]['slots_left'] == 1
-                needs_other_pos = len({k: v for k, v in draft_state[o].items() if k in POSITIONS and k != nom_position and v == 0}) / draft_state[o]['slots_left'] >= 1
-                if (over_dppr or last_player_funds) and not needs_other_pos:
-                    can_draft.append(o)
-
-            if len(can_draft) == 0:
-                bid_amt -= 1
-                if bid_amt <= 0:
-                    remove_player_from_pool(player_prices, nom_id)
-                    break
-
-        if nom_id not in player_prices:
-            continue
-
-        if bid_amt == 0:break
-        player_appetites = appetites(player_prices, can_draft, max_slots, draft_state, nom_position)
-        winning_team = random.choices(can_draft, [v for k, v in player_appetites.items()])[0]
-
-        # update draft statuses
-        # adjust remaining prices for inflation
-        infl = inflation(remaining_prices = [v['price'] for k, v in player_prices.items()],
-                         total_spent = total_spend,
-                         budget = BUDGET,
-                         n_teams = N_TEAMS)
-        for k, v in player_prices.items():
-            v['value'] *= infl
-            v['price'] *= infl
-
-        # update team draft dictionaries
-        total_spend += bid_amt
-        draft_picks[winning_team].append({
-            'pick': pick,
-            'winning_bid': bid_amt,
-            'player_id': nom_id,
-            'player': nom_player,
-            'nfl_team': nom_team,
-            'bye': nom_bye,
-            'position': nom_position,
-            'ppg': nom_ppg,
-            'vor': nom_vor
-        })
-        draft_state[winning_team]['funds_left'] -= bid_amt
-        draft_state[winning_team]['slots_left'] -= 1
-        draft_state[winning_team][nom_position] += 1
-
-        remove_player_from_pool(player_prices, nom_id)
-        pick += 1
-
-    all_draft_data.append(draft_picks)
-    sim += 1
-end = time.perf_counter()
-elapsed = end-start
-
-
-##### SIMULATE SEASON
 def sim_injury(mean_games: dict,
                position: str):
     """
@@ -382,7 +254,7 @@ def sim_injury(mean_games: dict,
     if position != 'DST':
         lower, upper, scale = 0, 18, mean_games[position]
         x = stats.truncexpon(b=(upper - lower) / scale, loc=lower, scale=scale)
-        games_missed = int(np.floor(x.rvs(1)[0]))
+        games_missed = math.floor(x.rvs(1)[0])
 
         if games_missed == 0:
             return []
@@ -401,17 +273,66 @@ def apply_weight(weights, position):
     """
     position = position.upper()
     if position != 'DST':
-        wt_mean = weights[position]['mean']
-        wt_sd = weights[position]['sd']
-        return random.normalvariate(mu=wt_mean, sigma=wt_sd)
+        wt_min = weights[position]['mean'] - (2 * weights[position]['sd'])
+        wt_max = weights[position]['mean'] + (2 * weights[position]['sd'])
+        return random.uniform(a=wt_min, b=wt_max)
     else:
         return 1
 
 
-# load saved sim data
-# with open('all_draft_data.pkl', 'rb') as f:
-#     all_draft_data = pickle.load(f)
+def get_replacement_player_id(position):
+    if position.upper() in POSITIONS:
+        return next(iter({k: v for k, v in price_data.items() if v['position'] == position.upper() and v['player_type'] == 'undrafted'}))
+    if position.upper() == 'FLEX':
+        return next(iter({k: v for k, v in price_data.items() if v['position'] in FLEX_POSITIONS and v['player_type'] == 'undrafted'}))
+    else:
+        raise ValueError(f'{position.upper()} not valid. Position should be in {POSITIONS}')
 
+
+def get_lineup(roster: list[dict], week):
+    starters = []
+    active_players = [i for i in roster if (week != i['bye']) and (week not in i['games_missed'])]
+    for pos, st in zip(POSITIONS + ['FLEX'], STARTERS + [1]):
+        if pos != 'FLEX':
+            pos_players = sorted([p for p in active_players if p['position'] == pos], key=lambda x: x['ppg'], reverse=True)
+            if len(pos_players) >= st:
+                starters.append(pos_players[0:st])
+            else:
+                # check if replacement player(s) are needed
+                players_needed = st - len(pos_players)
+                starters.append([price_data[get_replacement_player_id(pos)] for _ in range(players_needed)])
+        else:
+            # get flex starter(s)
+            starter_ids = [x['player_id'] for x
+                           in flatten_list(starters)
+                           if 'player_id' in x]  # ignore these players from flex consideration
+            flex_players = []
+            for fl_pos in FLEX_POSITIONS:
+                fl = (
+                    [fl for fl in active_players if fl['position'] == fl_pos and fl['player_id'] not in starter_ids]
+                )
+                if fl:
+                    flex_players.append(fl)
+            if len(flatten_list(flex_players)) > 0:
+                # if there are enough flex players, choose random player
+                flex_sorted = sorted(flatten_list(flex_players), key=lambda x: x['ppg'], reverse=True)
+                starters.append(random.choices(flex_sorted, [v['ppg'] if v['ppg'] > 0 else 0.1 for v in flex_sorted], k=1))
+            else:
+                starters.append([price_data[get_replacement_player_id(position='FLEX')] for _ in range(N_FLEX)])
+    return flatten_list(starters)
+
+
+
+##### LOAD DATA #####
+season = 2025
+byes = get_byes(season)
+price_data = calculate_prices(players_data=load_espn_data(season=season, byes=byes))
+values = np.array([v['vor_tot'] for k, v in price_data.items()]).reshape(-1, 1)
+gmcl = gm(n_components=10, covariance_type='full').fit(values)
+gmcl.bic(values)
+preds = gmcl.predict(values)
+for i, (k, v) in enumerate(price_data.items()):
+    price_data[k]['tier'] = preds[i]
 
 mean_gms_missed = {'QB': 2.1, 'RB': 2.9, 'WR': 2.2, 'TE': 1.6}
 wts = {'QB': {'mean': 0.9667, 'sd': 0.1690},
@@ -419,42 +340,245 @@ wts = {'QB': {'mean': 0.9667, 'sd': 0.1690},
        'WR': {'mean': 1.0267, 'sd': 0.2586},
        'TE': {'mean': 0.9795, 'sd': 0.2370}}
 
-sim_injury(mean_gms_missed, 'rb')
-apply_weight(wts, 'rb')
 
+##### START SIMULATION #####
+def run_simulation(n_sims):
+    owners = ['Aaro', 'Adit', 'Aksh', 'Arju', 'Ayaz', 'Char', 'Faiz', 'Hirs', 'Nick', 'Varu']
+    total_slots = sum(STARTERS) + N_FLEX + N_BENCH
+    max_slots = {  # realistic max number of players, not ESPN max
+        'QB': 2,
+        'RB': 7,
+        'WR': 8,
+        'TE': 2,
+        'DST': 2
+    }
+    final_results = {  # initialize final output data
+        s: {
+            'draft_data': {},
+            'results': {}
+        } for s in range(n_sims)
+    }
+    start = time.perf_counter()
+    for sim in range(n_sims):
+        if sim % 100 == 0:
+            print(sim)
 
-week = 9
-for sim in range(n_sims):
-    draft = all_draft_data[sim]
-    for team, roster in draft.items():
-        for player in roster:
-            player['games_missed'] = sim_injury(mean_gms_missed, player['position'])
-            player['ppg_wt'] = player['ppg'] * apply_weight(wts, player['position'])
-            player['sd'] = player['ppg_wt'] * 0.2 if player['position'] == 'QB' else player['ppg_wt'] * 0.4
-        test = [i for i in roster if week != i['bye'] and week not in i['games_missed']]
+        # initialize draft data
+        player_pool = copy.deepcopy(price_data)
+        draft_picks = {o: [] for o in owners}
+        draft_state = {
+            o: {
+                'aggression': random.choices([1, 2, 3], [0.2, 0.6, 0.2])[0],  # 1 = most aggressive
+                'funds_left': BUDGET,
+                'slots_left': total_slots,
+                'max_bid': BUDGET - (total_slots - 1),
+                'QB': 0,
+                'RB': 0,
+                'WR': 0,
+                'TE': 0,
+                'DST': 0
+            } for o in owners
+        }
+        pick = 1
+        total_spend = 0
 
+        ### SIMULATE AUCTION DRAFT ###
+        while pick <= (total_slots * N_TEAMS):
+            # positions remaining to nominate
+            # helpful when last few picks only require QB/TE/DST
+            positions_to_draft = []
+            for o in owners:
+                if draft_state[o]['slots_left'] > 0:
+                    for p in POSITIONS:
+                        if draft_state[o][p] < max_slots[p]:
+                            if p not in positions_to_draft:
+                                positions_to_draft.append(p)
 
+            # nominate a player and get data
+            nom_id = nominate_player(player_pool, positions_to_draft)
+            nom_player = player_pool[nom_id]['name']
+            nom_team = player_pool[nom_id]['team']
+            nom_bye = player_pool[nom_id]['bye']
+            nom_position = player_pool[nom_id]['position']
+            nom_ppg = player_pool[nom_id]['ppg']
+            nom_vor = player_pool[nom_id]['vor_tot']
 
+            # get teams that have a slot available for player
+            possible_teams = {k for k, v in draft_state.items() if v[nom_position] < max_slots[nom_position] and v['slots_left'] > 0}
 
+            # get an initial bid amount
+            team_factor = len(possible_teams) / len(owners)  # scale bid price to account for competition
+            min_price = player_pool[nom_id]['price'] * (0.2 + team_factor)
+            max_price = player_pool[nom_id]['value'] * (0.2 + team_factor)
+            bid_init = math.ceil(random.uniform(min_price, max_price))  # get initial price based on player data
+            max_bid_amt = sorted([v['max_bid'] for k, v in draft_state.items()])[-2] + 1  # winning team can only bid up to team with the second-highest max_bid + $1
+            bid_amt = 1 if bid_init < 1 else (bid_init if max_bid_amt > bid_init else max_bid_amt)
 
+            # get which of possible teams can draft player at price and select a random team
+            # the team must have:
+            #   >=$1 per player spot remaining (dppr) after drafting OR have enough funds to draft player as the last pick (not go negative)
+            #   AND not need another position filled with final pick(s)
+            can_draft = []
+            while len(can_draft) == 0:
+                for o in possible_teams:
+                    over_dppr = (draft_state[o]['funds_left'] - bid_amt) - (draft_state[o]['slots_left'] - 1) >= 0
+                    last_player_funds = (draft_state[o]['funds_left'] - bid_amt >= 0) and draft_state[o]['slots_left'] == 1
+                    needs_other_pos = len({k: v for k, v in draft_state[o].items() if k in POSITIONS and k != nom_position and v == 0}) / draft_state[o]['slots_left'] >= 1
+                    if (over_dppr or last_player_funds) and not needs_other_pos:
+                        can_draft.append(o)
 
+                # if no team can draft player, reduce bid_amt by $1 and try again
+                if len(can_draft) == 0:
+                    bid_amt -= 1
 
+                    # if bid_amt reaches 0, drop player and break out of while loop
+                    if bid_amt <= 0:
+                        remove_player_from_pool(player_pool, nom_id)
+                        break
 
+            if nom_id not in player_pool:
+                # if nominated player was dropped during while loop, restart nomination
+                continue
 
+            team_appetites = appetites(can_draft, max_slots, draft_state, nom_position, pick, draft_picks)  # assign weight to remaining teams
+            winning_team = random.choices(can_draft, [v for k, v in team_appetites.items()])[0]
 
+            # update draft statuses
+            # adjust remaining prices for inflation
+            total_spend += bid_amt
+            infl = inflation(remaining_prices = [v['price'] for k, v in player_pool.items()],
+                             total_spent = total_spend,
+                             budget = BUDGET,
+                             n_teams = N_TEAMS)
+            for k, v in player_pool.items():
+                v['value'] *= infl
+                v['price'] *= infl
+
+            draft_picks[winning_team].append({  # assign player to winning team
+                'pick': pick,
+                'winning_bid': bid_amt,
+                'player_id': nom_id,
+                'player': nom_player,
+                'nfl_team': nom_team,
+                'bye': nom_bye,
+                'position': nom_position,
+                'ppg': nom_ppg,
+                'vor': nom_vor
+            })
+            draft_state[winning_team]['funds_left'] -= bid_amt
+            draft_state[winning_team]['slots_left'] -= 1
+            draft_state[winning_team]['max_bid'] -= (bid_amt - 1)  # -$1 for filling current spot
+            draft_state[winning_team][nom_position] += 1
+
+            remove_player_from_pool(player_pool, nom_id)
+            pick += 1
+
+        final_results[sim]['draft_data'] = draft_picks
+
+        ### SIM SEASON ###
+        # initialize games missed and new ppg for current "season"
+        for team, roster in draft_picks.items():
+            for player in roster:
+                player['games_missed'] = sim_injury(mean_gms_missed, player['position'])
+                player['ppg'] = player['ppg'] * apply_weight(wts, player['position'])
+
+        season_results = {
+            o: {
+                'wins': 0,
+                'points': 0,
+                'playoffs': 0,
+                'finals': 0,
+                'champ': 0
+            }
+            for o in owners
+        }
+        for week in range(1, 15):  # weeks 1 to end of regular season
+            scores = {}
+            for team, roster in draft_picks.items():
+                # TODO: add check for starters vs replacement player
+                lineup = get_lineup(roster=roster, week=week)
+                lineup = [dict(l, **{'sd': l['ppg'] * 0.15 if l['position'] == 'QB' else l['ppg'] * 0.3}) for l in lineup]
+                points = sum(random.normalvariate(s['ppg'], s['sd']) for s in lineup)
+                scores[team] = points
+            median = np.median([s for s in scores.values()])
+            for team, score in scores.items():
+                season_results[team]['points'] += score
+                if score > median:  # team scored in the top half of league
+                    season_results[team]['wins'] += 1
+
+        # SIM PLAYOFFS #
+        # quarterfinals
+        p_teams = [t[0] for t in sorted(season_results.items(), key=lambda x: (x[1]['wins'], x[1]['points']), reverse=True)][0:N_PLAYOFFS]
+        for t in p_teams:
+            season_results[t]['playoffs'] += 1
+        sf_teams = p_teams[0:2]  # top two teams get by and move onto semifinals
+        qf_teams = [t for t in p_teams if t not in sf_teams]
+        qf_scores = {}
+        for team, roster in {k: v for k, v in draft_picks.items() if k in qf_teams}.items():
+            qf_lineup = get_lineup(roster=roster, week=15)
+            qf_lineup = [dict(l, **{'sd': l['ppg'] * 0.2 if l['position'] == 'QB' else l['ppg'] * 0.4}) for l in qf_lineup]
+            qf_points = sum(random.normalvariate(s['ppg'], s['sd']) for s in qf_lineup)
+            qf_scores[team] = qf_points
+        qf_median = np.median([s for s in qf_scores.values()])
+        for team, score in qf_scores.items():
+            if score > qf_median:  # team scored in the top half of league
+                sf_teams.extend([team])
+
+        # semifinals
+        sf_scores = {}
+        finals_teams = []
+        for team, roster in {k: v for k, v in draft_picks.items() if k in sf_teams}.items():
+            sf_lineup = get_lineup(roster=roster, week=16)
+            sf_lineup = [dict(l, **{'sd': l['ppg'] * 0.2 if l['position'] == 'QB' else l['ppg'] * 0.4}) for l in sf_lineup]
+            sf_points = sum(random.normalvariate(s['ppg'], s['sd']) for s in sf_lineup)
+            sf_scores[team] = sf_points
+        sf_median = np.median([s for s in sf_scores.values()])
+        for team, score in sf_scores.items():
+            if score > sf_median:  # team scored in the top half of league
+                finals_teams.extend([team])
+                season_results[team]['finals'] += 1
+
+        # finals
+        finals_scores = {}
+        champion = []
+        for team, roster in {k: v for k, v in draft_picks.items() if k in finals_teams}.items():
+            finals_lineup = get_lineup(roster=roster, week=16)
+            finals_lineup = [dict(l, **{'sd': l['ppg'] * 0.2 if l['position'] == 'QB' else l['ppg'] * 0.4}) for l in finals_lineup]
+            finals_points = sum(random.normalvariate(s['ppg'], s['sd']) for s in finals_lineup)
+            finals_scores[team] = finals_points
+        finals_median = np.median([s for s in finals_scores.values()])
+        for team, score in finals_scores.items():
+            if score > finals_median:  # team scored in the top half of league
+                champion.extend([team])
+                season_results[team]['champ'] += 1
+
+        final_results[sim]['results'] = season_results
+
+    end = time.perf_counter()
+    elapsed = end-start
+    print(f'{round(elapsed/60, 2)} minutes')
+    return final_results
+
+results = run_simulation(n_sims=1000)
+# import multiprocessing
+#
+# if __name__ == "__main__":
+#     with multiprocessing.Pool() as pool:
+#         results = pool.map(run_simulation, range(n_sims))
+#     final_results = {sim: result[sim] for result in results}
 
 
 # Save all_draft_data to a Pickle file
 # with open('all_draft_data.pkl', 'wb') as f:
 #     pickle.dump(all_draft_data, f)
 
+# load saved sim data
+# with open('all_draft_data.pkl', 'rb') as f:
+#     all_draft_data = pickle.load(f)
 
 
-
-
-
-def scatter_plot(player, sims, x='pick', y='winning_bid'):
-    df = sims.copy()
+def scatter_plot(player, sims_df, x='pick', y='winning_bid'):
+    df = sims_df.copy()
     df_plyr = df[df.player == player]
     plt.figure(figsize=(7, 7))
     plt.axvline(x=df_plyr[x].mean(), c='grey', dashes=(2, 2, 2, 2))

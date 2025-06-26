@@ -1,0 +1,25 @@
+1. Start by nominating a random player from the available player pool
+    a. Top 10 players by Value over Replacement (VOR) are eligible, to limit high-tier players from falling too far and low-tier players from being nominated too early
+    b. Players are weighted by their VOR, so higher VOR players within the group are more likely to be nominated
+
+2. A list of eligible teams is generated and a random initial bid amount is chosen based on a uniform distribution between the player's minimum and maximum prices
+    a. Team eligibility is based on several factors:
+        i.   The team has an open roster spot and does not need to fill another position (i.e., final pick with DST still required)
+        ii.  The team has not reached the nominated player's position limit
+        iii. If selected, the team's remaining budget does not fall below $1 per remaining roster spot (i.e., they can fill their roster with a minimum $1 bid per player)
+        iv.  If it's the team's last pick, the bid amount does not drop their budget below $0
+    b. If no team is eligible, the bid amount is subtracted by $1 until at least one team can draft the player
+    c. If the bid amount reaches $0, the nominated player is removed from the player pool and process is restarted with a new player
+
+3. Each eligible team is then assigned probability of winning the bid based on several factors:
+    a. Aggression level - a randomly assigned value between 1 (high) and 3 (low) set prior to that draft's simulation
+    b. Roster scarcity - teams with fewer drafted players than expected are given a higher probability
+    c. Position scarcity - teams with fewer drafted players at the nominated player's position are given a higher probability
+    d. Wait time - teams that waited longer since their last pick are assigned a higher probability
+
+4. The winning team is then randomly selected and the player is added to their roster
+    a. Remaining player prices are adjusted based on the inflation/deflation resulting from winning bid
+
+5. Steps 1-4 are repeated until all rosters are filled
+
+Once the draft is completed, an entire season (including playoffs) is simulated to quantify draft strategies

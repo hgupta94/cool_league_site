@@ -247,7 +247,7 @@ def sim_injury(mean_games: dict,
     :param position: position of the player
     :param mean_games: dictionary of mean games missed by position
     :return: the number of games missed by the player
-    mean games missed by position comes from this study (adjusted by 1):
+    mean games missed by position comes from this study (adjusted by 1 to account for championship game in week 17):
         https://www.profootballlogic.com/articles/nfl-injury-rate-analysis/
     """
     position = position.upper()
@@ -273,8 +273,8 @@ def apply_weight(weights, position):
     """
     position = position.upper()
     if position != 'DST':
-        wt_min = weights[position]['mean'] - (2 * weights[position]['sd'])
-        wt_max = weights[position]['mean'] + (2 * weights[position]['sd'])
+        wt_min = weights[position]['mean'] - weights[position]['sd']
+        wt_max = weights[position]['mean'] + weights[position]['sd']
         return random.uniform(a=wt_min, b=wt_max)
     else:
         return 1
@@ -335,16 +335,17 @@ for i, (k, v) in enumerate(price_data.items()):
     price_data[k]['tier'] = preds[i]
 
 mean_gms_missed = {'QB': 2.1, 'RB': 2.9, 'WR': 2.2, 'TE': 1.6}
-wts = {'QB': {'mean': 0.9667, 'sd': 0.1690},
-       'RB': {'mean': 1.0407, 'sd': 0.3855},
-       'WR': {'mean': 1.0267, 'sd': 0.2586},
-       'TE': {'mean': 0.9795, 'sd': 0.2370}}
+wts = {'QB': {'mean': 0.9667, 'sd': 0.1666}, #'sd': 0.1690},
+       'RB': {'mean': 1.0407, 'sd': 0.1666}, #'sd': 0.3855},
+       'WR': {'mean': 1.0267, 'sd': 0.1666}, #'sd': 0.2586},
+       'TE': {'mean': 0.9795, 'sd': 0.1666}} #'sd': 0.2370}}
 
 
 ##### START SIMULATION #####
 def run_simulation(n_sims):
     owners = ['Aaro', 'Adit', 'Aksh', 'Arju', 'Ayaz', 'Char', 'Faiz', 'Hirs', 'Nick', 'Varu']
     total_slots = sum(STARTERS) + N_FLEX + N_BENCH
+    starters = {p: s for p, s in zip(POSITIONS, STARTERS)}
     max_slots = {  # realistic max number of players, not ESPN max
         'QB': 2,
         'RB': 7,
@@ -360,7 +361,7 @@ def run_simulation(n_sims):
     }
     start = time.perf_counter()
     for sim in range(n_sims):
-        if sim % 100 == 0:
+        if sim % 500 == 0:
             print(sim)
 
         # initialize draft data
@@ -376,6 +377,7 @@ def run_simulation(n_sims):
                 'RB': 0,
                 'WR': 0,
                 'TE': 0,
+                'FLEX': 0,
                 'DST': 0
             } for o in owners
         }
@@ -442,6 +444,13 @@ def run_simulation(n_sims):
 
             team_appetites = appetites(can_draft, max_slots, draft_state, nom_position, pick, draft_picks)  # assign weight to remaining teams
             winning_team = random.choices(can_draft, [v for k, v in team_appetites.items()])[0]
+            if draft_state[winning_team][nom_position] < starters[nom_position]:
+                slot = 'STARTER'
+            elif nom_position in FLEX_POSITIONS and draft_state[winning_team][nom_position] == starters[nom_position] and draft_state[winning_team]['FLEX'] == 0:
+                slot = 'FLEX'
+                draft_state[winning_team]['FLEX'] += 1
+            else:
+                slot = 'BENCH'
 
             # update draft statuses
             # adjust remaining prices for inflation
@@ -462,6 +471,7 @@ def run_simulation(n_sims):
                 'nfl_team': nom_team,
                 'bye': nom_bye,
                 'position': nom_position,
+                'slot': slot,
                 'ppg': nom_ppg,
                 'vor': nom_vor
             })
@@ -559,27 +569,51 @@ def run_simulation(n_sims):
     print(f'{round(elapsed/60, 2)} minutes')
     return final_results
 
-results = run_simulation(n_sims=1000)
-# import multiprocessing
-#
-# if __name__ == "__main__":
-#     with multiprocessing.Pool() as pool:
-#         results = pool.map(run_simulation, range(n_sims))
-#     final_results = {sim: result[sim] for result in results}
+results = run_simulation(n_sims=25_000)
 
+# Convert draft data to df
+draft_records = [
+    {**player, 'team': team, 'sim': sim + 1}
+    for sim, data in results.items()
+    for team, roster in data['draft_data'].items()
+    for player in roster
+]
+all_drafts = pd.DataFrame.from_records(draft_records)
+
+# Convert results dictionary to a DataFrame
+all_results = pd.DataFrame([
+    {**team_data, 'team': team, 'sim': sim + 1}
+    for sim, sim_data in results.items()
+    for team, team_data in sim_data['results'].items()
+])
+
+
+
+all_results = all_results.sort_values(['champ', 'points'], ascending=[False, True])
+total_points_by_sim = all_results.groupby('sim').points.sum()
+total_points_by_sim.mean()
+
+
+all_drafts['games_missed'] = all_drafts.games_missed.apply(lambda x: len(x))
+
+all_drafts.games_missed.plot.hist(bins=17)
+plt.show()
 
 # Save all_draft_data to a Pickle file
-# with open('all_draft_data.pkl', 'wb') as f:
-#     pickle.dump(all_draft_data, f)
+# with open('auction/all_drafts.pkl', 'wb') as f:
+#     pickle.dump(all_drafts, f)
+# with open('auction/all_results.pkl', 'wb') as f:
+#     pickle.dump(all_results, f)
 
 # load saved sim data
-# with open('all_draft_data.pkl', 'rb') as f:
-#     all_draft_data = pickle.load(f)
+# with open('all_drafts.pkl', 'rb') as f:
+#     all_drafts = pickle.load(f)
+# with open('all_results.pkl', 'rb') as f:
+#     all_results = pickle.load(f)
 
 
 def scatter_plot(player, sims_df, x='pick', y='winning_bid'):
-    df = sims_df.copy()
-    df_plyr = df[df.player == player]
+    df_plyr = sims_df[sims_df.player == player]
     plt.figure(figsize=(7, 7))
     plt.axvline(x=df_plyr[x].mean(), c='grey', dashes=(2, 2, 2, 2))
     plt.axhline(y=df_plyr[y].median(), c='grey', dashes=(2, 2, 2, 2))
@@ -588,3 +622,109 @@ def scatter_plot(player, sims_df, x='pick', y='winning_bid'):
     plt.xlabel(x)
     plt.ylabel(y)
     plt.show()
+scatter_plot('Jonathan Taylor', all_drafts)
+
+
+
+by_slot_type = all_drafts.groupby(['sim', 'team', 'slot']).winning_bid.sum().reset_index()
+by_slot_type['p_alloc'] = by_slot_type.winning_bid / 200
+by_slot_type_pivot = by_slot_type.pivot(index=['sim', 'team'], columns='slot', values='p_alloc').reset_index()
+by_slot_type_pivot['ALL_STARTERS'] = by_slot_type_pivot.STARTER + by_slot_type_pivot.FLEX
+
+by_position = all_drafts.groupby(['sim', 'team', 'position']).winning_bid.sum().reset_index()
+by_position['p_alloc'] = by_position.winning_bid / 200
+by_position_pivot = by_position.pivot(index=['sim', 'team'], columns='position', values='p_alloc').reset_index()
+
+spend_cats = pd.merge(by_slot_type_pivot, by_position_pivot, on=['sim', 'team'])
+total_spend = all_drafts.groupby(['sim', 'team']).winning_bid.sum().reset_index().rename(columns={'winning_bid': 'TOTAL_SPEND'})
+spend_cats = pd.merge(total_spend, spend_cats, on=['sim', 'team'])
+
+combined_results = pd.merge(spend_cats, all_results, on=['sim', 'team'])
+
+
+df = combined_results.set_index(['sim', 'team'])
+df[['points', 'TOTAL_SPEND']].corr()
+df[['playoffs', 'RB']].boxplot(by='playoffs')
+plt.show()
+
+
+
+bins_dict = {
+    'QB': {
+        'bins': [0, 5, 10, 20, 30, 40, 200],
+        'format': ['<=5', '6-10', '11-20', '21-30', '31-40', '41+']
+    },
+    'RB': {
+        'bins': [0, 20, 40, 60, 80, 100, 200],
+        'format': ['<=20', '21-40', '41-60', '61-80', '81-100', '101+']
+    },
+    'WR': {
+        'bins': [0, 20, 40, 60, 80, 100, 200],
+        'format': ['<=20', '21-40', '41-60', '61-80', '81-100', '101+']
+    },
+    'TE': {
+        'bins': [0, 5, 10, 20, 40, 200],
+        'format': ['<=5', '6-10', '11-20', '21-40', '41+']
+    },
+    'STARTER': {
+        'bins': [0, 140, 150, 160, 170, 180, 190, 200],
+        'format': ['<=140', '141-150', '151-160', '161-170', '171-180', '181-190', '191-200']
+    },
+    'FLEX': {
+        'bins': [0, 10, 20, 30, 40, 200],
+        'format': ['<=10', '11-20', '21-30', '31-40', '40+']
+    },
+    'ALL_STARTERS': {
+        'bins': [0, 140, 150, 160, 170, 180, 190, 200],
+        'format': ['<=140', '141-150', '151-160', '161-170', '171-180', '181-190', '191-200']
+    },
+}
+
+
+def get_data(data, col):
+    from functools import reduce
+    col_upper = col.upper()
+
+    df = data.copy()
+    df[col+'_spend'] = pd.cut(df[col_upper]*200, bins=bins_dict[col_upper]['bins'])
+    playoffs_over_avg = ((df.groupby(col+'_spend').playoffs.mean() / df.playoffs.mean()) - 1)
+    finals_over_avg = ((df.groupby(col+'_spend').finals.mean() / df.finals.mean()) - 1)
+    champ_over_avg = ((df.groupby(col+'_spend').champ.mean() / df.champ.mean()) - 1)
+    points_over_avg = (df.groupby(col+'_spend').points.mean() - df.points.mean()) / 14
+
+    dfs = [playoffs_over_avg, finals_over_avg, champ_over_avg, points_over_avg]
+    return reduce(lambda left, right: pd.merge(left, right, left_index=True, right_index=True), dfs)
+
+
+def plot_position(position: str, y_col: str):
+    pos_upper = position.upper()
+
+    title = f'{position.upper()} by PPG Added'
+    # file = fr'./Outputs/{position}_ppga.png'
+    data = get_data(df, position).reset_index()
+    data['bins_str'] = data[position + '_spend'].astype('str')
+    xlab = 'Total Spend'
+    ylab = 'Change in PPG'
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    ax.bar(data.bins_str, data[y_col])
+    ax.set_axisbelow(True)
+    # ax.yaxis.grid(c='lightgrey')
+    plt.axhline(y=0, c='black', linewidth=0.75)
+    ax.set_xticklabels(bins_dict[pos_upper]['format'], rotation=15)
+    plt.yticks(np.arange(-2, 2, 0.5))
+    # plt.yticks(np.arange(-0.25, 0.25, 0.1))
+    # ax.yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1))
+    plt.title(title)
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
+    # plt.savefig(file, bbox_inches='tight')
+    plt.show()
+
+plot_position(position='qb', y_col='points')
+plot_position(position='rb', y_col='points')
+plot_position(position='wr', y_col='points')
+plot_position(position='te', y_col='points')
+plot_position(position='starter', y_col='points')
+plot_position(position='flex', y_col='points')
+plot_position(position='all_starters', y_col='points')

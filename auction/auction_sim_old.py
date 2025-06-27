@@ -909,13 +909,10 @@ def get_data(df, bins, col):
 
     data = df.copy()
     data[col+'_spend'] = pd.cut(data[col_upper]*200, bins=bins)
-    poa = ((data.groupby(col+'_spend').n_playoffs.mean() / 0.5) - 1)
-    # foa = ((data.groupby(col+'_spend').n_finals.mean() / (2/12)) - 1)
-    # coa = ((data.groupby(col+'_spend').n_champ.mean() / (1/12)) - 1)
-    ps = (data.groupby(col+'_spend').score.mean() - data.score.mean()) / 14
+    points_over_avg = ((data.groupby(col+'_spend').n_playoffs.mean() / 0.5) - 1)
+    position_spend = (data.groupby(col+'_spend').score.mean() - data.score.mean()) / 14
 
-    # dfs = [poa, foa, coa, ps]
-    dfs = [poa, ps]
+    dfs = [points_over_avg, position_spend]
     return reduce(lambda left, right: pd.merge(left, right, left_index=True, right_index=True), dfs)
 
 

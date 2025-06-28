@@ -2,7 +2,8 @@ from scripts.api.DataLoader import DataLoader
 from scripts.utils.constants import POSITION_MAP, NFL_TEAM_MAP
 
 import matplotlib.pyplot as plt
-
+import matplotlib.ticker as mtick
+import matplotlib.colors as colors
 import requests
 import copy
 import random
@@ -102,9 +103,52 @@ def load_espn_data(season: int,
     return {k: v for k, v in players_sorted.items() if v['ppg'] > 1}
 
 
+# def get_player_scores(season: int):
+#     data = DataLoader(season)
+#     players = data.players_info()
+#
+#     players_dict = {}
+#     for week in range(1, 19):
+#         week_data = data.load_week(week=week)
+#     for player in players['players']:
+#         full_name = player['player']['fullName']
+#         team = NFL_TEAM_MAP[player['player']['proTeamId']]
+#         if team == 'None':
+#             continue
+#
+#         total_points = 0
+#         for stat in player['player']['stats']:
+#             if (stat['seasonId'] == season) and (stat['statSourceId'] == 1) and (stat['statSplitTypeId'] == 0):
+#                 projection_total = stat['appliedTotal']
+#                 projection_ppg = stat['appliedAverage']
+#         players_dict[player['id']] = {
+#             'name': full_name,
+#             'position': position,
+#             'team': team,
+#             'bye': bye,
+#             'rank_ov': pl_rank_ov,
+#             'projection_total': projection_total,
+#             'ppg': projection_ppg
+#         }
+#     players_sorted = dict(sorted(players_dict.items(), key=lambda x: x[1]['projection_total'], reverse=True))
+#
+#     rank_pos = {
+#         'QB': 1,
+#         'RB': 1,
+#         'WR': 1,
+#         'TE': 1,
+#         'DST': 1
+#     }
+#     for _, player in players_sorted.items():
+#         # get position ranks
+#         player['rank_pos'] = rank_pos[player['position']]
+#         rank_pos[player['position']] += 1
+#     return {k: v for k, v in players_sorted.items() if v['ppg'] > 1}
+
+
+
 def calculate_prices(
         players_data: dict,
-        starter_allocation: float = 0.8,
         budget: int = 200,
         min_bid: int = 1,
         n_teams: int = 10,
@@ -115,43 +159,43 @@ def calculate_prices(
         starters: list[int] = [1, 2, 3, 1, 1]
 ):
     backups = [0.5/n_bench, 2.5/n_bench, 2.5/n_bench, 0.5/n_bench, 0]  # number of bench spots occupied by position
-    bench_allocation = round(1 - starter_allocation, 2)  # percent of budget allocated to bench
     total_dollars = budget * n_teams
-    roster_size = sum(starters) + n_bench + n_flex
-    available_spend = (total_dollars - (roster_size * min_bid * n_teams))  # each player costs a min of $1 leaving ($200 - roster_size) extra to spend per team
+    pos_spend = {'QB': 0.0892,
+                 'RB': 0.3820,
+                 'WR': 0.4586,
+                 'TE': 0.0632,
+                 'DST': 0.0070}
 
     # get replacement player projected points
-    replacement_pts_starters = {'QB': 0, 'RB': 0, 'WR': 0, 'TE': 0, 'DST': 0}
-    replacement_pts_bench = {'QB': 0, 'RB': 0, 'WR': 0, 'TE': 0, 'DST': 0}
-    for pos in zip(positions, starters, backups):
+    replacement_pts_starters = {p: 0 for p in POSITIONS}
+    replacement_pts_bench = {p: 0 for p in POSITIONS}
+    for p, s, b in zip(positions, starters, backups):
         # calculate number of players drafted by position
-        if pos[0] in flex_positions:
-            n_total_drafted = (
-                    ((pos[1] + (n_flex / len(flex_positions))) * n_teams)
-                    + (n_bench * pos[2] * n_teams)
-            )
-            n_starters_drafted = (pos[1] + 0.5) * n_teams
+        if p in flex_positions:
+            n_starters_drafted = (s + (n_flex / len(flex_positions))) * n_teams
+            n_bench_drafted = n_bench * b * n_teams
+            n_total_drafted = n_starters_drafted + n_bench_drafted
             replacement_rank_starters = n_starters_drafted + 1
         else:
-            n_total_drafted = (pos[1] * n_teams) + (n_bench * pos[2] * n_teams)
-            replacement_rank_starters = pos[1] * n_teams + 1
+            n_total_drafted = (s * n_teams) + (n_bench * b * n_teams)
+            replacement_rank_starters = s * n_teams + 1
         replacement_rank_bench = n_total_drafted + 1
         replacement_starters_fpts = [
-             v['projection_total'] for k, v
+             v['projection_total'] for _, v
              in players_data.items()
-             if (v['position'] == pos[0])
+             if (v['position'] == p)
              and (v['rank_pos'] == replacement_rank_starters)
         ][0]
-        replacement_pts_starters[pos[0]] = replacement_starters_fpts
+        replacement_pts_starters[p] = replacement_starters_fpts
         replacement_bench_fpts = [
-             v['projection_total'] for k, v
+             v['projection_total'] for _, v
              in players_data.items()
-             if (v['position'] == pos[0])
+             if (v['position'] == p)
              and (v['rank_pos'] == replacement_rank_bench)
         ][0]
-        replacement_pts_bench[pos[0]] = replacement_bench_fpts
+        replacement_pts_bench[p] = replacement_bench_fpts
 
-    # player_vor_dict = {}
+    # calculate if player is a starter, bench, or undrafted
     for _, player in players_data.items():
         player['player_type'] = (
             'starter' if player['projection_total'] > replacement_pts_starters[player['position']]
@@ -161,22 +205,24 @@ def calculate_prices(
 
         # value over replacement
         player['vor_st'] = 0 if (player['projection_total'] - replacement_pts_starters[player['position']]) < 0 else (player['projection_total'] - replacement_pts_starters[player['position']])
-        player['vor_bn'] = 0 if (player['projection_total'] - replacement_pts_bench[player['position']]) < 0 or (player['position'] == 'DST') else (player['projection_total'] - replacement_pts_bench[player['position']])
-        player['vor_tot'] = player['vor_st'] + player['vor_bn']
+        player['vor_bn'] = 0 if (player['projection_total'] - replacement_pts_bench[player['position']]) < 0 else (player['projection_total'] - replacement_pts_bench[player['position']])
+        player['vor'] = player['vor_st'] + player['vor_bn']
 
-    # dollar per vor
-    starter_dpv = (
-            (available_spend * starter_allocation) / sum(v['vor_tot'] for k, v in players_data.items() if v['player_type'] == 'starter')
-            + (available_spend * bench_allocation) / sum(v['vor_tot'] for k, v in players_data.items() if v['player_type'] == 'bench')
-    )
-    bench_dpv = (available_spend * bench_allocation) / sum(v['vor_tot'] for k, v in players_data.items() if v['player_type'] == 'bench')
 
     for _, player in players_data.items():
-        player['value'] = player['vor_st'] * starter_dpv + player['vor_bn'] * bench_dpv + min_bid
+        dpv = (  # dollar per vor
+                (budget * n_teams) / sum(v['vor'] for k, v in players_data.items() if v['player_type'] == 'starter' and v['position'] == player['position'])
+        )
+        player['value'] = (player['vor'] * dpv * pos_spend[player['position']]) + min_bid
+
 
     for _, player in players_data.items():
         player['price'] = player['value'] / (sum(v['value'] for k, v in players_data.items()) / total_dollars)
 
+    remove_keys = ['vor_st', 'vor_bn']
+    for k in remove_keys:
+        for _, p in players_data.items():
+            p.pop(k, None)
     return dict(sorted(players_data.items(), key=lambda x: x[1]['value'], reverse=True))
 
 
@@ -273,9 +319,9 @@ def apply_weight(weights, position):
     """
     position = position.upper()
     if position != 'DST':
-        wt_min = weights[position]['mean'] - weights[position]['sd']
-        wt_max = weights[position]['mean'] + weights[position]['sd']
-        return random.uniform(a=wt_min, b=wt_max)
+        # wt_min = weights[position]['mean'] - weights[position]['sd']
+        # wt_max = weights[position]['mean'] + weights[position]['sd']
+        return random.normalvariate(mu=weights[position]['mean'], sigma=weights[position]['sd'])
     else:
         return 1
 
@@ -327,7 +373,7 @@ def get_lineup(roster: list[dict], week):
 season = 2025
 byes = get_byes(season)
 price_data = calculate_prices(players_data=load_espn_data(season=season, byes=byes))
-values = np.array([v['vor_tot'] for k, v in price_data.items()]).reshape(-1, 1)
+values = np.array([v['vor'] for k, v in price_data.items()]).reshape(-1, 1)
 gmcl = gm(n_components=10, covariance_type='full').fit(values)
 gmcl.bic(values)
 preds = gmcl.predict(values)
@@ -361,7 +407,7 @@ def run_simulation(n_sims):
     }
     start = time.perf_counter()
     for sim in range(n_sims):
-        if sim % 500 == 0:
+        if sim % 1000 == 0:
             print(sim)
 
         # initialize draft data
@@ -377,7 +423,6 @@ def run_simulation(n_sims):
                 'RB': 0,
                 'WR': 0,
                 'TE': 0,
-                'FLEX': 0,
                 'DST': 0
             } for o in owners
         }
@@ -403,16 +448,17 @@ def run_simulation(n_sims):
             nom_bye = player_pool[nom_id]['bye']
             nom_position = player_pool[nom_id]['position']
             nom_ppg = player_pool[nom_id]['ppg']
-            nom_vor = player_pool[nom_id]['vor_tot']
+            nom_vor = player_pool[nom_id]['vor']
 
             # get teams that have a slot available for player
             possible_teams = {k for k, v in draft_state.items() if v[nom_position] < max_slots[nom_position] and v['slots_left'] > 0}
 
             # get an initial bid amount
-            team_factor = len(possible_teams) / len(owners)  # scale bid price to account for competition
-            min_price = player_pool[nom_id]['price'] * (0.2 + team_factor)
-            max_price = player_pool[nom_id]['value'] * (0.2 + team_factor)
-            bid_init = math.ceil(random.uniform(min_price, max_price))  # get initial price based on player data
+            # team_factor = len(possible_teams) / len(owners)  # scale bid price to account for competition
+            min_price = player_pool[nom_id]['price'] - (0.1 * player_pool[nom_id]['price'])
+            max_price = player_pool[nom_id]['value'] + (0.3 * player_pool[nom_id]['value'])
+            avg_price = (player_pool[nom_id]['price'] + player_pool[nom_id]['value']) / 2
+            bid_init = math.ceil(random.triangular(low=min_price, high=max_price, mode=avg_price))  # get initial price based on player data
             max_bid_amt = sorted([v['max_bid'] for k, v in draft_state.items()])[-2] + 1  # winning team can only bid up to team with the second-highest max_bid + $1
             bid_amt = 1 if bid_init < 1 else (bid_init if max_bid_amt > bid_init else max_bid_amt)
 
@@ -444,13 +490,6 @@ def run_simulation(n_sims):
 
             team_appetites = appetites(can_draft, max_slots, draft_state, nom_position, pick, draft_picks)  # assign weight to remaining teams
             winning_team = random.choices(can_draft, [v for k, v in team_appetites.items()])[0]
-            if draft_state[winning_team][nom_position] < starters[nom_position]:
-                slot = 'STARTER'
-            elif nom_position in FLEX_POSITIONS and draft_state[winning_team][nom_position] == starters[nom_position] and draft_state[winning_team]['FLEX'] == 0:
-                slot = 'FLEX'
-                draft_state[winning_team]['FLEX'] += 1
-            else:
-                slot = 'BENCH'
 
             # update draft statuses
             # adjust remaining prices for inflation
@@ -471,7 +510,6 @@ def run_simulation(n_sims):
                 'nfl_team': nom_team,
                 'bye': nom_bye,
                 'position': nom_position,
-                'slot': slot,
                 'ppg': nom_ppg,
                 'vor': nom_vor
             })
@@ -486,9 +524,22 @@ def run_simulation(n_sims):
         final_results[sim]['draft_data'] = draft_picks
 
         ### SIM SEASON ###
-        # initialize games missed and new ppg for current "season"
         for team, roster in draft_picks.items():
+            # calculate lineup slots - highest bid player at each position is pos1
+            slot_init = {p: 0 for p in POSITIONS + ['FLEX']}
+            roster = sorted(roster, key=lambda x: (x['winning_bid'], x['vor']), reverse=True)
             for player in roster:
+                pos = player['position']
+                if slot_init[pos] < starters[pos]:
+                    slot_init[pos] += 1
+                    player['slot'] = pos # f'{pos}{slot_init[pos]}'
+                elif pos in FLEX_POSITIONS and slot_init[pos] == starters[pos] and slot_init['FLEX'] == 0:
+                    player['slot'] = 'FLEX'
+                    slot_init['FLEX'] += 1
+                else:
+                    player['slot'] = 'BENCH'
+
+                # initialize games missed and new ppg for current "season"
                 player['games_missed'] = sim_injury(mean_gms_missed, player['position'])
                 player['ppg'] = player['ppg'] * apply_weight(wts, player['position'])
 
@@ -569,9 +620,10 @@ def run_simulation(n_sims):
     print(f'{round(elapsed/60, 2)} minutes')
     return final_results
 
-results = run_simulation(n_sims=25_000)
+results = run_simulation(n_sims=100_000)
 
 # Convert draft data to df
+s1 = time.perf_counter()
 draft_records = [
     {**player, 'team': team, 'sim': sim + 1}
     for sim, data in results.items()
@@ -579,22 +631,31 @@ draft_records = [
     for player in roster
 ]
 all_drafts = pd.DataFrame.from_records(draft_records)
+all_drafts['games_missed'] = all_drafts.games_missed.apply(lambda x: len(x))
+e1 = time.perf_counter()
+print((e1-s1)/60, 'minutes for all_drafts')
 
 # Convert results dictionary to a DataFrame
+s2 = time.perf_counter()
 all_results = pd.DataFrame([
     {**team_data, 'team': team, 'sim': sim + 1}
     for sim, sim_data in results.items()
     for team, team_data in sim_data['results'].items()
 ])
+e2 = time.perf_counter()
+print(round((e2-s2)/60, 2), 'minutes for all_results')
 
 
 
-all_results = all_results.sort_values(['champ', 'points'], ascending=[False, True])
-total_points_by_sim = all_results.groupby('sim').points.sum()
-total_points_by_sim.mean()
+all_results.sort_values(['champ', 'points'], ascending=[False, True]).groupby('sim').points.sum().mean()
 
 
-all_drafts['games_missed'] = all_drafts.games_missed.apply(lambda x: len(x))
+all_results.hist('points', bins=100)
+plt.show()
+
+z = (1420 - all_results.points.mean()) / all_results.points.std()
+
+
 
 all_drafts.games_missed.plot.hist(bins=17)
 plt.show()
@@ -622,20 +683,19 @@ def scatter_plot(player, sims_df, x='pick', y='winning_bid'):
     plt.xlabel(x)
     plt.ylabel(y)
     plt.show()
-scatter_plot('Jonathan Taylor', all_drafts)
-
+scatter_plot('Ja\'Marr Chase', all_drafts)
 
 
 by_slot_type = all_drafts.groupby(['sim', 'team', 'slot']).winning_bid.sum().reset_index()
 by_slot_type['p_alloc'] = by_slot_type.winning_bid / 200
 by_slot_type_pivot = by_slot_type.pivot(index=['sim', 'team'], columns='slot', values='p_alloc').reset_index()
-by_slot_type_pivot['ALL_STARTERS'] = by_slot_type_pivot.STARTER + by_slot_type_pivot.FLEX
+by_slot_type_pivot['STARTERS'] = by_slot_type_pivot.QB +  by_slot_type_pivot.RB +  by_slot_type_pivot.WR +  by_slot_type_pivot.TE +  by_slot_type_pivot.DST +  + by_slot_type_pivot.FLEX
 
 by_position = all_drafts.groupby(['sim', 'team', 'position']).winning_bid.sum().reset_index()
 by_position['p_alloc'] = by_position.winning_bid / 200
 by_position_pivot = by_position.pivot(index=['sim', 'team'], columns='position', values='p_alloc').reset_index()
 
-spend_cats = pd.merge(by_slot_type_pivot, by_position_pivot, on=['sim', 'team'])
+spend_cats = pd.merge(by_slot_type_pivot, by_position_pivot, on=['sim', 'team'], suffixes=['', '_pos'])
 total_spend = all_drafts.groupby(['sim', 'team']).winning_bid.sum().reset_index().rename(columns={'winning_bid': 'TOTAL_SPEND'})
 spend_cats = pd.merge(total_spend, spend_cats, on=['sim', 'team'])
 
@@ -644,7 +704,7 @@ combined_results = pd.merge(spend_cats, all_results, on=['sim', 'team'])
 
 df = combined_results.set_index(['sim', 'team'])
 df[['points', 'TOTAL_SPEND']].corr()
-df[['playoffs', 'RB']].boxplot(by='playoffs')
+df[['wins', 'BENCH']].boxplot(by='wins')
 plt.show()
 
 
@@ -655,29 +715,25 @@ bins_dict = {
         'format': ['<=5', '6-10', '11-20', '21-30', '31-40', '41+']
     },
     'RB': {
-        'bins': [0, 20, 40, 60, 80, 100, 200],
-        'format': ['<=20', '21-40', '41-60', '61-80', '81-100', '101+']
+        'bins': [0, 40, 60, 80, 100, 200],
+        'format': ['<=40', '41-60', '61-80', '81-100', '101+']
     },
     'WR': {
-        'bins': [0, 20, 40, 60, 80, 100, 200],
-        'format': ['<=20', '21-40', '41-60', '61-80', '81-100', '101+']
+        'bins': [0, 40, 60, 80, 100, 200],
+        'format': ['<=40', '41-60', '61-80', '81-100', '101+']
     },
     'TE': {
         'bins': [0, 5, 10, 20, 40, 200],
         'format': ['<=5', '6-10', '11-20', '21-40', '41+']
     },
-    'STARTER': {
-        'bins': [0, 140, 150, 160, 170, 180, 190, 200],
-        'format': ['<=140', '141-150', '151-160', '161-170', '171-180', '181-190', '191-200']
+    'STARTERS': {
+        'bins': [0, 150, 160, 170, 180, 190, 200],
+        'format': ['<=150', '151-160', '161-170', '171-180', '181-190', '191-200']
     },
     'FLEX': {
-        'bins': [0, 10, 20, 30, 40, 200],
-        'format': ['<=10', '11-20', '21-30', '31-40', '40+']
-    },
-    'ALL_STARTERS': {
-        'bins': [0, 140, 150, 160, 170, 180, 190, 200],
-        'format': ['<=140', '141-150', '151-160', '161-170', '171-180', '181-190', '191-200']
-    },
+        'bins': [0, 10, 20, 30, 200],
+        'format': ['<=10', '11-20', '21-30', '31+']
+    }
 }
 
 
@@ -700,7 +756,6 @@ def plot_position(position: str, y_col: str):
     pos_upper = position.upper()
 
     title = f'{position.upper()} by PPG Added'
-    # file = fr'./Outputs/{position}_ppga.png'
     data = get_data(df, position).reset_index()
     data['bins_str'] = data[position + '_spend'].astype('str')
     xlab = 'Total Spend'
@@ -725,6 +780,54 @@ plot_position(position='qb', y_col='points')
 plot_position(position='rb', y_col='points')
 plot_position(position='wr', y_col='points')
 plot_position(position='te', y_col='points')
-plot_position(position='starter', y_col='points')
 plot_position(position='flex', y_col='points')
-plot_position(position='all_starters', y_col='points')
+plot_position(position='starters', y_col='points')
+plot_position(position='bench', y_col='points')
+
+
+
+def plot_spend_vs_median(df: pd.DataFrame = combined_results.copy()):
+    df['st_vs_med'] = df.groupby('sim')['STARTERS'].transform(lambda x: x - x.median())
+    df['score_diff'] = df.groupby('sim').points.transform(lambda x: x - x.mean()) / 14
+    X_data = np.array(df.st_vs_med)
+    Y_data = np.array(df.score_diff) / 14
+    a, b, c = np.polyfit(X_data, Y_data, 2)
+
+    X_fit = np.linspace(min(X_data), max(X_data), 1000)
+    a, b, c = np.polyfit(X_data, Y_data, 2)
+    f = lambda x: (a * (x ** 2)) + (b * x) + c
+    Y_fit = f(X_fit)
+
+    fig, ax = plt.subplots()
+    ax.axhline(y=0, c='lightgrey', zorder=1)
+    ax.plot(X_fit, Y_fit, color='r', alpha=0.5, zorder=3)
+    ax.scatter(X_data, Y_data, s=4, color='lightgrey', zorder=2)
+    ax.xaxis.set_major_formatter(mtick.PercentFormatter(xmax=1))
+    plt.title('Team Starter Spend vs League Median')
+    plt.xlabel('Difference from League Median')
+    plt.ylabel('PPG Difference')
+    plt.show()
+
+plot_spend_vs_median()
+
+def spend_variation(col, df: pd.DataFrame = combined_results.copy()):
+    X = df[col]*200
+    Y = (df.points - df.points.median()) / 14
+    norm = colors.TwoSlopeNorm(vcenter=0)
+    fig, ax = plt.subplots()
+    ax.scatter(x=X, y=Y, s=4, c=Y, norm=norm, cmap='coolwarm')
+    ax.axhline(y=0, linestyle='dashed', linewidth=1, c='#B5B5B5')
+    ax.xaxis.set_major_formatter('${x:1.0f}')
+    plt.title(F'Variation in PPG by {col} Spend')
+    plt.xlabel('Starter Spend')
+    plt.ylabel('PPG Added')
+    plt.show()
+
+
+spend_variation('QB')
+spend_variation('RB')
+spend_variation('WR')
+spend_variation('TE')
+spend_variation('DST')
+spend_variation('STARTERS')
+spend_variation('BENCH')

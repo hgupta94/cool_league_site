@@ -74,7 +74,6 @@ def get_optimal_points(params: Params,
         act_pts_proj = 0
         for _, values in roster.items():
             if values['slot_id'] not in [20, 21]:
-                print(values['player_name'], values['position'], values['points'])
                 act_pts_act += values['points']  # actual lineup actual points
                 act_pts_proj += values['proj']  # actual lineup projected points
 
@@ -91,7 +90,6 @@ def get_optimal_points(params: Params,
             for posid, vals in the_players.items():
                 proj_pts_proj += vals['proj']  # best projected lineup projected points
                 proj_pts_act += vals['points']  # best projected lineup actual points
-
         to_remove_proj_flat = utils.flatten_list(to_remove_proj)  # flatten list
     
         # get flex player
@@ -104,7 +102,7 @@ def get_optimal_points(params: Params,
         # best projected lineup
         to_remove_proj_flat.append(flex_selector)
         lineup_proj = {k: v for k, v in roster.items() if k in to_remove_proj_flat}
-    
+
     
         # get optimal lineup
         opt_pts_proj = 0

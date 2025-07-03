@@ -47,7 +47,7 @@ class Database:
                     SELECT *
                     FROM {self.table}
                     WHERE season = {self.season}
-                        AND week <= {self.week};
+                        AND week < {self.week};
                     '''
         if how == 'all':
             query = f'''
@@ -69,14 +69,12 @@ class Database:
                 '''
         return query
 
-
     def commit_row(self) -> None:
         """Commit a row to the specified table"""
         c = self.connection.cursor()
         query = self.sql_insert_query()
         c.execute(query, self.values)
         self.connection.commit()
-
 
     def commit_data(self) -> None:
         """Commit data to the database"""

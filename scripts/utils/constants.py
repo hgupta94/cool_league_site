@@ -440,24 +440,3 @@ TEAM_IDS = {
         }
     }
 }
-
-# standings column mapping
-STANDINGS_COL_MAP_2018_2020 = {
-    'team': 'Team',
-    'm_record': 'Record',
-    'win_perc': 'Win%',
-    'total_pf': 'Points',
-    'wb4': 'WB-4'
-}
-
-STANDINGS_COL_MAP_2021_CURR = {
-    'team': 'Team',
-    'ov_record': 'Overall',
-    'win_perc': 'Win%',
-    'm_record': 'Matchup',
-    'thw_record': 'THW',
-    'total_pf': 'Points',
-    'wb2': 'WB-Bye',
-    'wb5': 'WB-5',
-    'pb6': 'PB-6'
-}

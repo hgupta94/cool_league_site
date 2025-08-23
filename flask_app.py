@@ -1,10 +1,8 @@
-import pandas as pd
-import json
 from flask import Flask, render_template
 from flask_fontawesome import FontAwesome
 
 import scripts.utils.utils as ut
-from scripts.utils.data_prep import *
+from data_prep import *
 from scripts.utils.constants import STANDINGS_COLUMNS_FLASK, RECORDS_COLUMNS_FLASK
 
 

@@ -122,7 +122,6 @@ def schedule_switcher(teams: Teams,
 
 def get_schedule_switcher_display(ss_data: pd.DataFrame,
                                   total_wins: pd.DataFrame,
-                                  params: Params,
                                   week):
     # end = params.as_of_week if params.regular_season_end > params.as_of_week else params.regular_season_end
     end = week-1

@@ -70,21 +70,32 @@ db = Database(table='records')
 records_df = db.retrieve_data(how='all')
 
 # champs = pd.read_csv("//home//hgupta//fantasy-football-league-report//champions.csv")
-champs = pd.read_csv('C:\Dev\hgupta94\cool_league\champions.csv').sort_values('Season', ascending=False)
-champs["Count"] = champs.groupby("Team").cumcount()+1
-champs = champs.assign(Icon=champs["Count"].apply(
+champs = pd.read_csv(r'C:\Dev\hgupta94\cool_league\champions.csv').sort_values('Season', ascending=False)
+prev_champs = champs[['Season', 'Team', 'Runner Up']]
+
+champ_count = (
+    pd.concat(
+        [
+            champs.groupby('Team').size().rename('First'),
+            champs.groupby('Runner Up').size().rename('Second')
+        ], axis=1
+    )
+    .fillna(0)
+    .sort_values('First', ascending=False)
+)
+
+champ_count['First'] = champ_count.First.apply(
     lambda n: ''.join(
         [
-            # '<i class="fa fa-trophy icon-gold"></i>' for _ in range(n)
-            f'<i class="fa fa-trophy icon-gold"></i>{"" if (i + 1) % 3 else "<span><br></span>"}' for i in range(n)
+            f'<i class="fa fa-trophy icon-gold"></i>{"" if (i + 1) % 3 else "<span><br></span>"}' for i in range(int(n))
         ]
     ) + '<br>'
-))
-prev_champs = champs[['Season', 'Team', 'Runner Up']]
-champ_count = (
-    champs
-    .drop_duplicates(subset='Team', keep='last')
-    .sort_values(['Count'], ascending=False)
-    .drop(['Season', 'Count'], axis=1)
-    .rename(columns={'Icon': 'Count'})
 )
+champ_count['Second'] = champ_count.Second.apply(
+    lambda n: ''.join(
+        [
+            f'<i class="fa fa-trophy" style="color: #C0C0C0"></i>{"" if (i + 1) % 3 else "<span><br></span>"}' for i in range(int(n))
+        ]
+    ) + '<br>'
+)
+champ_count = champ_count.reset_index()

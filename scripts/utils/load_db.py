@@ -32,7 +32,7 @@ import pandas as pd
 
 pr_table = 'power_ranks'
 pr_cols = constants.POWER_RANK_COLUMNS
-for s in range(2018, 2024):
+for s in range(2023, 2024):
     data = DataLoader(year=s)
     params = Params(data=data)
     df_final = pd.DataFrame()

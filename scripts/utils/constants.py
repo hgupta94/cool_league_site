@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import datetime as dt
 
+WEEK = 1
 
 load_dotenv()
 DB_USER = os.getenv('DB_USER_LOCAL')
@@ -31,7 +32,7 @@ PROJECTIONS_COLUMNS = 'id, season, week, name, espn_id, position, receptions, pr
 H2H_COLUMNS = 'id, season, week, team, opponent, result'
 EFFICIENCY_COLUMNS = 'id, season, week, team, actual_lineup_score, actual_lineup_projected, best_projected_lineup_score, best_projected_lineup_projected, optimal_lineup_score, optimal_lineup_projected'
 SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
-WEEK_SIM_COLUMNS = 'id, season, week, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
+WEEK_SIM_COLUMNS = 'id, season, week, matchup_id, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SEASON_SIM_COLUMNS = ''
 RECORDS_COLUMNS = 'id, category, record, holder, season, week'
 

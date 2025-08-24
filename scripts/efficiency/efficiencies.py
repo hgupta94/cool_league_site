@@ -155,7 +155,7 @@ def plot_efficiency(database: Database,
                     xlab: str,
                     ylab: str,
                     title: str):
-    with database.connection as conn:
+    with database() as conn:
         query = f'''
         SELECT *
         FROM efficiency

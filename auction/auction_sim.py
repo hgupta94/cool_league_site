@@ -644,16 +644,16 @@ e2 = time.perf_counter()
 print(round((e2-s2)/60, 2), 'minutes for all_results')
 
 # Save all_draft_data to a Pickle file
-with open('auction/results/all_drafts.pkl', 'wb') as f:
+with open('auction/results/all_drafts_20250823.pkl', 'wb') as f:
     pickle.dump(all_drafts, f)
-with open('auction/results/all_results.pkl', 'wb') as f:
+with open('auction/results/all_results_20250823.pkl', 'wb') as f:
     pickle.dump(all_results, f)
 
 # load saved sim data
-with open('auction/results/all_drafts.pkl', 'rb') as f:
-    all_drafts = pickle.load(f)
-with open('auction/results/all_results.pkl', 'rb') as f:
-    all_results = pickle.load(f)
+# with open('auction/results/all_drafts_20250823.pkl', 'rb') as f:
+#     all_drafts = pickle.load(f)
+# with open('auction/results/all_results_20250823.pkl', 'rb') as f:
+#     all_results = pickle.load(f)
 
 
 all_drafts['games_missed'] = all_drafts.games_missed.apply(lambda x: len(x))
@@ -683,7 +683,7 @@ def scatter_plot(player, sims_df, x='pick', y='winning_bid'):
     plt.xlabel(x)
     plt.ylabel(y)
     plt.show()
-scatter_plot(player='Christian McCaffrey', sims_df=all_drafts.copy())
+scatter_plot(player="Omarion Hampton", sims_df=all_drafts.copy())
 cmc = all_drafts[all_drafts.player == 'Christian McCaffrey']
 
 

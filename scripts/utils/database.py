@@ -20,19 +20,26 @@ class Database:
             columns: columns of the table in SQL
             values: table cell values to be commited
         """
-
-        self.connection = mysql.connector.connect(
-            host=constants.DB_HOST,
-            user=constants.DB_USER,
-            password=constants.DB_PASS,
-            database=constants.DB_NAME
-        )
+        self.connection = None
         self.data = data
         self.table = table
         self.columns = columns
         self.values = values
         self.season = season
         self.week = week
+
+    def __enter__(self):
+        self.connection = mysql.connector.connect(
+            host=constants.DB_HOST,
+            user=constants.DB_USER,
+            password=constants.DB_PASS,
+            database=constants.DB_NAME
+        )
+        return self.connection
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.connection:
+            self.connection.close()
 
     def retrieve_data(self, how: str):
         if how == 'week':
@@ -54,9 +61,8 @@ class Database:
                     SELECT *
                     FROM {self.table};
                     '''
-        with self.connection as conn:
-            df = pd.read_sql(query, conn)
-        return df
+        with self as conn:
+            return pd.read_sql(query, conn)
 
     def sql_insert_query(self) -> str:
         """Generate the SQL INSERT query for the specified table"""
@@ -71,10 +77,11 @@ class Database:
 
     def commit_row(self) -> None:
         """Commit a row to the specified table"""
-        c = self.connection.cursor()
-        query = self.sql_insert_query()
-        c.execute(query, self.values)
-        self.connection.commit()
+        with self as db:
+            c = db.cursor()
+            query = self.sql_insert_query()
+            c.execute(query, self.values)
+            db.commit()
 
     def commit_data(self) -> None:
         """Commit data to the database"""

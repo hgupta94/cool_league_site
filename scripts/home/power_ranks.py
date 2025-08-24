@@ -44,7 +44,7 @@ def power_rank(season, week):
         2. Consistency Index (20%) - variance of weekly scoring
         3. Luck Index (10%) - difference in matchup wins vs. expected
     """
-    with Database().connection as conn:
+    with Database() as conn:
         query = f'''
         SELECT *
         FROM matchups

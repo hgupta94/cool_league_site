@@ -13,7 +13,7 @@ from scripts.efficiency.efficiencies import plot_efficiency
 
 
 # TODO: webpage errors out if past regular season
-season, week = 2023, 12  # just finished previous week
+season, week = 2024, 2  # just finished previous week
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
@@ -57,9 +57,9 @@ wins_vs_opp = get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_
 
 db_ss = Database(table='switcher', season=season, week=week)
 ss_data = db_ss.retrieve_data(how='season')
-ss_disp = get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, params=params, week=week)
+ss_disp = get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, week=week)
 
-eff_plot = plot_efficiency(database=Database(),
+eff_plot = plot_efficiency(database=Database,
                            season=season, week=week-1,
                            x='actual_lineup_score', y='optimal_lineup_score',
                            xlab='Difference From Optimal Points per Week',

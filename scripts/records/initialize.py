@@ -1,17 +1,70 @@
 from scripts.api.DataLoader import DataLoader
 from scripts.api.Teams import Teams
-from scripts.utils.constants import TEAM_IDS, PLAYER_STATS_MAP
 from scripts.home.standings import Standings
 from scripts.api.Settings import Params
+from scripts.utils.database import Database
 from scripts.utils.utils import flatten_list
+from scripts.utils import constants
 
 import pandas as pd
 
 
+def get_all_time_standings(last_season):
+    table = Database(table='matchups').retrieve_data(how='all')
+    table = table.groupby('team').aggregate({
+        'score':'sum',
+        'matchup_result':'sum',
+        'tophalf_result':'sum',
+        'team':'count',
+        'season':lambda x: x.nunique()
+    })
+    table.columns = ['points', 'wins', 'th_wins', 'games', 'seasons']
+    table['losses'] = table.games - table.wins
+    table['th_losses'] = table.games - table.th_wins
+    table['ov_wins'] = table.wins + table.th_wins
+    table['ov_losses'] = table.losses + table.th_losses
+    table['win_perc'] = round(table['ov_wins'] / (table['ov_wins'] + table['ov_losses']), 3).map('{:.3f}'.format)
+    table['points'] = round(table.points, 2).map('{:,.2f}'.format)
+    table['ov_wl'] = table.ov_wins.astype(int).astype(str) + '-' + table.ov_losses.astype(int).astype(str)
+    table['m_wl'] = table.wins.astype(int).astype(str) + '-' + table.losses.astype(int).astype(str)
+    table['th_wl'] = table.th_wins.astype(int).astype(str) + '-' + table.th_losses.astype(int).astype(str)
+    table = table.sort_values('win_perc', ascending=False)
+    table = table.reset_index()[['team', 'seasons', 'ov_wl', 'win_perc', 'm_wl', 'th_wl', 'points']]
+
+    team_name = []
+    lg_season = []
+    playoffs = []
+    for season in range(2018, last_season):
+        print(season)
+        # get playoff appearances
+        data = DataLoader(year=season)
+        params = Params(data=data)
+        teams = Teams(data=data)
+        team_data = data.teams()
+        for team in team_data['teams']:
+            playoff_seed = team['rankCalculatedFinal']
+            num_teams = params.playoff_teams
+            if playoff_seed <= num_teams:
+                playoffs.append(1 if playoff_seed <= num_teams else 0)
+                lg_season.append(season)
+                team_name.append(constants.TEAM_IDS[teams.teamid_to_primowner[team['id']]]['name']['display'])
+    playoffs_df = pd.DataFrame(
+        {'season': lg_season,
+         'team': team_name,
+         'playoffs': playoffs
+         })
+    playoffs_df = playoffs_df[['team', 'playoffs']].groupby('team').sum('playoffs').reset_index()
+    playoffs_2014 = pd.read_csv(r'tables/playoffs_2014_2017.csv')[['team', 'playoffs']]
+    playoffs_df_new = pd.concat([playoffs_df, playoffs_2014])
+    playoffs_df_new = playoffs_df_new.groupby('team').sum('playoffs').reset_index()
+    all_time_standings = pd.merge(table, playoffs_df_new, on='team').iloc[:, [0, 1, 7, 2, 3, 4, 5, 6]]
+    return all_time_standings
+
+
 # standings records
-def get_standings_records():
+def get_standings_records(last_season):
     df = pd.DataFrame()
-    for s in range(2018, 2024):
+    for s in range(2018, last_season):
         print(s)
         data = DataLoader(year=s)
         params = Params(data)
@@ -91,13 +144,13 @@ def get_standings_records():
                                      columns=['category', 'record', 'holder', 'season', 'week'])
 
 
-def get_matchup_records():
+def get_matchup_records(last_season):
     # matchup records
     most_matchup_points = -999
     least_matchup_points = 999
     closest_matchup = 999
     biggest_blowout = -999
-    for s in range(2018, 2024):
+    for s in range(2018, last_season):
         print(s)
         data = DataLoader(year=s)
         params = Params(data)
@@ -114,16 +167,16 @@ def get_matchup_records():
                 most_matchup_points_check = total > most_matchup_points
                 if most_matchup_points_check:
                     most_matchup_points = total
-                    tm1 = TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    tm2 = TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
+                    tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
+                    tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
                     most_points_row = ('Most Matchup Points', f'{total:.2f}', holder_str, s, week)
 
                 least_points_check = total < least_matchup_points
                 if least_points_check:
                     least_matchup_points = total
-                    tm1 = TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    tm2 = TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
+                    tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
+                    tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
                     least_points_row = ('Fewest Matchup Points', f'{total:.2f}', holder_str, s, week)
 
@@ -131,16 +184,16 @@ def get_matchup_records():
                 closest_matchup_check = diff < closest_matchup
                 if closest_matchup_check:
                     closest_matchup = diff
-                    tm1 = TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    tm2 = TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
+                    tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
+                    tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
                     closest_matchup_row = ('Closest Matchup', f'{diff:.2f}', holder_str, s, week)
 
                 biggest_blowout_check = diff > biggest_blowout
                 if biggest_blowout_check:
                     biggest_blowout = diff
-                    tm1 = TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    tm2 = TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
+                    tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
+                    tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
                     biggest_blowout_row = ('Biggest Blowout', f'{diff:.2f}', holder_str, s, week)
 
@@ -153,16 +206,16 @@ def get_matchup_records():
         columns=['category', 'record', 'holder', 'season', 'week'])
 
 
-def get_per_stat_records():
+def get_per_stat_records(last_season):
     pass_stats = [3]
     rush_stats = [24]
     rec_stats = [42, 53]
     to_stats = [20, 72]
     all_stats = flatten_list([pass_stats, rush_stats, rec_stats, to_stats])
     rows = [[] for stat in all_stats]
-    records_dict = {PLAYER_STATS_MAP[s]["display"]: -99 for s in all_stats}
+    records_dict = {constants.PLAYER_STATS_MAP[s]["display"]: -99 for s in all_stats}
 
-    for s in range(2019, 2024):
+    for s in range(2019, last_season):
         print(s)
         data = DataLoader(year=s)
         teams = Teams(data=data)
@@ -173,10 +226,10 @@ def get_per_stat_records():
             week = m['matchupPeriodId']
             if week <= regular_season_end:
                 for tm in ['home', 'away']:
-                    team = TEAM_IDS[teams.teamid_to_primowner[m[tm]['teamId']]]['name']['display']
+                    team = constants.TEAM_IDS[teams.teamid_to_primowner[m[tm]['teamId']]]['name']['display']
                     stats = m[tm]['cumulativeScore']
                     for idx, (stat, row) in enumerate(zip(all_stats, rows)):
-                        stat_name = PLAYER_STATS_MAP[stat]['display']
+                        stat_name = constants.PLAYER_STATS_MAP[stat]['display']
                         try:
                             total = int(stats['scoreByStat'][str(stat)]['score'])
                             if total == records_dict[stat_name]:  # if total equals current record, append
@@ -197,7 +250,7 @@ def get_per_stat_records():
     )
 
 
-def get_stat_group_records():
+def get_stat_group_records(last_season):
     records_dict = {
         'Most Total Yards': [[3, 24, 42], -99],
         'Most Total Touchdowns': [[4, 25, 43, 93, 101, 102, 103, 104], -99],
@@ -205,7 +258,7 @@ def get_stat_group_records():
     }
     rows = [[] for k in records_dict]
 
-    for s in range(2019, 2024):
+    for s in range(2019, last_season):
         print(s)
         data = DataLoader(year=s)
         teams = Teams(data=data)
@@ -216,7 +269,7 @@ def get_stat_group_records():
             week = m['matchupPeriodId']
             if week <= regular_season_end:
                 for tm in ['home', 'away']:
-                    team = TEAM_IDS[teams.teamid_to_primowner[m[tm]['teamId']]]['name']['display']
+                    team = constants.TEAM_IDS[teams.teamid_to_primowner[m[tm]['teamId']]]['name']['display']
                     stats = m[tm]['cumulativeScore']
                     for idx, (k, v) in enumerate(records_dict.items()):
                         total = 0
@@ -238,7 +291,7 @@ def get_stat_group_records():
     )
 
 
-def get_most_points_by_position():
+def get_most_points_by_position(last_season):
     records_dict = {
         'Most QB Points': [0, -99],
         'Most RB Points': [2, -99],
@@ -248,7 +301,7 @@ def get_most_points_by_position():
     }
     rows = [[] for k in records_dict]
 
-    for s in range(2018, 2024):
+    for s in range(2018, last_season):
         print(s)
         data = DataLoader(year=s)
         teams_info = Teams(data=data)
@@ -257,7 +310,7 @@ def get_most_points_by_position():
         for w in range(1, regular_season_end + 1):
             teams_data = data.load_week(w)['teams']
             for t in teams_data:
-                team = TEAM_IDS[teams_info.teamid_to_primowner[t['id']]]['name']['display']
+                team = constants.TEAM_IDS[teams_info.teamid_to_primowner[t['id']]]['name']['display']
                 for idx, (k, v) in enumerate(records_dict.items()):  # loop over each record type
                     for plr in t['roster']['entries']:  # loop over each player on team
                         if plr['lineupSlotId'] not in [20, 21, 22, 24, 25]:  # if player is in lineup

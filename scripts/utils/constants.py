@@ -34,9 +34,11 @@ SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
 WEEK_SIM_COLUMNS = 'id, season, week, matchup_id, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SEASON_SIM_COLUMNS = ''
 RECORDS_COLUMNS = 'id, category, record, holder, season, week'
+ALLTIME_STANDINGS_COLUMNS = 'id, team, seasons, playoffs, overall_rec, win_perc, matchup_rec, tophalf_rec, points'
 
 STANDINGS_COLUMNS_FLASK = ['seed', 'team', 'overall', 'win_perc', 'matchup', 'top_half', 'total_points_disp', 'wb2_disp', 'wb5_disp', 'pb6_disp']
 RECORDS_COLUMNS_FLASK = ['category', 'record', 'holder', 'season', 'week']
+ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc', 'matchup_rec', 'tophalf_rec', 'points']
 
 
 # Gamma distribution values for simulations

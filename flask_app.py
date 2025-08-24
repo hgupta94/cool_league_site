@@ -3,7 +3,7 @@ from flask_fontawesome import FontAwesome
 
 import scripts.utils.utils as ut
 from data_prep import *
-from scripts.utils.constants import STANDINGS_COLUMNS_FLASK, RECORDS_COLUMNS_FLASK
+from scripts.utils.constants import STANDINGS_COLUMNS_FLASK, RECORDS_COLUMNS_FLASK, ALLTIME_COLUMNS_FLASK
 
 
 # create flask app
@@ -110,10 +110,14 @@ def champs():
 
 @app.route("/records/")
 def records():
+    headings_alltime = tuple(['Team', 'Seasons', 'Playoffs', 'Overall', 'Win%', 'Matchup', 'Top Half', 'Points'])
+    data_alltime = ut.flask_get_data(alltime_df[ALLTIME_COLUMNS_FLASK])
+
     headings_rec = tuple(['Category', 'Record', 'Holder', 'Season', 'Week'])
     data_rec = ut.flask_get_data(records_df[RECORDS_COLUMNS_FLASK])
-    return render_template("records.html", #headings_alltime=headings_alltime, data_alltime=data_alltime,
-                                           headings_rec=headings_rec, data_rec=data_rec)
+    return render_template("records.html",
+                           headings_alltime=headings_alltime, data_alltime=data_alltime,
+                           headings_rec=headings_rec, data_rec=data_rec)
 
 # Run app
 if __name__ == "__main__":

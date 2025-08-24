@@ -122,6 +122,7 @@ body {
   font-size: 0.9em;
   border-radius: 3px 3px 0 0;
   overflow: scroll;
+  position: relative;
 }
 
 .content-table thead tr {

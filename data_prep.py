@@ -6,6 +6,7 @@ from scripts.api.DataLoader import DataLoader
 from scripts.utils.database import Database
 from scripts.api.Settings import Params
 from scripts.api.Teams import Teams
+from scripts.utils import constants
 from scripts.home.standings import Standings
 from scripts.scenarios.scenarios import get_total_wins, get_wins_by_week, get_wins_vs_opp, get_schedule_switcher_display
 from scripts.simulations import week_sim as ws
@@ -13,13 +14,12 @@ from scripts.efficiency.efficiencies import plot_efficiency
 
 
 # TODO: webpage errors out if past regular season
-season, week = 2024, 4  # just finished previous week
+season = constants.SEASON
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
 matchups = data.matchups()
-
-week = params.regular_season_end+1 if week > params.regular_season_end+1 else week
+week = params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
 # week_data = data.load_week(week=week)
 # rosters = Rosters()
 
@@ -66,12 +66,15 @@ eff_plot = plot_efficiency(database=Database,
                            ylab='Optimal Points per Week',
                            title='')
 
-db = Database(table='records')
-records_df = db.retrieve_data(how='all')
+alltime_db = Database(table='alltime_standings')
+alltime_df = alltime_db.retrieve_data(how='all')
+
+records_db = Database(table='records')
+records_df = records_db.retrieve_data(how='all')
 
 # champs = pd.read_csv("//home//hgupta//fantasy-football-league-report//champions.csv")
 champs = pd.read_csv(r'C:\Dev\hgupta94\cool_league\champions.csv').sort_values('Season', ascending=False)
-prev_champs = champs[['Season', 'Team', 'Runner Up']]
+prev_champs = champs[['Season', 'Team', 'Runner Up']].sort_values('Season', ascending=False)
 
 champ_count = (
     pd.concat(
@@ -98,4 +101,4 @@ champ_count['Second'] = champ_count.Second.apply(
         ]
     ) + '<br>'
 )
-champ_count = champ_count.reset_index()
+champ_count = champ_count.reset_index().rename(columns={'index': 'Team'})

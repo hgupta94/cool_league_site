@@ -13,7 +13,7 @@ from scripts.efficiency.efficiencies import plot_efficiency
 
 
 # TODO: webpage errors out if past regular season
-season, week = 2024, 2  # just finished previous week
+season, week = 2024, 4  # just finished previous week
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)

@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 import datetime as dt
 
-WEEK = 1
 
 load_dotenv()
 DB_USER = os.getenv('DB_USER_LOCAL')

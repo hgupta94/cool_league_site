@@ -10,6 +10,10 @@ import pandas as pd
 
 
 def get_all_time_standings(last_season):
+    """
+    Calculate all-time standings dating back to the 2014 season
+    Includes total seasons played and number of times making the playoffs
+    """
     table = Database(table='matchups').retrieve_data(how='all')
     table = table.groupby('team').aggregate({
         'score':'sum',
@@ -61,8 +65,73 @@ def get_all_time_standings(last_season):
     return all_time_standings
 
 
-# standings records
+def get_streaks_records():
+    """
+    Calculate longest winning and losing streak for the following:
+    - Head to head
+    - Top half win (consecutive weeks above league median)
+    - Overall (consecutive weeks with h2h AND top half wins)
+    Positive values indicate a winning streak, negative values indicate a losing streak
+    """
+    rows = []
+    def format_row(matchups_df: pd.DataFrame, col: str, fn: str) -> list[str]:
+        if fn == 'max':
+            df = matchups_df[matchups_df[col] == matchups_df[col].max()]
+        elif fn == 'min':
+            df = matchups_df[matchups_df[col] == matchups_df[col].min()]
+        else:
+            raise ValueError("fn must either be max or min")
+
+        if col == 'matchup_streaks' and fn == 'max':
+            cat = 'Longest Matchup Winning Streak'
+        if col == 'tophalf_streaks' and fn == 'max':
+            cat = 'Longest Top Half Winning Streak'
+        if col == 'overall_streaks' and fn == 'max':
+            cat = 'Longest Unbeaten Streak'
+        if col == 'matchup_streaks' and fn == 'min':
+            cat = 'Longest Matchup Losing Streak'
+        if col == 'tophalf_streaks' and fn == 'min':
+            cat = 'Longest Top Half Losing Streak'
+        if col == 'overall_streaks' and fn == 'min':
+            cat = 'Longest Winless Streak'
+
+        record = abs(int(df[col].unique()[0]))
+        holder = ', '.join(df.team.tolist())
+        season = ', '.join([str(x) for x in df.season.tolist()])
+        weeks = ', '.join([f'{x-record+1}-{x}' for x in df.week.tolist()])
+        return [cat, record, holder, season, weeks]
+
+    matchups = Database(table='matchups').retrieve_data(how='all')
+    matchups = matchups.replace(0, -1)
+    matchups['overall_result'] = matchups.matchup_result + matchups.tophalf_result
+
+    ## head-to-head streaks
+    mws = matchups.matchup_result.groupby([matchups.season, matchups.team]).transform(lambda x: x.diff().ne(0).cumsum())
+    matchups['matchup_streaks'] = matchups.matchup_result.groupby([matchups.season, matchups.team, mws]).cumsum()
+
+    ## top half streaks
+    thws = matchups.tophalf_result.groupby([matchups.season, matchups.team]).transform(lambda x: x.diff().ne(0).cumsum())
+    matchups['tophalf_streaks'] = matchups.tophalf_result.groupby([matchups.season, matchups.team, thws]).cumsum()
+
+    ## overall streaks
+    ows = matchups.overall_result.groupby([matchups.season, matchups.team]).transform(lambda x: x.diff().ne(0).cumsum())
+    matchups['overall_streaks'] = matchups.overall_result.groupby([matchups.season, matchups.team, ows]).cumsum() / 2
+
+    rows.append(format_row(matchups, 'matchup_streaks', fn='max'))
+    rows.append(format_row(matchups, 'matchup_streaks', fn='min'))
+    rows.append(format_row(matchups, 'tophalf_streaks', fn='max'))
+    rows.append(format_row(matchups, 'tophalf_streaks', fn='min'))
+    rows.append(format_row(matchups, 'overall_streaks', fn='max'))
+    rows.append(format_row(matchups, 'overall_streaks', fn='min'))
+    return rows
+
+
 def get_standings_records(last_season):
+    """
+    Calculate standings-related records:
+    - Most matchup and top half wins and losses
+    - Highest/lowest PPG
+    """
     df = pd.DataFrame()
     for s in range(2018, last_season):
         print(s)
@@ -136,15 +205,21 @@ def get_standings_records(last_season):
     )
 
     return pd.DataFrame([most_m_wins_row,
-                                      most_m_losses_row,
-                                      most_th_wins_row,
-                                      most_th_losses_row,
-                                      most_ppg_row,
-                                      least_ppg_row],
-                                     columns=['category', 'record', 'holder', 'season', 'week'])
+                         most_m_losses_row,
+                         most_th_wins_row,
+                         most_th_losses_row,
+                         most_ppg_row,
+                         least_ppg_row],
+                        columns=['category', 'record', 'holder', 'season', 'week'])
 
 
 def get_matchup_records(last_season):
+    """
+    Calculate matchup-related records:
+    - Most/fewest points in a matchup
+    - Closest matchup
+    - Biggest blowout
+    """
     # matchup records
     most_matchup_points = -999
     least_matchup_points = 999
@@ -207,6 +282,13 @@ def get_matchup_records(last_season):
 
 
 def get_per_stat_records(last_season):
+    """
+    Calculate player/team stat records:
+    - Most yards (passing, rushing, receiving, total)
+    - Most turnovers (INTs, fumbles, total)
+    - Most TDs
+    - Most receptions
+    """
     pass_stats = [3]
     rush_stats = [24]
     rec_stats = [42, 53]
@@ -251,6 +333,9 @@ def get_per_stat_records(last_season):
 
 
 def get_stat_group_records(last_season):
+    """
+    Calculate team stat totals
+    """
     records_dict = {
         'Most Total Yards': [[3, 24, 42], -99],
         'Most Total Touchdowns': [[4, 25, 43, 93, 101, 102, 103, 104], -99],
@@ -292,6 +377,9 @@ def get_stat_group_records(last_season):
 
 
 def get_most_points_by_position(last_season):
+    """
+    Calculate most points by position (QB, RB, WR, TE, DST)
+    """
     records_dict = {
         'Most QB Points': [0, -99],
         'Most RB Points': [2, -99],

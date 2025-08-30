@@ -84,7 +84,7 @@ def scenarios():
         for row in data_wk
     ])
 
-    headings_ss = tuple(ut.flatten_list([['Team'], list(ss_disp.columns[1:len(teams.team_ids)+1])]))
+    headings_ss = tuple(ut.flatten_list([['Team'], list(ss_disp.columns[1:len(teams.team_ids)+2])]))
     data_ss = ut.flask_get_data(ss_disp)
 
     return render_template("scenarios.html",

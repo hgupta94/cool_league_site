@@ -8,7 +8,7 @@ from scripts.api.Settings import Params
 from scripts.api.Teams import Teams
 from scripts.utils import constants
 from scripts.home.standings import Standings
-from scripts.scenarios.scenarios import get_total_wins, get_wins_by_week, get_wins_vs_opp, get_schedule_switcher_display
+import scripts.scenarios.scenarios as scenarios
 from scripts.simulations import week_sim as ws
 from scripts.efficiency.efficiencies import plot_efficiency
 
@@ -51,13 +51,15 @@ betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: ws.calculate_
 
 db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')
-total_wins = get_total_wins(h2h_data=h2h_data, params=params, teams=teams, week=week)
-wins_by_week = get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, teams=teams)
-wins_vs_opp = get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, params=params, week=week)
+total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)
+wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, teams=teams)
+wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)
 
 db_ss = Database(table='switcher', season=season, week=week)
 ss_data = db_ss.retrieve_data(how='season')
-ss_disp = get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, week=week)
+ss_disp_temp = scenarios.get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, week=week)
+ss_luck = pd.DataFrame.from_dict(scenarios.calculate_schedule_luck(ss_data), orient='index').reset_index().rename(columns={'index':'team', 0:'Luck'})
+ss_disp = pd.merge(ss_disp_temp, ss_luck, on='team')
 
 eff_plot = plot_efficiency(database=Database,
                            season=season, week=week-1,

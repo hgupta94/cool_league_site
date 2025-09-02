@@ -227,7 +227,7 @@ class Standings:
                     for wins in range(-2, 3):
                         wb_taken = wins / 2
                         new_wb = ((data_tm['overall_wins'] - seed_wins) / 2) + wb_taken
-                        if new_wb < clinch_weeks_left:
+                        if new_wb > clinch_weeks_left:
                             elim_by_teams_w_pts = '<br>'.join([
                                 f'{d["team"]} ({round(d["total_points"] - data_tm["total_points"], 2) if clinch_weeks_left == 0 else ""})'
                                 for d in data

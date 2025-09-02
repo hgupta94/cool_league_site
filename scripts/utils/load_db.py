@@ -32,7 +32,7 @@ import pandas as pd
 
 pr_table = 'power_ranks'
 pr_cols = constants.POWER_RANK_COLUMNS
-for s in range(2018, 2024):
+for s in range(2023, 2024):
     data = DataLoader(year=s)
     params = Params(data=data)
     df_final = pd.DataFrame()
@@ -179,19 +179,14 @@ for week in range(3,15):
         continue
 
 
-
-ws.calculate_odds(sim_result=sim_tophalf, n_sims=n_sims)
-ws.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
-ws.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)
-
-
 ##### Records
 from scripts.records.initialize import *
-standings_recs = get_standings_records()
-matchups_recs = get_matchup_records()
-per_stat_recs = get_per_stat_records()
-stat_group_records = get_stat_group_records()
-points_by_position = get_most_points_by_position()
+season=constants.SEASON+1
+standings_recs = get_standings_records(season)
+matchups_recs = get_matchup_records(season)
+per_stat_recs = get_per_stat_records(season)
+stat_group_records = get_stat_group_records(season)
+points_by_position = get_most_points_by_position(season)
 records = pd.concat([standings_recs, matchups_recs, per_stat_recs, stat_group_records, points_by_position])
 records = records.reset_index(drop=True).reset_index().rename(columns={'index': 'id'})
 

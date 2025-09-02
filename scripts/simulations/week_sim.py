@@ -1,4 +1,5 @@
 from scripts.api.DataLoader import DataLoader
+from scripts.utils.database import Database
 from scripts.api.Teams import Teams
 from scripts.api.Rosters import Rosters
 from scripts.utils import constants
@@ -107,18 +108,18 @@ def get_week_projections(week: int) -> pd.DataFrame:
 def query_projections_db(season: int,
                          week: int) -> pd.DataFrame:
     cols = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receeptions', 'projection', 'created']
-    with utils.mysql_connection() as conn:
+    with Database() as conn:
         c = conn.cursor()
         query = f'''
         SELECT *
-        FROM projections
+        FROM player_projections
         WHERE season={season} and week={week};
         '''
         c.execute(query)
         result = c.fetchall()
         df = pd.DataFrame(result)
         df.columns = cols
-    return df[['name', 'espn_id', 'projection']].set_index('espn_id').to_dict(orient='index')
+    return df[['name', 'espn_id', 'projection']]
 
 
 def get_best_lineup(week_data: dict,
@@ -175,7 +176,7 @@ def get_best_lineup(week_data: dict,
                         {k:v for k,v in d.items()}
                         for d in projections
                         if d['espn_id'] == player_id
-                    ][0]['fpts']
+                    ][0]['projection']
                 except IndexError:
                     # use ESPN projection of player is not found
                     if stat['statSourceId'] == 1:
@@ -195,12 +196,15 @@ def get_best_lineup(week_data: dict,
     for player_id, pos in positions.items():
         # loop thru positions to get best projected lineup
         # TODO: need to update this to keep players who actually played
-        position_limit = slot_limits[player_id]
-        position_player_pool = {k: v for k, v in roster.items() if v['position'] == pos}
-        selector = sorted(position_player_pool,
-                          key=lambda x: position_player_pool[x]['projection'],
-                          reverse=True)[0:position_limit]  # highest projected player(s)
-        selected.append(selector)  # remove player from available pool
+        try:
+            position_limit = slot_limits[player_id]
+            position_player_pool = {k: v for k, v in roster.items() if v['position'] == pos}
+            selector = sorted(position_player_pool,
+                              key=lambda x: position_player_pool[x]['projection'],
+                              reverse=True)[0:position_limit]  # highest projected player(s)
+            selected.append(selector)  # remove player from available pool
+        except KeyError:  # position is not used
+            pass
     selected_flat = utils.flatten_list(selected)
 
     # get flex player
@@ -309,7 +313,8 @@ def simulate_week(week_data: DataLoader,
     n_highest = {key: 0 for key in teams.team_ids}
     n_lowest  = {key: 0 for key in teams.team_ids}
     for i, sim in enumerate(range(n_sims)):
-        print(f'{i+1}/{n_sims}', end='\r')
+        if i % 1000 == 0:
+            print(f'{i+1}/{n_sims}', end='\r')
         random.seed(random.randrange(n_sims))
         matchup_sim = simulate_matchup(week_data=week_data,
                                        rosters=rosters,

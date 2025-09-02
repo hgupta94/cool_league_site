@@ -31,12 +31,14 @@ PROJECTIONS_COLUMNS = 'id, season, week, name, espn_id, position, receptions, pr
 H2H_COLUMNS = 'id, season, week, team, opponent, result'
 EFFICIENCY_COLUMNS = 'id, season, week, team, actual_lineup_score, actual_lineup_projected, best_projected_lineup_score, best_projected_lineup_projected, optimal_lineup_score, optimal_lineup_projected'
 SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
-WEEK_SIM_COLUMNS = 'id, season, week, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
+WEEK_SIM_COLUMNS = 'id, season, week, matchup_id, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SEASON_SIM_COLUMNS = ''
 RECORDS_COLUMNS = 'id, category, record, holder, season, week'
+ALLTIME_STANDINGS_COLUMNS = 'id, team, seasons, playoffs, overall_rec, win_perc, matchup_rec, tophalf_rec, points'
 
 STANDINGS_COLUMNS_FLASK = ['seed', 'team', 'overall', 'win_perc', 'matchup', 'top_half', 'total_points_disp', 'wb2_disp', 'wb5_disp', 'pb6_disp']
 RECORDS_COLUMNS_FLASK = ['category', 'record', 'holder', 'season', 'week']
+ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc', 'matchup_rec', 'tophalf_rec', 'points']
 
 
 # Gamma distribution values for simulations
@@ -438,26 +440,13 @@ TEAM_IDS = {
             'last': 'Bains',
             'display': 'Arju'
         }
+    },
+
+    '{52EF6954-9BFF-4A41-9617-1ECD3F5EEBAF}': {
+        'name': {
+            'first': 'Aiden',
+            'last': 'Ghesani',
+            'display': 'Aide'
+        }
     }
-}
-
-# standings column mapping
-STANDINGS_COL_MAP_2018_2020 = {
-    'team': 'Team',
-    'm_record': 'Record',
-    'win_perc': 'Win%',
-    'total_pf': 'Points',
-    'wb4': 'WB-4'
-}
-
-STANDINGS_COL_MAP_2021_CURR = {
-    'team': 'Team',
-    'ov_record': 'Overall',
-    'win_perc': 'Win%',
-    'm_record': 'Matchup',
-    'thw_record': 'THW',
-    'total_pf': 'Points',
-    'wb2': 'WB-Bye',
-    'wb5': 'WB-5',
-    'pb6': 'PB-6'
 }

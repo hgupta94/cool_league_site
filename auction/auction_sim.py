@@ -410,8 +410,8 @@ def run_simulation(n_sims):
         if sim % 1000 == 0:
             print(sim)
 
-        # initialize draft data
-        player_pool = copy.deepcopy(price_data)
+        # initialize draft data for current sim
+        player_pool = copy.deepcopy(price_data)  # reset player pool
         draft_picks = {o: [] for o in owners}
         draft_state = {
             o: {
@@ -450,15 +450,12 @@ def run_simulation(n_sims):
             nom_ppg = player_pool[nom_id]['ppg']
             nom_vor = player_pool[nom_id]['vor']
 
-            # get teams that have a slot available for player
-            possible_teams = {k for k, v in draft_state.items() if v[nom_position] < max_slots[nom_position] and v['slots_left'] > 0}
 
-            # get an initial bid amount
-            # team_factor = len(possible_teams) / len(owners)  # scale bid price to account for competition
+            # get an initial bid amount using triangle distribution
             min_price = player_pool[nom_id]['price'] - (0.1 * player_pool[nom_id]['price'])
             max_price = player_pool[nom_id]['value'] + (0.3 * player_pool[nom_id]['value'])
             avg_price = (player_pool[nom_id]['price'] + player_pool[nom_id]['value']) / 2
-            bid_init = math.ceil(random.triangular(low=min_price, high=max_price, mode=avg_price))  # get initial price based on player data
+            bid_init = math.ceil(random.triangular(low=min_price, high=max_price, mode=avg_price))
             max_bid_amt = sorted([v['max_bid'] for k, v in draft_state.items()])[-2] + 1  # winning team can only bid up to team with the second-highest max_bid + $1
             bid_amt = 1 if bid_init < 1 else (bid_init if max_bid_amt > bid_init else max_bid_amt)
 
@@ -468,6 +465,8 @@ def run_simulation(n_sims):
             #   AND not need another position filled with final pick(s)
             can_draft = []
             while len(can_draft) == 0:
+                # teams that have a slot available for player
+                possible_teams = {k for k, v in draft_state.items() if v[nom_position] < max_slots[nom_position] and v['slots_left'] > 0}
                 for o in possible_teams:
                     over_dppr = (draft_state[o]['funds_left'] - bid_amt) - (draft_state[o]['slots_left'] - 1) >= 0
                     last_player_funds = (draft_state[o]['funds_left'] - bid_amt >= 0) and draft_state[o]['slots_left'] == 1
@@ -485,7 +484,7 @@ def run_simulation(n_sims):
                         break
 
             if nom_id not in player_pool:
-                # if nominated player was dropped during while loop, restart nomination
+                # if nominated player was dropped during loop, restart bidding with new player
                 continue
 
             team_appetites = appetites(can_draft, max_slots, draft_state, nom_position, pick, draft_picks)  # assign weight to remaining teams
@@ -526,20 +525,20 @@ def run_simulation(n_sims):
         ### SIM SEASON ###
         for team, roster in draft_picks.items():
             # calculate lineup slots - highest bid player at each position is pos1
-            slot_init = {p: 0 for p in POSITIONS + ['FLEX']}
+            slot_init = {p: 0 for p in POSITIONS + ['FLEX']}  # to check flex player
             roster = sorted(roster, key=lambda x: (x['winning_bid'], x['vor']), reverse=True)
             for player in roster:
                 pos = player['position']
                 if slot_init[pos] < starters[pos]:
                     slot_init[pos] += 1
-                    player['slot'] = pos # f'{pos}{slot_init[pos]}'
+                    player['slot'] = pos
                 elif pos in FLEX_POSITIONS and slot_init[pos] == starters[pos] and slot_init['FLEX'] == 0:
                     player['slot'] = 'FLEX'
                     slot_init['FLEX'] += 1
                 else:
                     player['slot'] = 'BENCH'
 
-                # initialize games missed and new ppg for current "season"
+                # simulate games missed and new ppg for current "season"
                 player['games_missed'] = sim_injury(mean_gms_missed, player['position'])
                 player['ppg'] = player['ppg'] * apply_weight(wts, player['position'])
 
@@ -631,7 +630,6 @@ draft_records = [
     for player in roster
 ]
 all_drafts = pd.DataFrame.from_records(draft_records)
-all_drafts['games_missed'] = all_drafts.games_missed.apply(lambda x: len(x))
 e1 = time.perf_counter()
 print((e1-s1)/60, 'minutes for all_drafts')
 
@@ -645,12 +643,27 @@ all_results = pd.DataFrame([
 e2 = time.perf_counter()
 print(round((e2-s2)/60, 2), 'minutes for all_results')
 
+# Save all_draft_data to a Pickle file
+with open('auction/results/all_drafts_20250823.pkl', 'wb') as f:
+    pickle.dump(all_drafts, f)
+with open('auction/results/all_results_20250823.pkl', 'wb') as f:
+    pickle.dump(all_results, f)
+
+# load saved sim data
+# with open('auction/results/all_drafts_20250823.pkl', 'rb') as f:
+#     all_drafts = pickle.load(f)
+# with open('auction/results/all_results_20250823.pkl', 'rb') as f:
+#     all_results = pickle.load(f)
+
+
+all_drafts['games_missed'] = all_drafts.games_missed.apply(lambda x: len(x))
+# TODO: same for all_results
 
 
 all_results.sort_values(['champ', 'points'], ascending=[False, True]).groupby('sim').points.sum().mean()
 
 
-all_results.hist('points', bins=100)
+all_results.hist('points', bins=50)
 plt.show()
 
 z = (1420 - all_results.points.mean()) / all_results.points.std()
@@ -660,30 +673,18 @@ z = (1420 - all_results.points.mean()) / all_results.points.std()
 all_drafts.games_missed.plot.hist(bins=17)
 plt.show()
 
-# Save all_draft_data to a Pickle file
-# with open('auction/all_drafts.pkl', 'wb') as f:
-#     pickle.dump(all_drafts, f)
-# with open('auction/all_results.pkl', 'wb') as f:
-#     pickle.dump(all_results, f)
-
-# load saved sim data
-# with open('all_drafts.pkl', 'rb') as f:
-#     all_drafts = pickle.load(f)
-# with open('all_results.pkl', 'rb') as f:
-#     all_results = pickle.load(f)
-
-
 def scatter_plot(player, sims_df, x='pick', y='winning_bid'):
     df_plyr = sims_df[sims_df.player == player]
     plt.figure(figsize=(7, 7))
-    plt.axvline(x=df_plyr[x].mean(), c='grey', dashes=(2, 2, 2, 2))
-    plt.axhline(y=df_plyr[y].median(), c='grey', dashes=(2, 2, 2, 2))
+    plt.axvline(x=df_plyr[x].mean(skipna=True), c='grey', dashes=(2, 2, 2, 2))
+    plt.axhline(y=df_plyr[y].median(skipna=True), c='grey', dashes=(2, 2, 2, 2))
     plt.scatter(df_plyr[x], df_plyr[y], s=5)
     plt.title(player)
     plt.xlabel(x)
     plt.ylabel(y)
     plt.show()
-scatter_plot('Ja\'Marr Chase', all_drafts)
+scatter_plot(player="Omarion Hampton", sims_df=all_drafts.copy())
+cmc = all_drafts[all_drafts.player == 'Christian McCaffrey']
 
 
 by_slot_type = all_drafts.groupby(['sim', 'team', 'slot']).winning_bid.sum().reset_index()
@@ -700,7 +701,7 @@ total_spend = all_drafts.groupby(['sim', 'team']).winning_bid.sum().reset_index(
 spend_cats = pd.merge(total_spend, spend_cats, on=['sim', 'team'])
 
 combined_results = pd.merge(spend_cats, all_results, on=['sim', 'team'])
-
+combined_results = combined_results[combined_results.TOTAL_SPEND >= 180]
 
 df = combined_results.set_index(['sim', 'team'])
 df[['points', 'TOTAL_SPEND']].corr()
@@ -790,7 +791,7 @@ def plot_spend_vs_median(df: pd.DataFrame = combined_results.copy()):
     df['st_vs_med'] = df.groupby('sim')['STARTERS'].transform(lambda x: x - x.median())
     df['score_diff'] = df.groupby('sim').points.transform(lambda x: x - x.mean()) / 14
     X_data = np.array(df.st_vs_med)
-    Y_data = np.array(df.score_diff) / 14
+    Y_data = np.array(df.score_diff)
     a, b, c = np.polyfit(X_data, Y_data, 2)
 
     X_fit = np.linspace(min(X_data), max(X_data), 1000)
@@ -808,7 +809,6 @@ def plot_spend_vs_median(df: pd.DataFrame = combined_results.copy()):
     plt.ylabel('PPG Difference')
     plt.show()
 
-plot_spend_vs_median()
 
 def spend_variation(col, df: pd.DataFrame = combined_results.copy()):
     X = df[col]*200
@@ -818,12 +818,13 @@ def spend_variation(col, df: pd.DataFrame = combined_results.copy()):
     ax.scatter(x=X, y=Y, s=4, c=Y, norm=norm, cmap='coolwarm')
     ax.axhline(y=0, linestyle='dashed', linewidth=1, c='#B5B5B5')
     ax.xaxis.set_major_formatter('${x:1.0f}')
-    plt.title(F'Variation in PPG by {col} Spend')
+    plt.title(f'Variation in PPG by {col} Spend')
     plt.xlabel('Starter Spend')
     plt.ylabel('PPG Added')
     plt.show()
 
 
+plot_spend_vs_median()
 spend_variation('QB')
 spend_variation('RB')
 spend_variation('WR')

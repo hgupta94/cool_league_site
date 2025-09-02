@@ -109,10 +109,23 @@ body {
 
 /* add vline to pr table to separate columns */
 .pr td:nth-child(6){
-  border-left: 2px solid #909090;
+  border-left: 1px solid #dddddd;
 }
-/* end format standings */
+/* end format power ranks */
 
+
+/* add vline to 2 record table to separate columns */
+.records td:nth-last-child(2){
+  border-left: 1px solid #dddddd;
+}
+/* end format records tables */
+
+
+/* add vline to ss table to separate columns */
+.ss td:nth-last-child(1){
+  border-left: 1px solid #dddddd;
+}
+/* end format schedule switcher */
 
 
 /* format all tables */
@@ -122,6 +135,7 @@ body {
   font-size: 0.9em;
   border-radius: 3px 3px 0 0;
   overflow: scroll;
+  position: relative;
 }
 
 .content-table thead tr {
@@ -132,6 +146,10 @@ body {
 
 .content-table tbody {
   border-bottom: 1px solid #dddddd;
+}
+
+.content-table td:nth-child(2){
+  border-left: 1px solid #dddddd;
 }
 
 .content-table tbody tr:last-of-type {

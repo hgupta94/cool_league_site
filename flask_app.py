@@ -1,96 +1,9 @@
-import pandas as pd
-import json
 from flask import Flask, render_template
 from flask_fontawesome import FontAwesome
 
-from scripts.api.DataLoader import DataLoader
-from scripts.utils.database import Database
-from scripts.api.Settings import Params
-from scripts.api.Teams import Teams
-from scripts.api.Rosters import Rosters
 import scripts.utils.utils as ut
-from scripts.utils.constants import STANDINGS_COLUMNS_FLASK, RECORDS_COLUMNS_FLASK
-from scripts.home.standings import Standings
-from scripts.scenarios.scenarios import get_total_wins, get_wins_by_week, get_wins_vs_opp, get_schedule_switcher_display
-from scripts.simulations import week_sim as ws
-from scripts.efficiency.efficiencies import plot_efficiency
-
-# TODO: webpage errors out if past regular season
-season, week = 2024, 12  # just finished previous week
-data = DataLoader(season)
-params = Params(data)
-teams = Teams(data)
-matchups = data.matchups()
-
-week = params.regular_season_end+1 if week > params.regular_season_end+1 else week
-# week_data = data.load_week(week=week)
-# rosters = Rosters()
-
-standings = Standings(season=season, week=week)
-standings_df = standings.format_standings()
-clinches = standings.clinching_scenarios()
-# TODO: fix last week clinches/elims. if team is ahead (cl) or behind (el), net wins should be 0?
-
-db_pr = Database(table='power_ranks', season=season, week=week)
-pr_data = db_pr.retrieve_data(how='season')
-pr_data[['power_score_norm', 'score_norm_change']] = round(pr_data[['power_score_norm', 'score_norm_change']] * 100).astype('Int32')
-pr_table = pr_data[pr_data.week == week-1]
-pr_table = pr_table.sort_values('power_score_raw', ascending=False)
-pr_table['rank_change'] = -pr_table.rank_change
-pr_table[['total_points', 'weekly_points', 'consistency', 'luck']] = pr_table[['season_idx', 'week_idx', 'consistency_idx', 'luck_idx']].rank(ascending=False, method='min').astype('Int32')
-pr_cols = ['team', 'total_points', 'weekly_points', 'consistency', 'luck', 'power_rank', 'rank_change', 'power_score_norm', 'score_norm_change']
-rank_data = pr_data[['team', 'week', 'power_rank', 'power_score_norm']].sort_values(['week', 'power_score_norm'], ascending=[True, False]).to_dict(orient='records')
-rank_data = json.dumps(rank_data, indent=2)
-rank_data = {'rank_data': rank_data}
-
-db_betting = Database(table='betting_table', season=season, week=week)
-betting_table = db_betting.retrieve_data(how='week')
-betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
-betting_table['avg_score'] = betting_table.avg_score.round(1).apply(lambda x: f'{x:.2f}')
-betting_table['p_win'] = betting_table.p_win.apply(lambda x: ws.calculate_odds(init_prob=x))
-betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: ws.calculate_odds(init_prob=x))
-betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: ws.calculate_odds(init_prob=x))
-betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: ws.calculate_odds(init_prob=x))
-
-db_h2h = Database(table='h2h', season=season, week=week)
-h2h_data = db_h2h.retrieve_data(how='season')
-total_wins = get_total_wins(h2h_data=h2h_data, params=params, teams=teams, week=week)
-wins_by_week = get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, teams=teams)
-wins_vs_opp = get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, params=params, week=week)
-
-db_ss = Database(table='switcher', season=season, week=week)
-ss_data = db_ss.retrieve_data(how='season')
-ss_disp = get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, params=params, week=week)
-
-eff_plot = plot_efficiency(database=Database(),
-                           season=season, week=week-1,
-                           x='actual_lineup_score', y='optimal_lineup_score',
-                           xlab='Difference From Optimal Points per Week',
-                           ylab='Optimal Points per Week',
-                           title='')
-
-db = Database(table='records')
-records_df = db.retrieve_data(how='all')
-
-# champs = pd.read_csv("//home//hgupta//fantasy-football-league-report//champions.csv")
-champs = pd.read_csv('C:\Dev\hgupta94\cool_league\champions.csv').sort_values('Season', ascending=False)
-champs["Count"] = champs.groupby("Team").cumcount()+1
-champs = champs.assign(Icon=champs["Count"].apply(
-    lambda n: ''.join(
-        [
-            # '<i class="fa fa-trophy icon-gold"></i>' for _ in range(n)
-            f'<i class="fa fa-trophy icon-gold"></i>{"" if (i + 1) % 3 else "<span><br></span>"}' for i in range(n)
-        ]
-    ) + '<br>'
-))
-prev_champs = champs[['Season', 'Team', 'Runner Up']]
-champ_count = (
-    champs
-    .drop_duplicates(subset='Team', keep='last')
-    .sort_values(['Count'], ascending=False)
-    .drop(['Season', 'Count'], axis=1)
-    .rename(columns={'Icon': 'Count'})
-)
+from data_prep import *
+from scripts.utils.constants import STANDINGS_COLUMNS_FLASK, RECORDS_COLUMNS_FLASK, ALLTIME_COLUMNS_FLASK
 
 
 # create flask app
@@ -100,7 +13,6 @@ fa = FontAwesome(app)
 ###########################
 # Flask routes
 ##########################
-
 
 @app.route("/")
 def home():
@@ -172,7 +84,7 @@ def scenarios():
         for row in data_wk
     ])
 
-    headings_ss = tuple(ut.flatten_list([['Team'], list(ss_disp.columns[1:len(teams.team_ids)+1])]))
+    headings_ss = tuple(ut.flatten_list([['Team'], list(ss_disp.columns[1:len(teams.team_ids)+2])]))
     data_ss = ut.flask_get_data(ss_disp)
 
     return render_template("scenarios.html",
@@ -198,10 +110,14 @@ def champs():
 
 @app.route("/records/")
 def records():
+    headings_alltime = tuple(['Team', 'Seasons', 'Playoffs', 'Overall', 'Win%', 'Matchup', 'Top Half', 'Points'])
+    data_alltime = ut.flask_get_data(alltime_df[ALLTIME_COLUMNS_FLASK])
+
     headings_rec = tuple(['Category', 'Record', 'Holder', 'Season', 'Week'])
     data_rec = ut.flask_get_data(records_df[RECORDS_COLUMNS_FLASK])
-    return render_template("records.html", #headings_alltime=headings_alltime, data_alltime=data_alltime,
-                                           headings_rec=headings_rec, data_rec=data_rec)
+    return render_template("records.html",
+                           headings_alltime=headings_alltime, data_alltime=data_alltime,
+                           headings_rec=headings_rec, data_rec=data_rec)
 
 # Run app
 if __name__ == "__main__":

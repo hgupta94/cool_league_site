@@ -14,12 +14,12 @@ from scripts.efficiency.efficiencies import plot_efficiency
 
 
 # TODO: webpage errors out if past regular season
-season = constants.SEASON
+season = 2024#constants.SEASON
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
 matchups = data.matchups()
-week = params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
+week = 13#params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
 # week_data = data.load_week(week=week)
 # rosters = Rosters()
 
@@ -61,8 +61,7 @@ ss_disp_temp = scenarios.get_schedule_switcher_display(ss_data=ss_data, total_wi
 ss_luck = pd.DataFrame.from_dict(scenarios.calculate_schedule_luck(ss_data), orient='index').reset_index().rename(columns={'index':'team', 0:'Luck'})
 ss_disp = pd.merge(ss_disp_temp, ss_luck, on='team')
 
-eff_plot = plot_efficiency(database=Database,
-                           season=season, week=week-1,
+eff_plot = plot_efficiency(season=season, week=week,
                            x='actual_lineup_score', y='optimal_lineup_score',
                            xlab='Difference From Optimal Points per Week',
                            ylab='Optimal Points per Week',

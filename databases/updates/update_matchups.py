@@ -13,7 +13,7 @@ teams = Teams(data=data)
 params = Params(data=data)
 week = params.as_of_week
 
-standings = Standings(season=constants.SEASON, week=week)
+# standings = Standings(season=constants.SEASON, week=week)
 matchups = pd.read_csv(r'tables/results_2014_2017_db.csv')
 matchups_table = 'matchups'
 matchup_cols = constants.MATCHUP_COLUMNS

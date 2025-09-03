@@ -10,5 +10,3 @@ tests/
 .env
 *.txt
 *.pkl
-*.json
-*.csv

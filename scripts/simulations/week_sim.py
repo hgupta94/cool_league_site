@@ -5,6 +5,8 @@ from scripts.api.Rosters import Rosters
 from scripts.utils import constants
 from scripts.utils import utils
 
+import requests
+from bs4 import BeautifulSoup
 import difflib
 import scipy.stats as st
 import random
@@ -16,7 +18,6 @@ def _match_player_to_espn(the_player: str,
                           players: list) -> int | None:
     """
     Matches a name to ESPN's database and returns a player ID
-    TODO: should include position too
 
     Args:
         the_player: a player's full name and team abbreviation (ex: Full Name|TM)
@@ -103,6 +104,25 @@ def get_week_projections(week: int) -> pd.DataFrame:
     ).astype('Int64')
 
     return projections[~projections.espn_id.isnull()]
+
+
+# def get_season_projections() -> pd.DataFrame:
+#     positions = ['qb', 'rb', 'wr', 'te', 'defense']
+#     base_url = 'https://www.fanduel.com/research/nfl/fantasy/rest-of-season-projections'
+#     for position in positions:
+#         pos_url = f'{base_url}/{position}'
+#         df = pd.read_html(pos_url)
+#
+#         # Fetch the HTML content
+#         response = requests.get(pos_url)
+#         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+#         html_content = response.text
+#
+#         # Use BeautifulSoup to parse and potentially isolate the relevant table(s)
+#         soup = BeautifulSoup(html_content, 'lxml')  # Or 'html.parser'
+#         test = soup.find('table')
+#
+#         df = pd.read_html(str(soup))  # Assuming you want the first table found
 
 
 def query_projections_db(season: int,

@@ -4,10 +4,8 @@ import base64
 from scripts.api.Settings import Params
 from scripts.api.Rosters import Rosters
 from scripts.api.Teams import Teams
-
 from scripts.utils.database import Database
 from scripts.utils import utils
-from scripts.utils import constants
 
 import pandas as pd
 import numpy as np
@@ -24,6 +22,9 @@ def get_optimal_points(params: Params,
                        week_data: dict,
                        season: int,
                        week: int):
+    """
+    Calculate each team's best possible scoring lineup each week
+    """
     slots = rosters.slotcodes
     starters = {k: v for k, v in rosters.slot_limits.items() if k not in [20, 21, 23]}
     positions = {k: v for k, v in slots.items() if k in starters.keys()}
@@ -147,24 +148,15 @@ def get_optimal_points(params: Params,
     return df[keep]
 
 
-def plot_efficiency(database: Database,
-                    season: int,
-                    week: int,
+def plot_efficiency(season: int,
                     x: str,
                     y: str,
                     xlab: str,
                     ylab: str,
                     title: str):
-    with database() as conn:
-        query = f'''
-        SELECT *
-        FROM efficiency
-        WHERE season={season} AND week<={week}
-        '''
-        eff = pd.read_sql(query, con=conn)
-
+    eff = Database(table='efficiency', season=season, week=10).retrieve_data(how='season')
     cols = eff.select_dtypes(include=['float']).columns.tolist()
-    df = eff.groupby('team')[cols].sum() / week
+    df = eff.groupby('team')[cols].sum() / eff.week.max()
     df['act_opt_perc'] = df[x] / df[y]
     df['diff_from_opt'] = df.actual_lineup_score - df.optimal_lineup_score
     df['act_bestproj_perc'] = df.actual_lineup_score / df.best_projected_lineup_score

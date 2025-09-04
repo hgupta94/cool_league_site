@@ -32,14 +32,14 @@ import pandas as pd
 
 pr_table = 'power_ranks'
 pr_cols = constants.POWER_RANK_COLUMNS
-for s in range(2023, 2024):
-    data = DataLoader(year=s)
+for season in range(2023, 2025):
+    data = DataLoader(year=season)
     params = Params(data=data)
     df_final = pd.DataFrame()
-    for wk in range(1, params.regular_season_end+1):
-        df = pd.DataFrame(power_rank(s, wk)).transpose()
-        df['season'] = s
-        df['week'] = wk
+    for week in range(2, params.regular_season_end+1):
+        df = pd.DataFrame(power_rank(season, week)).transpose()
+        df['season'] = season
+        df['week'] = week
         df = df.reset_index().rename(columns={'index': 'team'})
         df['id'] = df['season'].astype(str) + '_' + df['week'].astype(str) + '_' + df['team']
         df['power_rank'] = df.power_score_norm.rank(ascending=False)

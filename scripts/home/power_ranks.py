@@ -44,26 +44,23 @@ def power_rank(season, week):
         2. Consistency Index (20%) - variance of weekly scoring
         3. Luck Index (10%) - difference in matchup wins vs. expected
     """
-    with Database() as conn:
-        query = f'''
-        SELECT *
-        FROM matchups
-        WHERE season={season} AND week<={week}
-        '''
-        matchups = pd.read_sql(query, con=conn)
+    eff = Database(table='efficiency', season=season, week=week).retrieve_data(how='season')
+    matchups = Database(table='matchups', season=season, week=week).retrieve_data(how='season')
     matchups['median'] = matchups.groupby('week')['score'].transform('median')
 
     # scoring weights
-    if week == 1:
+    if week-1 == 1:
         ts_idx_wt = 0.45
         ws_idx_wt = 0.45
         c_idx_wt = 0.0
         l_idx_wt = 0.1
+        # m_idx_wt = 0.2
     else:
         ts_idx_wt = 0.4
         ws_idx_wt = 0.3
         c_idx_wt = 0.2
         l_idx_wt = 0.1
+        # m_idx_wt = 0.2
 
     ppg_med = matchups.groupby('team').score.mean().median()
     wts = exp_decay(week=week, reverse=False)
@@ -73,7 +70,7 @@ def power_rank(season, week):
         pr_tm = matchups[matchups.team == t]
         tm_score_index = scoring_index(pr_tm.score.mean(), ppg_med, weight=1)
         pr_dict[t] = {'season_idx': tm_score_index.item()}
-        for wk in range(1, week+1):
+        for wk in range(1, week):
             # Weekly Scoring Index
             pr_wk = pr_tm[pr_tm.week == wk]
             wk_med = pr_wk['median'].values[0]
@@ -96,10 +93,18 @@ def power_rank(season, week):
         luck_score = pr_tm.tophalf_result.sum() - pr_tm.matchup_result.sum()
         pr_dict[t].update({'luck_idx': scale_luck(luck_score, from_min=-week, from_max=week).item()})
 
+        # # Manager Index
+        # cols = eff.select_dtypes(include=['float']).columns.tolist()
+        # df = eff.groupby('team')[cols].sum() / eff.week.max()
+        # df['act_opt_perc'] = df['actual_lineup_score'] / df['optimal_lineup_score']
+        # manager_score = (df.optimal_lineup_score / df.optimal_lineup_score.median()) * (df.act_opt_perc / df.act_opt_perc.median())
+        # pr_dict[t].update({'manager_idx': manager_score.loc[t]})
+
         total_score = (pr_dict[t]['season_idx'] * ts_idx_wt)\
                       + (pr_dict[t]['week_idx'] * ws_idx_wt)\
-                      + (pr_dict[t]['consistency_idx'] * c_idx_wt)\
-                      + ((pr_dict[t]['luck_idx']-0.5) * l_idx_wt)
+                      + (pr_dict[t]['consistency_idx'] * c_idx_wt) \
+                      + ((pr_dict[t]['luck_idx'] - 0.5) * l_idx_wt)
+                      # + (pr_dict[t]['manager_idx'] * m_idx_wt)
         pr_dict[t].update({'power_score_raw': total_score})
 
     meds = []

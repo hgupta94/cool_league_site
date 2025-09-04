@@ -9,7 +9,7 @@ from scripts.api.Teams import Teams
 from scripts.utils import constants
 from scripts.home.standings import Standings
 import scripts.scenarios.scenarios as scenarios
-from scripts.simulations import week_sim as ws
+from scripts.simulations import simulations
 from scripts.efficiency.efficiencies import plot_efficiency
 
 
@@ -44,10 +44,10 @@ db_betting = Database(table='betting_table', season=season, week=week)
 betting_table = db_betting.retrieve_data(how='week')
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(1).apply(lambda x: f'{x:.2f}')
-betting_table['p_win'] = betting_table.p_win.apply(lambda x: ws.calculate_odds(init_prob=x))
-betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: ws.calculate_odds(init_prob=x))
-betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: ws.calculate_odds(init_prob=x))
-betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: ws.calculate_odds(init_prob=x))
+betting_table['p_win'] = betting_table.p_win.apply(lambda x: simulations.calculate_odds(init_prob=x))
+betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: simulations.calculate_odds(init_prob=x))
+betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: simulations.calculate_odds(init_prob=x))
+betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 
 db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')
@@ -61,7 +61,7 @@ ss_disp_temp = scenarios.get_schedule_switcher_display(ss_data=ss_data, total_wi
 ss_luck = pd.DataFrame.from_dict(scenarios.calculate_schedule_luck(ss_data), orient='index').reset_index().rename(columns={'index':'team', 0:'Luck'})
 ss_disp = pd.merge(ss_disp_temp, ss_luck, on='team')
 
-eff_plot = plot_efficiency(season=season, week=week,
+eff_plot = plot_efficiency(season=season,
                            x='actual_lineup_score', y='optimal_lineup_score',
                            xlab='Difference From Optimal Points per Week',
                            ylab='Optimal Points per Week',

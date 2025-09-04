@@ -3,7 +3,7 @@ from scripts.api.Rosters import Rosters
 from scripts.api.Teams import Teams
 from scripts.utils.database import Database
 from scripts.utils import constants
-from scripts.simulations import week_sim as ws
+from scripts.simulations import simulations
 
 import pandas as pd
 from datetime import datetime as dt
@@ -26,23 +26,23 @@ for week in range(3, 15):
     teams = Teams(data=data)
     week_data = data.load_week(week=week)
     matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
-    projections = ws.query_projections_db(season=constants.SEASON, week=3)
+    projections = simulations.query_projections_db(season=constants.SEASON, week=3)
     projections = projections.to_dict(orient='records')
 
     start = time.perf_counter()
-    sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = ws.simulate_week(week_data=week_data,
-                                                                                  teams=teams,
-                                                                                  rosters=rosters,
-                                                                                  matchups=matchups,
-                                                                                  projections=projections,
-                                                                                  week=week,
-                                                                                  n_sims=n_sims)
+    sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = simulations.simulate_week(week_data=week_data,
+                                                                                           teams=teams,
+                                                                                           rosters=rosters,
+                                                                                           matchups=matchups,
+                                                                                           projections=projections,
+                                                                                           week=week,
+                                                                                           n_sims=n_sims)
     end = time.perf_counter()
 
     for team in teams.team_ids:
         display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
         db_id = f'{constants.SEASON}_{str(week).zfill(2)}_{display_name}_{day}'
-        matchup_id = ws.get_matchup_id(teams=teams, week=week, display_name=display_name)
+        matchup_id = simulations.get_matchup_id(teams=teams, week=week, display_name=display_name)
         avg_score = sim_scores[team] / n_sims
         p_win = sim_wins[team] / n_sims
         p_tophalf = sim_tophalf[team] / n_sims

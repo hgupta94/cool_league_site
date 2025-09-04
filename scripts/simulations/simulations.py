@@ -371,15 +371,55 @@ def get_matchup_id(teams: Teams,
     return matchup_id
 
 
+def get_replacement_players(data: DataLoader,
+                            n_top: int = 3):
+    players_data = data.players_info()
+
+    # first get all free agents
+    free_agents = []
+    for player in players_data['players']:
+        if player['onTeamId'] == 0:
+            player_id = player['id']
+            player_name = player['player']['fullName']
+            for pos in player['player']['eligibleSlots']:
+                if pos in constants.POSITION_MAP:
+                    position_id = pos
+                    position = constants.POSITION_MAP[pos]
+
+            projection = 0
+            for stat in player['player']['stats']:
+                if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
+                    projection += stat['appliedAverage']
+            try:
+                free_agents.append({
+                    'id': player_id,
+                    'name': player_name,
+                    'position': position,
+                    'projection': projection
+                })
+            except NameError:
+                pass
+
+    # get replacement player score - average of top 3
+    pos_dict = {}
+    for position in ['QB', 'RB', 'WR', 'TE', 'DST']:
+        pos_fa = [fa for fa in free_agents if fa['position'] == position]
+        top3 = sorted(pos_fa, key=lambda x: x['projection'], reverse=True)[:n_top]
+        pos_dict[position] = sum(p['projection'] for p in top3) / n_top
+
+    return pos_dict
+
+
 def get_ros_projections(data: DataLoader,
                         params: Params,
                         teams: Teams,
-                        rosters: Rosters):
+                        rosters: Rosters,
+                        replacement_players: dict[float] = None):
     """Get rest of season projections from ESPN for all rostered players"""
     current_week = params.current_week
 
     projections_dict = {}
-    for week in range(current_week, 17+1):
+    for week in range(current_week, 17+1):  # end of playoffs + 1
         week_data = data.load_week(week)
         team_dict = {}
         for team in week_data['teams']:
@@ -396,6 +436,11 @@ def get_ros_projections(data: DataLoader,
                 for stat in player['playerPoolEntry']['player']['stats']:
                     if stat['seasonId'] == constants.SEASON and stat['statSourceId'] == 1 and stat['scoringPeriodId'] == week:
                         projection = stat['appliedTotal']
+
+                if projection == 0:
+                    position_id = -1
+                    player_name = 'Free Agent'
+                    projection = replacement_players[position]
 
                 roster_dict[player_id] = {
                     'week': week,
@@ -530,56 +575,3 @@ def sim_playoff_round(week: int,
     teams_sorted = dict(sorted(this_round_scores.items(), key=lambda item: item[1], reverse=True))
     next_round_teams.extend(list(teams_sorted.keys())[:n_advance])
     return next_round_teams
-
-
-data = DataLoader()
-params = Params(data)
-teams = Teams(data)
-rosters = Rosters()
-
-team_names = []
-for team in teams.team_ids:
-    team_names.append(constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display'])
-
-lineups = get_ros_projections(data=data, params=params, teams=teams, rosters=rosters)
-
-all_sim_results = []
-for sim in range(1):
-    sim_results = {  # initialize sim counter
-        o: {
-            'matchup_wins': 0,
-            'tophalf_wins': 0,
-            'total_wins': 0,
-            'total_points': 0,
-            'playoffs': 0,
-            'finals': 0,
-            'champion': 0
-        }
-        for o in team_names
-    }
-    sim_data = simulate_season(params=params, teams=teams, lineups=lineups, team_names=team_names)
-    playoff_teams = get_playoff_teams(params=params, sim_data=sim_data)
-
-    sf_teams = sim_playoff_round(week=15, lineups=lineups, n_bye=2, round_teams=playoff_teams)
-    finals_teams = sim_playoff_round(week=16, lineups=lineups, round_teams=sf_teams)
-    champion = sim_playoff_round(week=17, lineups=lineups, round_teams=finals_teams)
-
-    ## update sim stats
-    for team in team_names:
-        # regular season
-        sim_results[team]['matchup_wins'] += sim_data[team]['matchup_wins']
-        sim_results[team]['tophalf_wins'] += sim_data[team]['tophalf_wins']
-        sim_results[team]['total_wins'] += sim_data[team]['total_wins']
-        sim_results[team]['total_points'] += sim_data[team]['total_points']
-
-        # playoffs
-        if team in playoff_teams:
-            sim_results[team]['playoffs'] += 1
-
-        if team in finals_teams:
-            sim_results[team]['finals'] += 1
-
-        if team in champion:
-            sim_results[team]['champion'] += 1
-
-    all_sim_results.append(sim_results)

@@ -17,12 +17,14 @@ data = DataLoader()
 params = Params(data)
 teams = Teams(data)
 rosters = Rosters()
+players_data = data.players_info()
+replacement_players = simulations.get_replacement_players(data)
 
 team_names = []
 for team in teams.team_ids:
     team_names.append(constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display'])
 
-lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters)
+lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters, replacement_players=replacement_players)
 
 start = time.perf_counter()
 all_sim_results = []

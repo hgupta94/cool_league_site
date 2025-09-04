@@ -2,10 +2,13 @@ from scripts.api.DataLoader import DataLoader
 from scripts.api.Settings import Params
 from scripts.api.Teams import Teams
 from scripts.api.Rosters import Rosters
+from scripts.utils.database import Database
 from scripts.utils import constants
 from scripts.simulations import simulations
 
 import pandas as pd
+
+import time
 
 
 n_sims = 1000
@@ -21,6 +24,7 @@ for team in teams.team_ids:
 
 lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters)
 
+start = time.perf_counter()
 all_sim_results = []
 for sim in range(n_sims):
     sim_results = {  # initialize sim counter
@@ -61,6 +65,8 @@ for sim in range(n_sims):
             sim_results[team]['champion'] += 1
 
     all_sim_results.append(sim_results)
+end = time.perf_counter()
+print(end-start, 'seconds')
 
 team_totals = {  # initialize sim counter
         o: {
@@ -90,5 +96,12 @@ sim_df = pd.DataFrame(team_totals).transpose() / n_sims
 sim_df = sim_df.reset_index().rename(columns={'index': 'team'})
 sim_df['season'] = constants.SEASON
 sim_df['week'] = params.current_week
+sim_df['id'] = sim_df.season.astype(str) + '_' + sim_df.week.astype(str).str.zfill(2) + '_' + sim_df.team
 
-sim_df['id'] = sim_df.week.astype(str).str.zfill(2) + '_' + sim_df.season.astype(str) + '_' + sim_df.team
+season_sim_table = 'season_sim'
+season_sim_cols = constants.SEASON_SIM_COLUMNS
+for idx, row in sim_df.iterrows():
+    sim_vals = (row.id, row.season, row.week, row.team, row.matchup_wins, row.tophalf_wins,
+                row.total_wins, row.total_points, row.playoffs, row.finals, row.champion)
+    db = Database(data=sim_df, table=season_sim_table, columns=season_sim_cols, values=sim_vals)
+    db.commit_row()

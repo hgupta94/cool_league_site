@@ -32,7 +32,7 @@ H2H_COLUMNS = 'id, season, week, team, opponent, result'
 EFFICIENCY_COLUMNS = 'id, season, week, team, actual_lineup_score, actual_lineup_projected, best_projected_lineup_score, best_projected_lineup_projected, optimal_lineup_score, optimal_lineup_projected'
 SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
 WEEK_SIM_COLUMNS = 'id, season, week, matchup_id, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
-SEASON_SIM_COLUMNS = ''
+SEASON_SIM_COLUMNS = 'id, season, week, team, matchup_wins, tophalf_wins, total_wins, total_points, playoffs, finals, champion'
 RECORDS_COLUMNS = 'id, category, record, holder, season, week'
 ALLTIME_STANDINGS_COLUMNS = 'id, team, seasons, playoffs, overall_rec, win_perc, matchup_rec, tophalf_rec, points'
 

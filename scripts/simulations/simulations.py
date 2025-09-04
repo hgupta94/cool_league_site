@@ -1,4 +1,5 @@
 from scripts.api.DataLoader import DataLoader
+from scripts.api.Settings import Params
 from scripts.utils.database import Database
 from scripts.api.Teams import Teams
 from scripts.api.Rosters import Rosters
@@ -8,6 +9,7 @@ from scripts.utils import utils
 import difflib
 import scipy.stats as st
 import random
+import numpy as np
 import pandas as pd
 pd.options.mode.chained_assignment = None
 
@@ -122,6 +124,39 @@ def query_projections_db(season: int,
     return df[['name', 'espn_id', 'projection']]
 
 
+def calculate_best_lineup(team_roster: dict,
+                          rosters: Rosters,
+                          n_flex: int = 1):
+    positions = constants.POSITION_MAP
+    slot_limits = rosters.slot_limits
+    selected = []
+    for player_id, pos in positions.items():
+        # loop thru positions to get best projected lineup
+        # TODO: need to update this to keep players who actually played
+        try:
+            position_limit = slot_limits[player_id]
+            position_player_pool = {k: v for k, v in team_roster.items() if v['position'] == pos}
+            selector = sorted(position_player_pool,
+                              key=lambda x: position_player_pool[x]['projection'],
+                              reverse=True)[0:position_limit]  # highest projected player(s)
+            selected.append(selector)  # remove player from available pool
+        except KeyError:  # position is not used
+            pass
+    selected_flat = utils.flatten_list(selected)
+
+    # get flex player
+    flex_pool = {k: v for k, v in team_roster.items() if k not in selected_flat and v['position_id'] in [2, 4, 6]}
+    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['projection'], reverse=True)[0:n_flex][0]
+
+    # best projected lineup
+    selected_flat.append(flex_selector)
+    lineup = {k: v
+              for k, v
+              in team_roster.items()
+              if k in selected_flat}
+    return lineup
+
+
 def get_best_lineup(week_data: dict,
                     rosters: Rosters,
                     projections: list[dict],
@@ -143,7 +178,6 @@ def get_best_lineup(week_data: dict,
 
     slots = constants.SLOTCODES
     positions = constants.POSITION_MAP
-    slot_limits = rosters.slot_limits
     team_data = [t for t in week_data['teams'] if t['id'] == team_id][0]
     roster = {}
     for plr in team_data['roster']['entries']:
@@ -191,33 +225,8 @@ def get_best_lineup(week_data: dict,
             'actual': actual,
             'projection': projection
         }
-
-    selected = []
-    for player_id, pos in positions.items():
-        # loop thru positions to get best projected lineup
-        # TODO: need to update this to keep players who actually played
-        try:
-            position_limit = slot_limits[player_id]
-            position_player_pool = {k: v for k, v in roster.items() if v['position'] == pos}
-            selector = sorted(position_player_pool,
-                              key=lambda x: position_player_pool[x]['projection'],
-                              reverse=True)[0:position_limit]  # highest projected player(s)
-            selected.append(selector)  # remove player from available pool
-        except KeyError:  # position is not used
-            pass
-    selected_flat = utils.flatten_list(selected)
-
-    # get flex player
-    flex_pool = {k: v for k, v in roster.items() if k not in selected_flat and v['position_id'] in [2, 4, 6]}
-    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['projection'], reverse=True)[0:1][0]
-
-    # best projected lineup
-    selected_flat.append(flex_selector)
-    lineup = {k: v
-              for k, v
-              in roster.items()
-              if k in selected_flat}
-    return lineup
+        return calculate_best_lineup(team_roster=roster,
+                                     rosters=rosters)
 
 
 def simulate_lineup(lineup: dict) -> float:
@@ -360,3 +369,217 @@ def get_matchup_id(teams: Teams,
                       'week'] == week][0]
     matchup_id = int((len(teams.team_ids) / 2) - ((week * len(teams.team_ids) / 2) - tm_matchup['matchup_id']))
     return matchup_id
+
+
+def get_ros_projections(data: DataLoader,
+                        params: Params,
+                        teams: Teams,
+                        rosters: Rosters):
+    """Get rest of season projections from ESPN for all rostered players"""
+    current_week = params.current_week
+
+    projections_dict = {}
+    for week in range(current_week, 17+1):
+        week_data = data.load_week(week)
+        team_dict = {}
+        for team in week_data['teams']:
+            roster_dict = {}
+            for player in team['roster']['entries']:
+                player_id = player['playerId']
+                team_name = constants.TEAM_IDS[teams.teamid_to_primowner[player['playerPoolEntry']['onTeamId']]]['name']['display']
+                player_name = player['playerPoolEntry']['player']['fullName']
+                for pos in player['playerPoolEntry']['player']['eligibleSlots']:
+                    if pos in constants.POSITION_MAP:
+                        position_id = pos
+                        position = constants.POSITION_MAP[pos]
+
+                for stat in player['playerPoolEntry']['player']['stats']:
+                    if stat['seasonId'] == constants.SEASON and stat['statSourceId'] == 1 and stat['scoringPeriodId'] == week:
+                        projection = stat['appliedTotal']
+
+                roster_dict[player_id] = {
+                    'week': week,
+                    'team': team_name,
+                    'player_id': player_id,
+                    'player_name': player_name,
+                    'position_id': position_id,
+                    'position': position,
+                    'projection': projection
+                }
+            team_dict[team_name] = calculate_best_lineup(team_roster=roster_dict, rosters=rosters)
+        projections_dict[week] = team_dict
+    return projections_dict
+
+
+def simulate_season(params: Params,
+                    teams: Teams,
+                    lineups: dict,
+                    team_names: list[str] = None):
+    """Simulate a full regular season"""
+    all_weeks = []
+    for week, team_lineups in lineups.items():
+        if week <= params.regular_season_end:
+            matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
+            matchup_sim = []
+            scores = []
+            for idx, m in enumerate(matchups):
+                team1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
+                lineup1 = team_lineups[team1]
+                sim1 = simulate_lineup(lineup1)
+
+                team2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
+                lineup2 = team_lineups[team2]
+                sim2 = simulate_lineup(lineup2)
+
+                # redo sim if they are somehow tied
+                if sim1 == sim2:
+                    sim1 = simulate_lineup(lineup1)
+                    sim2 = simulate_lineup(lineup2)
+                scores.append(sim1)
+                scores.append(sim2)
+
+                matchup_sim.append({
+                    'team': team1,
+                    'score': sim1,
+                    'matchup_result': 1 if sim1 > sim2 else 0
+                })
+
+                matchup_sim.append({
+                    'team': team2,
+                    'score': sim2,
+                    'matchup_result': 1 if sim2 > sim1 else 0
+                })
+            for team_result in matchup_sim:
+                if team_result['score'] > np.median(scores):
+                    team_result['tophalf_result'] = 1
+                elif team_result['score'] == np.median(scores):
+                    team_result['tophalf_result'] = 0.5
+                else:
+                    team_result['tophalf_result'] = 0
+                team_result['total_wins'] = team_result['matchup_result'] + team_result['tophalf_result']
+            all_weeks.append(matchup_sim)
+
+    season_sim_dict = {}
+    for team in team_names:
+        team_points = 0
+        team_m_wins = 0
+        team_th_wins = 0
+        for week in all_weeks:
+            team_data = [d for d in week if d['team'] == team]
+            team_points += [x for x in team_data if x['team'] == team][0]['score']
+            team_m_wins += [x for x in team_data if x['team'] == team][0]['matchup_result']
+            team_th_wins += [x for x in team_data if x['team'] == team][0]['tophalf_result']
+        season_sim_dict[team] = {
+            'matchup_wins': team_m_wins,
+            'tophalf_wins': team_th_wins,
+            'total_wins': team_m_wins + team_th_wins,
+            'total_points': team_points
+        }
+
+    return season_sim_dict
+
+
+def get_playoff_teams(params: Params,
+                      sim_data: dict):
+    """Calculate playoff teams: top 5 decided by total wins, final seed by most point out of remaining teams"""
+    playoff_teams = []
+
+    # top 5 teams by wins
+    top5 = [t[0] for t in sorted(sim_data.items(), key=lambda x: (x[1]['total_wins'], x[1]['total_points']), reverse=True)][0: params.playoff_teams-1]
+    playoff_teams.extend(top5)
+
+    # sixth seed by most points
+    sixth = [t[0] for t in sorted(sim_data.items(), key=lambda x: (x[1]['total_points']), reverse=True) if t[0] not in top5][0]
+    playoff_teams.extend([sixth])
+
+    return playoff_teams
+
+
+def sim_playoff_round(week: int,
+                      lineups: dict,
+                      n_bye: int = None,
+                      round_teams: list[str] = None):
+    """Simulates one week of playoffs to determine which teams advance
+
+    week: the week to simulate
+    lineups: dictionary of all lineups that week
+    rosters: rosters settings from ESPN API
+    n_bye: number of teams with a BYE this round
+    round_teams: list of teams in the current round
+
+    returns: list of teams advancing to the next round
+    """
+    this_week_all_lineups = {w: l for w, l in lineups.items() if w == week}[week]
+    this_round_lineups = {t: l for t, l in this_week_all_lineups.items() if t in round_teams}
+    next_round_teams = []
+    if n_bye:
+        # add teams on bye to next round
+        next_round_teams.extend(round_teams[0:n_bye])
+
+    # simulate round with remaining teams
+    this_round_teams = [t for t in round_teams if t not in next_round_teams]
+    n_advance = int(len(this_round_teams) / 2)
+    this_round_scores = {}
+    for team, lineup in {k: v for k, v in this_round_lineups.items() if k in this_round_teams}.items():
+        for id, player in lineup.items():
+            # get standard deviation for each player
+            player['sd'] = player['projection'] * (0.2 if player['position'] == 'QB' else player['projection'] * 0.4)
+        this_round_scores[team] = simulate_lineup(lineup=lineup)
+
+    # top scoring teams advance to next round
+    teams_sorted = dict(sorted(this_round_scores.items(), key=lambda item: item[1], reverse=True))
+    next_round_teams.extend(list(teams_sorted.keys())[:n_advance])
+    return next_round_teams
+
+
+data = DataLoader()
+params = Params(data)
+teams = Teams(data)
+rosters = Rosters()
+
+team_names = []
+for team in teams.team_ids:
+    team_names.append(constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display'])
+
+lineups = get_ros_projections(data=data, params=params, teams=teams, rosters=rosters)
+
+all_sim_results = []
+for sim in range(1):
+    sim_results = {  # initialize sim counter
+        o: {
+            'matchup_wins': 0,
+            'tophalf_wins': 0,
+            'total_wins': 0,
+            'total_points': 0,
+            'playoffs': 0,
+            'finals': 0,
+            'champion': 0
+        }
+        for o in team_names
+    }
+    sim_data = simulate_season(params=params, teams=teams, lineups=lineups, team_names=team_names)
+    playoff_teams = get_playoff_teams(params=params, sim_data=sim_data)
+
+    sf_teams = sim_playoff_round(week=15, lineups=lineups, n_bye=2, round_teams=playoff_teams)
+    finals_teams = sim_playoff_round(week=16, lineups=lineups, round_teams=sf_teams)
+    champion = sim_playoff_round(week=17, lineups=lineups, round_teams=finals_teams)
+
+    ## update sim stats
+    for team in team_names:
+        # regular season
+        sim_results[team]['matchup_wins'] += sim_data[team]['matchup_wins']
+        sim_results[team]['tophalf_wins'] += sim_data[team]['tophalf_wins']
+        sim_results[team]['total_wins'] += sim_data[team]['total_wins']
+        sim_results[team]['total_points'] += sim_data[team]['total_points']
+
+        # playoffs
+        if team in playoff_teams:
+            sim_results[team]['playoffs'] += 1
+
+        if team in finals_teams:
+            sim_results[team]['finals'] += 1
+
+        if team in champion:
+            sim_results[team]['champion'] += 1
+
+    all_sim_results.append(sim_results)

@@ -14,12 +14,12 @@ from scripts.efficiency.efficiencies import plot_efficiency
 
 
 # TODO: webpage errors out if past regular season
-season = 2024#constants.SEASON
+season = constants.SEASON
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
 matchups = data.matchups()
-week = 13#params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
+week = params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
 # week_data = data.load_week(week=week)
 # rosters = Rosters()
 

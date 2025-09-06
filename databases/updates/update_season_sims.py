@@ -41,6 +41,17 @@ for sim in range(n_sims):
         }
         for o in team_names
     }
+    # get actual season results
+    results = Database(table='matchups', season=constants.SEASON, week=params.as_of_week).retrieve_data(how='season')
+    if len(results) > 0:
+        results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum()
+        results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
+        for team, row in results.iterrows():
+            sim_results[team]['matchup_wins'] += row.matchup_wins
+            sim_results[team]['tophalf_wins'] += row.tophalf_wins
+            sim_results[team]['total_wins'] += row.matchup_wins + row.tophalf_wins
+            sim_results[team]['total_points'] += row.total_points
+
     sim_data = simulations.simulate_season(params=params, teams=teams, lineups=lineups, team_names=team_names)
     playoff_teams = simulations.get_playoff_teams(params=params, sim_data=sim_data)
 

@@ -4,7 +4,6 @@ from scripts.utils.database import Database
 from scripts.api.Teams import Teams
 from scripts.api.Rosters import Rosters
 from scripts.utils import constants
-from scripts.utils import utils
 
 import difflib
 import scipy.stats as st
@@ -131,13 +130,12 @@ def calculate_best_lineup(team_roster: dict,
     selected = []
     for position_id, position in positions.items():
         # loop thru positions to get best projected lineup
-        # TODO: need to update this to keep players who actually played
         try:
             position_limit = slot_limits[position_id]
             position_played = [p for p in team_roster.items() if p[1]['slot_id'] == position_id and p[1]['played'] == 1]  # take out players who played
             selected.extend([p[0] for p in position_played])
             position_player_pool = {k: v for k, v in team_roster.items() if v['position'] == position and v['played'] == 0}
-            selector = sorted(position_player_pool,
+            selector: list = sorted(position_player_pool,
                               key=lambda x: position_player_pool[x]['projection'],
                               reverse=True)[0:(position_limit-len(position_played))]  # highest projected player(s)
             selected.extend(selector)  # remove player from available pool
@@ -180,6 +178,8 @@ def get_best_lineup(week_data: dict,
     positions = constants.POSITION_MAP
     team_data = [t for t in week_data['teams'] if t['id'] == team_id][0]
     roster = {}
+    position_id = 0
+    position = ''
     for plr in team_data['roster']['entries']:
         # general player data
         player_id = plr['playerId']
@@ -196,8 +196,6 @@ def get_best_lineup(week_data: dict,
                 continue
 
         # get actual and projected scores
-        # TODO: need to know what this looks like when player hasn't played yet
-        # TODO: need to figure out player injuries/bye weeks
         actual = 0
         projection = 0
         played = 0
@@ -383,6 +381,7 @@ def get_replacement_players(data: DataLoader,
 
     # first get all free agents
     free_agents = []
+    position = ''
     for player in players_data['players']:
         if player['onTeamId'] == 0:
             player_id = player['id']
@@ -422,14 +421,17 @@ def get_ros_projections(data: DataLoader,
                         rosters: Rosters,
                         replacement_players: dict[float] = None):
     """Get rest of season projections from ESPN for all rostered players"""
-    current_week = params.current_week
 
     projections_dict = {}
-    for week in range(current_week, 17+1):  # end of playoffs + 1
+    for week in range(params.current_week, 17+1):  # end of playoffs + 1
         week_data = data.load_week(week)
         team_dict = {}
         for team in week_data['teams']:
             roster_dict = {}
+            projection = 0
+            position_id = 0
+            position = ''
+            team_name = ''
             for player in team['roster']['entries']:
                 player_id = player['playerId']
                 team_name = constants.TEAM_IDS[teams.teamid_to_primowner[player['playerPoolEntry']['onTeamId']]]['name']['display']
@@ -440,7 +442,18 @@ def get_ros_projections(data: DataLoader,
                         position = constants.POSITION_MAP[pos]
 
                 for stat in player['playerPoolEntry']['player']['stats']:
-                    if stat['seasonId'] == constants.SEASON and stat['statSourceId'] == 1 and stat['scoringPeriodId'] == week:
+                    # check if correct season, week and statSourceId are present in any of the player's dictionaries
+                    if any(
+                            all(
+                                stat.get(key) == value
+                                for key, value in {
+                                    'seasonId': constants.SEASON,
+                                    'scoringPeriodId': week,
+                                    'statSourceId': 1
+                                }.items()
+                            )
+                            for stat in player['playerPoolEntry']['player']['stats']
+                    ):
                         projection = stat['appliedTotal']
 
                 if projection == 0:

@@ -29,7 +29,6 @@ def home():
 
     headings_pr = tuple(['Team', 'Season', 'Recency', 'Consistency', 'Luck', 'Rank', '1 Week \u0394', 'Score', '1 Week \u0394'])
     data_pr = ut.flask_get_data(pr_table[pr_cols])
-    # TODO: add vertical line to separate inputs from outputs
 
     return render_template(
         "powerrank.html", week=f'Week {week-1}',

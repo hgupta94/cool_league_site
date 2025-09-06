@@ -45,7 +45,6 @@ ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc
     # mean: average score of starters since 2021
     # a: alpha (shape)
     # loc: location
-    # TODO: add replacement scores of bench/unrostered players?
 GAMMA_VALUES = {
     'QB': {
         'mean': 19.5,

@@ -13,7 +13,6 @@ from scripts.simulations import simulations
 from scripts.efficiency.efficiencies import plot_efficiency
 
 
-# TODO: webpage errors out if past regular season
 season = constants.SEASON
 data = DataLoader(season)
 params = Params(data)

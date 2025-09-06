@@ -18,7 +18,6 @@ def _match_player_to_espn(the_player: str,
                           players: list) -> int | None:
     """
     Matches a name to ESPN's database and returns a player ID
-    TODO: should include position too
 
     Args:
         the_player: a player's full name and team abbreviation (ex: Full Name|TM)
@@ -130,30 +129,31 @@ def calculate_best_lineup(team_roster: dict,
     positions = constants.POSITION_MAP
     slot_limits = rosters.slot_limits
     selected = []
-    for player_id, pos in positions.items():
+    for position_id, position in positions.items():
         # loop thru positions to get best projected lineup
         # TODO: need to update this to keep players who actually played
         try:
-            position_limit = slot_limits[player_id]
-            position_player_pool = {k: v for k, v in team_roster.items() if v['position'] == pos}
+            position_limit = slot_limits[position_id]
+            position_played = [p for p in team_roster.items() if p[1]['slot_id'] == position_id and p[1]['played'] == 1]  # take out players who played
+            selected.extend([p[0] for p in position_played])
+            position_player_pool = {k: v for k, v in team_roster.items() if v['position'] == position and v['played'] == 0}
             selector = sorted(position_player_pool,
                               key=lambda x: position_player_pool[x]['projection'],
-                              reverse=True)[0:position_limit]  # highest projected player(s)
-            selected.append(selector)  # remove player from available pool
+                              reverse=True)[0:(position_limit-len(position_played))]  # highest projected player(s)
+            selected.extend(selector)  # remove player from available pool
         except KeyError:  # position is not used
             pass
-    selected_flat = utils.flatten_list(selected)
 
     # get flex player
-    flex_pool = {k: v for k, v in team_roster.items() if k not in selected_flat and v['position_id'] in [2, 4, 6]}
-    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['projection'], reverse=True)[0:n_flex][0]
+    flex_pool = {k: v for k, v in team_roster.items() if k not in selected and v['position_id'] in [2, 4, 6]}
+    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['projection'], reverse=True)[0:n_flex]
 
     # best projected lineup
-    selected_flat.append(flex_selector)
+    selected.extend(flex_selector)
     lineup = {k: v
               for k, v
               in team_roster.items()
-              if k in selected_flat}
+              if k in selected}
     return lineup
 
 
@@ -200,11 +200,12 @@ def get_best_lineup(week_data: dict,
         # TODO: need to figure out player injuries/bye weeks
         actual = 0
         projection = 0
+        played = 0
         for stat in plr['playerPoolEntry']['player']['stats']:
             if stat['scoringPeriodId'] == week:
-                if stat['statSourceId'] == 0:
-                    pass
-                    # actual = stat['appliedTotal']
+                if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == week and stat['statSourceId'] == 0:
+                    actual = stat['appliedTotal']
+                    played = 1
                 try:
                     projection = [
                         {k:v for k,v in d.items()}
@@ -212,7 +213,7 @@ def get_best_lineup(week_data: dict,
                         if d['espn_id'] == player_id
                     ][0]['projection']
                 except IndexError:
-                    # use ESPN projection of player is not found
+                    # use ESPN projection if player is not found
                     if stat['statSourceId'] == 1:
                         projection = stat['appliedTotal']
 
@@ -223,10 +224,11 @@ def get_best_lineup(week_data: dict,
             'position_id': position_id,
             'position': position,
             'actual': actual,
-            'projection': projection
+            'projection': projection,
+            'played': played
         }
-        return calculate_best_lineup(team_roster=roster,
-                                     rosters=rosters)
+    return calculate_best_lineup(team_roster=roster,
+                                 rosters=rosters)
 
 
 def simulate_lineup(lineup: dict) -> float:
@@ -235,13 +237,17 @@ def simulate_lineup(lineup: dict) -> float:
     gamma_map = constants.GAMMA_VALUES  # found by fitting curve to each position using data from 2021-2024
     projected_points = 0.0
     for _, player in lineup.items():
-        gamma_values = gamma_map[player['position']]
-        loc = gamma_values['loc'] + (player['projection'] - gamma_values['mean'])
-        sim = st.gamma.rvs(a=gamma_values['a'], loc=loc, scale=gamma_values['scale'], size=1).item()
-        # TODO: figure out a way to use a player's variance to adjust scale
-        projected_points += sim
-        # print(plr['player_name'], round(sim,2))
-    # print(proj_points-base)
+        if player['played']:
+            # add players who played first
+            sim = player['actual']
+            projected_points += sim
+        else:
+            # add players yet to play
+            gamma_values = gamma_map[player['position']]
+            loc = gamma_values['loc'] + (player['projection'] - gamma_values['mean'])
+            sim = st.gamma.rvs(a=gamma_values['a'], loc=loc, scale=gamma_values['scale'], size=1).item()
+            # TODO: figure out a way to use a player's variance to adjust scale
+            projected_points += sim
     return projected_points
 
 

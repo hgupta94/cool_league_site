@@ -201,7 +201,7 @@ def get_best_lineup(week_data: dict,
         played = 0
         for stat in plr['playerPoolEntry']['player']['stats']:
             if stat['scoringPeriodId'] == week:
-                if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == week and stat['statSourceId'] == 0:
+                if stat['seasonId'] == constants.SEASON and stat['scoringPeriodId'] == week and stat['statSourceId'] == 0:
                     actual = stat['appliedTotal']
                     played = 1
                 try:
@@ -436,6 +436,7 @@ def get_ros_projections(data: DataLoader,
                 player_id = player['playerId']
                 team_name = constants.TEAM_IDS[teams.teamid_to_primowner[player['playerPoolEntry']['onTeamId']]]['name']['display']
                 player_name = player['playerPoolEntry']['player']['fullName']
+                slot_id = player['lineupSlotId']
                 for pos in player['playerPoolEntry']['player']['eligibleSlots']:
                     if pos in constants.POSITION_MAP:
                         position_id = pos
@@ -443,7 +444,7 @@ def get_ros_projections(data: DataLoader,
 
                 for stat in player['playerPoolEntry']['player']['stats']:
                     # check if correct season, week and statSourceId are present in any of the player's dictionaries
-                    if any(
+                    if not any(
                             all(
                                 stat.get(key) == value
                                 for key, value in {
@@ -454,21 +455,24 @@ def get_ros_projections(data: DataLoader,
                             )
                             for stat in player['playerPoolEntry']['player']['stats']
                     ):
-                        projection = stat['appliedTotal']
+                        position_id = -1
+                        player_name = 'Free Agent'
+                        projection = replacement_players[position]
 
-                if projection == 0:
-                    position_id = -1
-                    player_name = 'Free Agent'
-                    projection = replacement_players[position]
+                    else:
+                        if stat['seasonId'] == constants.SEASON and stat['scoringPeriodId'] == week and stat['statSourceId'] == 1:
+                            projection = stat['appliedTotal']
 
                 roster_dict[player_id] = {
                     'week': week,
                     'team': team_name,
                     'player_id': player_id,
                     'player_name': player_name,
+                    'slot_id': slot_id,
                     'position_id': position_id,
                     'position': position,
-                    'projection': projection
+                    'projection': projection,
+                    'played': 0
                 }
             team_dict[team_name] = calculate_best_lineup(team_roster=roster_dict, rosters=rosters)
         projections_dict[week] = team_dict

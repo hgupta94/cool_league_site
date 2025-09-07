@@ -5,13 +5,15 @@ from scripts.api.Rosters import Rosters
 from scripts.utils.database import Database
 from scripts.utils import constants
 from scripts.simulations import simulations
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 import pandas as pd
 
 import time
 
 
-n_sims = 1000
+n_sims = 10_000
 
 data = DataLoader()
 params = Params(data)

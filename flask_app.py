@@ -53,8 +53,7 @@ def sims():
         # headings_w=headings_w, data_w=data_w,
         # headings_r=headings_r, data_r=data_r,
         # headings_p=headings_p, data_p=data_p,
-        # week_bet=week_bet, tstamp=tstamp,
-        # tstamp_ssn=tstamp_ssn
+        tstamp_bets=timestamp_betting, tstamp_s=timestamp_season_sim
     )
 
 @app.route("/scenarios/")

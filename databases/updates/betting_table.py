@@ -16,7 +16,8 @@ import time
 week_sim_table = 'betting_table'
 week_sim_cols = constants.WEEK_SIM_COLUMNS
 day = dt.now().strftime('%a')
-n_sims = constants.N_SIMS
+betting_timestamp = f'Updated: {dt.now().strftime("%A, %b %d %Y")}'
+n_sims = 10
 
 data = DataLoader(year=constants.SEASON)
 params = Params(data)

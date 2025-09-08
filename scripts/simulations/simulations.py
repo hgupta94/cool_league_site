@@ -135,19 +135,26 @@ def calculate_best_lineup(team_roster: dict,
             position_played = [p for p in team_roster.items() if p[1]['slot_id'] == position_id and p[1]['played'] == 1]  # take out players who played
             selected.extend([p[0] for p in position_played])
             position_player_pool = {k: v for k, v in team_roster.items() if v['position'] == position and v['played'] == 0}
-            selector: list = sorted(position_player_pool,
-                              key=lambda x: position_player_pool[x]['projection'],
-                              reverse=True)[0:(position_limit-len(position_played))]  # highest projected player(s)
+            remaining = position_limit-len(position_played)
+            selector: list = sorted(
+                position_player_pool,
+                key=lambda x: position_player_pool[x]['projection'],
+                reverse=True
+            )[0:remaining]  # highest projected player(s)
             selected.extend(selector)  # remove player from available pool
         except KeyError:  # position is not used
             pass
 
     # get flex player
-    flex_pool = {k: v for k, v in team_roster.items() if k not in selected and v['position_id'] in [2, 4, 6]}
-    flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['projection'], reverse=True)[0:n_flex]
+    flex_played = {k: v for k, v in team_roster.items() if v['slot_id'] == 23 and v['played'] == 1}
+    if len(flex_played) > 0:
+        selected.extend(list(flex_played.keys()))
+    else:
+        flex_pool = {k: v for k, v in team_roster.items() if k not in selected and v['position_id'] in [2, 4, 6]}  # RB, WR, TE
+        flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['projection'], reverse=True)[0:n_flex]
+        selected.extend(flex_selector)
 
     # best projected lineup
-    selected.extend(flex_selector)
     lineup = {k: v
               for k, v
               in team_roster.items()
@@ -227,7 +234,7 @@ def get_best_lineup(week_data: dict,
         }
     return calculate_best_lineup(team_roster=roster,
                                  rosters=rosters)
-
+# sum(p['actual'] for p in rost.values())
 
 def simulate_lineup(lineup: dict) -> float:
     """Simulate a team's total score using the best projected lineup"""
@@ -355,12 +362,15 @@ def calculate_odds(init_prob: dict) -> dict:
     """Convert counters from simulation into american odds"""
 
     # init_prob = sim_value / n_sims
-    if init_prob >= 0.5:
-        odds = (-1 * init_prob / (1 - init_prob)) * 100
-        return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
-    else:
-        odds = (1 * (1 - init_prob) / init_prob) * 100
-        return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
+    try:
+        if init_prob >= 0.5:
+            odds = (-1 * init_prob / (1 - init_prob)) * 100
+            return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
+        else:
+            odds = (1 * (1 - init_prob) / init_prob) * 100
+            return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
+    except ZeroDivisionError:
+        return '-'
 
 
 def get_matchup_id(teams: Teams,

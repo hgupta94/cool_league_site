@@ -17,7 +17,7 @@ table.center {
 <h1>{{ week }} Betting Table</h1>
 <div class="tscroll" style="overflow-x:auto;">
     <table class="table table-hover center content-table betting" style="table-layout:auto; width:40%">
-        <caption><i>{{ tstamp }}</i></caption>
+        <caption><i>Updated: {{ tstamp_bets }}</i></caption>
         <thead>
             <tr>
                 {% for header in headings_bets %}
@@ -41,7 +41,7 @@ table.center {
 <h3>Projected Standings</h3>
 <div class="tscroll" style="overflow-x:auto;">
     <table class="table table-hover center content-table" style="table-layout:auto; width:40%">
-{#        <caption><i>{{ tstamp_ssn }}</i></caption>#}
+        <caption><i>Updated: {{ tstamp_s }}</i></caption>
         <thead>
             <tr>
                 {% for header in headings_s %}

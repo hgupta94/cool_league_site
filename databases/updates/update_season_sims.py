@@ -83,6 +83,32 @@ for sim in range(n_sims):
 end = time.perf_counter()
 print(end-start, 'seconds')
 
+# Flatten all_sim_results into a DataFrame
+flattened_results = []
+for sim_index, sim_result in enumerate(all_sim_results):
+    for team, stats in sim_result.items():
+        stats['team'] = team
+        stats['simulation'] = sim_index
+        flattened_results.append(stats)
+
+# Convert to a DataFrame
+all_sim_results_df = pd.DataFrame(flattened_results)
+
+# Optional: Reorder columns for clarity
+columns_order = ['simulation', 'team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
+all_sim_results_df = all_sim_results_df[columns_order]
+# all_sim_results_df['rank'] = all_sim_results_df.groupby('simulation').total_wins.rank(method='dense')
+all_sim_results_df.groupby('simulation').sort_values(['total_wins', 'total_points'])
+rows = []
+for team in team_names:
+    temp = all_sim_results_df[all_sim_results_df.team == team]
+    for wins in range(0, (2*params.regular_season_end)+1):
+        prob = len(temp[temp.total_wins == wins]) / n_sims
+        if prob > 0:
+            rows.append([team, wins, prob])
+wins_prob_df = pd.DataFrame(rows, columns=['team', 'wins', 'p'])
+test = wins_prob_df.pivot(index='team', columns='wins', values='p')
+
 team_totals = {  # initialize sim counter
         o: {
             'matchup_wins': 0,

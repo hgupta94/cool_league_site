@@ -39,7 +39,7 @@ rank_data = pr_data[['team', 'week', 'power_rank', 'power_score_norm']].sort_val
 rank_data = json.dumps(rank_data, indent=2)
 rank_data = {'rank_data': rank_data}
 
-db_betting = Database(table='betting_table', season=season, week=week)
+db_betting = Database(table='betting_table', season=season, week=week+1)
 betting_table = db_betting.retrieve_data(how='week')
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(1).apply(lambda x: f'{x:.2f}')
@@ -47,6 +47,14 @@ betting_table['p_win'] = betting_table.p_win.apply(lambda x: simulations.calcula
 betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: simulations.calculate_odds(init_prob=x))
 betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: simulations.calculate_odds(init_prob=x))
+
+db_season_sim = Database(table='season_sim', season=season, week=week+1)
+season_sim_table = db_season_sim.retrieve_data(how='week')
+keep_cols = ['team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
+season_sim_table[['playoffs', 'finals', 'champion']] = (season_sim_table[['playoffs', 'finals', 'champion']]*100).round(0).astype(int).astype(str) + '%'
+season_sim_table[['matchup_wins', 'tophalf_wins', 'total_points']] = season_sim_table[['matchup_wins', 'tophalf_wins', 'total_points']].round(1)
+season_sim_table['total_points'] = season_sim_table.total_points.apply(lambda x: f'{x:,.1f}')
+season_sim_table = season_sim_table.sort_values('total_points', ascending=False)[keep_cols]
 
 db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')

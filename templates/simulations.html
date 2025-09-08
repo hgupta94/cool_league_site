@@ -37,29 +37,29 @@ table.center {
     </table>
 </div>
 <br>
-{#<h1>Season Simulation Results</h1>#}
-{#<h3>Projected Standings</h3>#}
-{#<div class="tscroll" style="overflow-x:auto;">#}
-{#    <table class="table table-hover center content-table" style="table-layout:auto; width:40%">#}
+<h1>Season Simulation Results</h1>
+<h3>Projected Standings</h3>
+<div class="tscroll" style="overflow-x:auto;">
+    <table class="table table-hover center content-table" style="table-layout:auto; width:40%">
 {#        <caption><i>{{ tstamp_ssn }}</i></caption>#}
-{#        <thead>#}
-{#            <tr>#}
-{#                {% for header in headings_s %}#}
-{#                    <th>{{ header }}</th>#}
-{#                {% endfor %}#}
-{#            </tr>#}
-{#        </thead>#}
-{#        <tbody>#}
-{#        {% for row in data_s %}#}
-{#            <tr>#}
-{#                {% for cell in row %}#}
-{#                    <td>{{ cell }}</td>#}
-{#                {% endfor %}#}
-{#            </tr>#}
-{#        {% endfor %}#}
-{#        </tbody>#}
-{#    </table>#}
-{#</div>#}
+        <thead>
+            <tr>
+                {% for header in headings_s %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in data_s %}
+            <tr>
+                {% for cell in row %}
+                    <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 {#<br>#}
 {#<h3>Playoff Projections</h3>#}
 {#<div class="tscroll" style="overflow-x:auto;">#}

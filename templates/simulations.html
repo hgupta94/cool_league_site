@@ -29,7 +29,7 @@ table.center {
         {% for row in data_bets %}
             <tr>
                 {% for cell in row %}
-                    <td>{{ cell }}</td>
+                    <td>{{ cell|safe }}</td>
                 {% endfor %}
             </tr>
         {% endfor %}
@@ -107,27 +107,27 @@ table.center {
 {#    </table>#}
 {#</div>#}
 {#<br>#}
-{#<h3>Wins Distribution</h3>#}
-{#<p>Percentage of simulations where team finished with <i>n</i> wins</p>#}
-{#<div class="tscroll" style="overflow-x:auto;">#}
-{#    <table class="table table-hover center content-table vert" style="table-layout:auto; width:70%">#}
-{#        <thead>#}
-{#            <tr>#}
-{#                {% for header in headings_w %}#}
-{#                    <th>{{ header }}</th>#}
-{#                {% endfor %}#}
-{#            </tr>#}
-{#        </thead>#}
-{#        <tbody>#}
-{#        {% for row in data_w %}#}
-{#            <tr>#}
-{#                {% for cell in row %}#}
-{#                    <td>{{ cell }}</td>#}
-{#                {% endfor %}#}
-{#            </tr>#}
-{#        {% endfor %}#}
-{#        </tbody>#}
-{#    </table>#}
-{#</div>#}
+<h3>Wins Distribution</h3>
+<p>Percentage of simulations where team finished with <i>n</i> wins</p>
+<div class="tscroll" style="overflow-x:auto;">
+    <table class="table table-hover center content-table vert" style="table-layout:auto; width:70%">
+        <thead>
+            <tr>
+                {% for header in headings_w %}
+                    <th>{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in data_w %}
+            <tr>
+                {% for cell in row %}
+                    <td>{{ cell }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 <br>
 {% endblock %}

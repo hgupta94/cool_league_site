@@ -31,6 +31,7 @@ lineups = simulations.get_ros_projections(data=data, params=params, teams=teams,
 start = time.perf_counter()
 all_sim_results = []
 for sim in range(n_sims):
+    if sim % 500 == 0: print(sim)
     sim_results = {  # initialize sim counter
         o: {
             'matchup_wins': 0,
@@ -93,12 +94,9 @@ for sim_index, sim_result in enumerate(all_sim_results):
 
 # Convert to a DataFrame
 all_sim_results_df = pd.DataFrame(flattened_results)
-
-# Optional: Reorder columns for clarity
 columns_order = ['simulation', 'team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
 all_sim_results_df = all_sim_results_df[columns_order]
-# all_sim_results_df['rank'] = all_sim_results_df.groupby('simulation').total_wins.rank(method='dense')
-all_sim_results_df.groupby('simulation').sort_values(['total_wins', 'total_points'])
+
 rows = []
 for team in team_names:
     temp = all_sim_results_df[all_sim_results_df.team == team]
@@ -107,7 +105,16 @@ for team in team_names:
         if prob > 0:
             rows.append([team, wins, prob])
 wins_prob_df = pd.DataFrame(rows, columns=['team', 'wins', 'p'])
-test = wins_prob_df.pivot(index='team', columns='wins', values='p')
+wins_prob_df['season'] = constants.SEASON
+wins_prob_df['week'] = params.current_week
+wins_prob_df['id'] = wins_prob_df.season.astype(str) + '_' + wins_prob_df.week.astype(str).str.zfill(2) + '_' + wins_prob_df.wins.astype(str).str.zfill(2) + '_' + wins_prob_df.team
+sim_wins_table = 'season_sim_wins'
+sim_wins_cols = 'id, season, week, team, wins, p'
+for idx, row in wins_prob_df.iterrows():
+    sim_vals = (row.id, row.season, row.week, row.team, row.wins, row.p)
+    db = Database(data=wins_prob_df, table=sim_wins_table, columns=sim_wins_cols, values=sim_vals)
+    db.commit_row()
+
 
 team_totals = {  # initialize sim counter
         o: {

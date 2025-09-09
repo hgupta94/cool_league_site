@@ -59,6 +59,13 @@ season_sim_table[['matchup_wins', 'tophalf_wins', 'total_points']] = season_sim_
 season_sim_table['total_points'] = season_sim_table.total_points.apply(lambda x: f'{x:,.1f}')
 season_sim_table = season_sim_table.sort_values('total_points', ascending=False)[keep_cols]
 
+order = season_sim_table.team.tolist()
+db_season_sim_wins = Database(table='season_sim_wins', season=season, week=week+1)
+season_sim_wins_table = db_season_sim_wins.retrieve_data(how='week')
+season_sim_wins_table['p_str'] = round(season_sim_wins_table.p * 100).astype(int).astype(str) + '%'
+season_sim_wins_table = season_sim_wins_table[['team', 'wins', 'p_str']].pivot(index='team', columns='wins', values='p_str').fillna('')
+season_sim_wins_table = season_sim_wins_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
+
 db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')
 total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)

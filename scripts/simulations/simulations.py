@@ -370,7 +370,10 @@ def calculate_odds(init_prob: dict) -> dict:
             odds = (1 * (1 - init_prob) / init_prob) * 100
             return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
     except ZeroDivisionError:
-        return '-'
+        if init_prob == 1:
+            return '&#x2713;'  # check mark if team secured category
+        else:
+            return '-'
 
 
 def get_matchup_id(teams: Teams,

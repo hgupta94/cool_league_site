@@ -46,11 +46,14 @@ def sims():
 
     headings_season_sim = tuple(['Team', 'Matchup', 'THW', 'Total', 'Points', 'Playoff%', 'Finals%', 'Champion%'])
     data_season_sim = ut.flask_get_data(season_sim_table)
+
+    headings_w = tuple(season_sim_wins_table.columns)
+    data_w = ut.flask_get_data(season_sim_wins_table)
     return render_template(
         "simulations.html", week=f'Week {week}',
         headings_bets=headings_bets, data_bets=data_bets,
         headings_s=headings_season_sim, data_s=data_season_sim,
-        # headings_w=headings_w, data_w=data_w,
+        headings_w=headings_w, data_w=data_w,
         # headings_r=headings_r, data_r=data_r,
         # headings_p=headings_p, data_p=data_p,
         tstamp_bets=timestamp_betting, tstamp_s=timestamp_season_sim

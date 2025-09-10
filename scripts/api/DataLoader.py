@@ -65,12 +65,23 @@ class DataLoader:
               f'{int(self.year)}' \
               f'/segments/0/leagues/' \
               f'{int(self.league_id)}'
-        r = requests.get(url + '?view=mMatchup&view=mMatchupScore',
+        filters = {
+            'players': {
+                'limit': 500,
+                'sortDraftRanks': {
+                    'sortPriority': 100,
+                    'sortAsc': True,
+                    'value': 'PPR'
+                }
+            }
+        }
+        headers = {'x-fantasy-filter': json.dumps(filters)}
+        r = requests.get(url + '?view=mMatchup&view=mMatchupScore&view=kona_player_info',
                          params={'scoringPeriodId': week, 'matchupPeriodId': week},
-                         cookies={'SWID': self.swid, 'espn_s2': self.espn_s2})
+                         cookies={'SWID': self.swid, 'espn_s2': self.espn_s2},
+                         headers=headers)
 
         return r.json()
-        # return self._loader(view='mMatchupScore&view=mMatchup&view=mTeam&view=mSettings')
 
     def settings(self):
         return self._loader(view='mSettings')

@@ -13,7 +13,7 @@ import pandas as pd
 import time
 
 
-n_sims = 10_000
+n_sims = 1000
 
 data = DataLoader()
 params = Params(data)
@@ -27,11 +27,14 @@ for team in teams.team_ids:
     team_names.append(constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display'])
 
 lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters, replacement_players=replacement_players)
+results = Database(table='matchups', season=constants.SEASON, week=params.as_of_week).retrieve_data(how='season')
+results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum()
+results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
 
 start = time.perf_counter()
 all_sim_results = []
 for sim in range(n_sims):
-    if sim % 500 == 0: print(sim)
+    if sim % 10 == 0: print(sim)
     sim_results = {  # initialize sim counter
         o: {
             'matchup_wins': 0,
@@ -45,10 +48,7 @@ for sim in range(n_sims):
         for o in team_names
     }
     # get actual season results
-    results = Database(table='matchups', season=constants.SEASON, week=params.as_of_week).retrieve_data(how='season')
     if len(results) > 0:
-        results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum()
-        results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
         for team, row in results.iterrows():
             sim_results[team]['matchup_wins'] += row.matchup_wins
             sim_results[team]['tophalf_wins'] += row.tophalf_wins

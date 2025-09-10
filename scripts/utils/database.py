@@ -53,8 +53,7 @@ class Database:
             query = f'''
                     SELECT *
                     FROM {self.table}
-                    WHERE season = {self.season}
-                        AND week < {self.week};
+                    WHERE season = {self.season};
                     '''
         if how == 'all':
             query = f'''
@@ -74,6 +73,25 @@ class Database:
                     ({', '.join(('%s',) * len(self.columns.split(', ')))});
                 '''
         return query
+
+    def sql_update_table(self, set_column, new_value, id_column, id_value, season, week) -> str:
+        """Generate a SQL query to update a specific value"""
+        if type(id_value) == str:
+            query = f"""
+                UPDATE {self.table}
+                SET {set_column} = {new_value}
+                WHERE {id_column} = '{id_value}' AND season = {season} and week = {week}
+            """
+        else:
+            query = f"""
+                UPDATE {self.table}
+                SET {set_column} = {new_value}
+                WHERE {id_column} = {id_value} AND season = {season} and week = {week}
+            """
+        with self as db:
+            c = db.cursor()
+            c.execute(query, self.values)
+            db.commit()
 
     def commit_row(self) -> None:
         """Commit a row to the specified table"""

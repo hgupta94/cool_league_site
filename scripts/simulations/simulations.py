@@ -226,16 +226,17 @@ def get_best_lineup(week_data: dict,
                     if stat['statSourceId'] == 1:
                         projection = stat['appliedTotal']
 
-        roster[player_id] = {
-            'player_name': player_name,
-            'slot_id': slot_id,
-            'lineup_slot': lineup_slot,
-            'position_id': position_id,
-            'position': position,
-            'actual': actual,
-            'projection': projection,
-            'played': played
-        }
+        if projection > 0:
+            roster[player_id] = {
+                'player_name': player_name,
+                'slot_id': slot_id,
+                'lineup_slot': lineup_slot,
+                'position_id': position_id,
+                'position': position,
+                'actual': actual,
+                'projection': projection,
+                'played': played
+            }
 
     # check if roster is full, if not fill with replacement player
     roster_non_ir = {k: v for k, v in roster.items() if v['slot_id'] != 21}  # can't put IR player in lineup
@@ -515,17 +516,18 @@ def get_ros_projections(data: DataLoader,
                         if stat['seasonId'] == constants.SEASON and stat['scoringPeriodId'] == week and stat['statSourceId'] == 1:
                             projection = stat['appliedTotal']
 
-                roster_dict[player_id] = {
-                    'week': week,
-                    'team': team_name,
-                    'player_id': player_id,
-                    'player_name': player_name,
-                    'slot_id': slot_id,
-                    'position_id': position_id,
-                    'position': position,
-                    'projection': projection,
-                    'played': 0
-                }
+                if projection > 0:
+                    roster_dict[player_id] = {
+                        'week': week,
+                        'team': team_name,
+                        'player_id': player_id,
+                        'player_name': player_name,
+                        'slot_id': slot_id,
+                        'position_id': position_id,
+                        'position': position,
+                        'projection': projection,
+                        'played': 0
+                    }
 
             # check if roster is full, if not fill with replacement player
             roster_non_ir = {k: v for k, v in roster_dict.items() if v['slot_id'] != 21}  # can't put IR player in lineup

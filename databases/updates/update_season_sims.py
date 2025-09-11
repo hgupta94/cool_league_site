@@ -168,3 +168,13 @@ for idx, row in sim_df.iterrows():
                 row.total_wins, row.total_points, row.playoffs, row.finals, row.champion)
     db = Database(data=sim_df, table=season_sim_table, columns=season_sim_cols, values=sim_vals)
     db.commit_row()
+
+# rows = []
+# for wk in lineups.items():
+#     for tm in wk[1].items():
+#         proj = 0
+#         for p in tm[1].items():
+#             proj += p[1]['projection']
+#         rows.append([tm[0], wk[0], round(proj, 2)])
+# df = pd.DataFrame(rows, columns=['team', 'week', 'projected']).sort_values(['team', 'week'])
+# df.groupby('team').projected.mean()

@@ -20,6 +20,7 @@ params = Params(data)
 teams = Teams(data)
 matchups = data.matchups()
 week = params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
+n_teams = len(teams.team_ids)
 # week_data = data.load_week(week=week)
 # rosters = Rosters()
 
@@ -65,6 +66,12 @@ season_sim_wins_table = db_season_sim_wins.retrieve_data(how='week')
 season_sim_wins_table['p_str'] = round(season_sim_wins_table.p * 100).astype(int).astype(str) + '%'
 season_sim_wins_table = season_sim_wins_table[['team', 'wins', 'p_str']].pivot(index='team', columns='wins', values='p_str').fillna('')
 season_sim_wins_table = season_sim_wins_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
+
+db_season_sim_ranks = Database(table='season_sim_ranks', season=season, week=week+1)
+season_sim_ranks_table = db_season_sim_ranks.retrieve_data(how='week')
+season_sim_ranks_table['p_str'] = round(season_sim_ranks_table.p * 100).astype(int).astype(str) + '%'
+season_sim_ranks_table = season_sim_ranks_table[['team', 'ranks', 'p_str']].pivot(index='team', columns='ranks', values='p_str').fillna('')
+season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
 db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')

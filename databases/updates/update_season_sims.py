@@ -97,6 +97,7 @@ all_sim_results_df = pd.DataFrame(flattened_results)
 columns_order = ['simulation', 'team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
 all_sim_results_df = all_sim_results_df[columns_order]
 
+# update wins table
 rows = []
 for team in team_names:
     temp = all_sim_results_df[all_sim_results_df.team == team]
@@ -113,6 +114,20 @@ sim_wins_cols = 'id, season, week, team, wins, p'
 for idx, row in wins_prob_df.iterrows():
     sim_vals = (row.id, row.season, row.week, row.team, row.wins, row.p)
     db = Database(data=wins_prob_df, table=sim_wins_table, columns=sim_wins_cols, values=sim_vals)
+    db.commit_row()
+
+# update ranks table
+all_sim_results_df['ranks'] = all_sim_results_df.assign(_rankby=all_sim_results_df[['total_wins', 'total_points']].apply(tuple, axis=1)).groupby('simulation')._rankby.rank(method='dense', ascending=False).astype(int)
+ranks_prob_df = all_sim_results_df.groupby(['team', 'ranks']).simulation.count().reset_index().rename(columns={'simulation':'p'})
+ranks_prob_df['p'] = ranks_prob_df.p / n_sims
+ranks_prob_df['season'] = constants.SEASON
+ranks_prob_df['week'] = params.current_week
+ranks_prob_df['id'] = ranks_prob_df.season.astype(str) + '_' + ranks_prob_df.week.astype(str).str.zfill(2) + '_' + ranks_prob_df.ranks.astype(str).str.zfill(2) + '_' + ranks_prob_df.team
+sim_ranks_table = 'season_sim_ranks'
+sim_ranks_cols = 'id, season, week, team, ranks, p'
+for idx, row in ranks_prob_df.iterrows():
+    sim_vals = (row.id, row.season, row.week, row.team, row.ranks, row.p)
+    db = Database(data=ranks_prob_df, table=sim_ranks_table, columns=sim_ranks_cols, values=sim_vals)
     db.commit_row()
 
 

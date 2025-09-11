@@ -13,7 +13,7 @@ import pandas as pd
 import time
 
 
-n_sims = 1000
+n_sims = 10_000
 
 data = DataLoader()
 params = Params(data)
@@ -34,7 +34,7 @@ results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
 start = time.perf_counter()
 all_sim_results = []
 for sim in range(n_sims):
-    if sim % 10 == 0: print(sim)
+    if sim % 100 == 0: print(sim)
     sim_results = {  # initialize sim counter
         o: {
             'matchup_wins': 0,

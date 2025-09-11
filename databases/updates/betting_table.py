@@ -30,15 +30,18 @@ if day in ['Sun', 'Mon', 'Wed', 'Thu', 'Fri', 'Sat']:
     projections_df = simulations.get_week_projections(week=params.current_week)
     projections_df.columns = ['name', 'projection', 'position', 'receptions', 'team', 'season', 'week', 'match_on', 'id', 'espn_id']
     projections_dict = projections_df.to_dict(orient='records')
+    replacement_players = simulations.get_replacement_players(data)
 
     start = time.perf_counter()
     sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = simulations.simulate_week(week_data=week_data,
-                                                                                          teams=teams,
-                                                                                          rosters=rosters,
-                                                                                          matchups=matchups,
-                                                                                          projections=projections_dict,
-                                                                                          week=week,
-                                                                                          n_sims=n_sims)
+                                                                                           teams=teams,
+                                                                                           rosters=rosters,
+                                                                                           params=params,
+                                                                                           replacement_players=replacement_players,
+                                                                                           matchups=matchups,
+                                                                                           projections=projections_dict,
+                                                                                           week=week,
+                                                                                           n_sims=n_sims)
     end = time.perf_counter()
 
     for team in teams.team_ids:

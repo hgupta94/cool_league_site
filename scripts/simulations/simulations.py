@@ -164,6 +164,8 @@ def calculate_best_lineup(team_roster: dict,
 
 def get_best_lineup(week_data: dict,
                     rosters: Rosters,
+                    params: Params,
+                    replacement_players: dict[float],
                     projections: list[dict],
                     week: int,
                     team_id: int) -> dict:
@@ -172,10 +174,12 @@ def get_best_lineup(week_data: dict,
 
     Args:
         week_data: ESPN data for the selected week
+        params: league settings from class
         rosters: roster settings from class
         projections: data from Fantasy Pros
-        week: NFL week
+        week: current NFL week
         team_id: team to calculate lineup for
+        replacement_players: average of top free agents if team cannot field a full lineup
 
     Returns:
         dictionary containing the team's best projected players
@@ -232,9 +236,31 @@ def get_best_lineup(week_data: dict,
             'projection': projection,
             'played': played
         }
-    return calculate_best_lineup(team_roster=roster,
-                                 rosters=rosters)
-# sum(p['actual'] for p in rost.values())
+
+    # check if roster is full, if not fill with replacement player
+    roster_non_ir = {k: v for k, v in roster.items() if v['slot_id'] != 21}  # can't put IR player in lineup
+    if len(roster_non_ir) < params.roster_size:
+        for position in ['QB', 'RB', 'WR', 'TE', 'DST']:
+            pos_dict = {k: v for k, v in roster.items() if v['position'] == position}
+            pos_id = [k for k, v in rosters.slotcodes.items() if v == position][0]
+            limit = rosters.slot_limits[pos_id]
+            if len(pos_dict) < limit:
+                needed = limit - len(pos_dict)
+                for i in range(1, needed + 1):
+                    player_id = int(str(-1 * i) + str(pos_id))
+                    roster[player_id] = {
+                        'player_name': 'Free Agent',
+                        'slot_id': pos_id,
+                        'lineup_slot': position,
+                        'position_id': position_id,
+                        'position': position,
+                        'actual': 0,
+                        'projection': replacement_players[position],
+                        'played': 0
+                    }
+
+    return calculate_best_lineup(team_roster=roster, rosters=rosters)
+
 
 def simulate_lineup(lineup: dict) -> float:
     """Simulate a team's total score using the best projected lineup"""
@@ -258,6 +284,8 @@ def simulate_lineup(lineup: dict) -> float:
 
 def simulate_matchup(week_data: DataLoader,
                      rosters: Rosters,
+                     params: Params,
+                     replacement_players: dict[float],
                      week: int,
                      matchups: list[dict],
                      projections: list[dict]) -> list[dict]:
@@ -267,6 +295,8 @@ def simulate_matchup(week_data: DataLoader,
     Args:
         week_data: ESPN data for the selected week
         rosters: roster settings from class
+        params: league settings from class
+        replacement_players: average of top free agents if team cannot field a full lineup
         week: week of matchup to simulate
         matchups: matchups for the selected week
         projections: Fantasy Pros projections for the selected week
@@ -282,6 +312,8 @@ def simulate_matchup(week_data: DataLoader,
         team1 = m['away']['teamId']
         lineup1 = get_best_lineup(week_data=week_data,
                                   rosters=rosters,
+                                  params=params,
+                                  replacement_players=replacement_players,
                                   projections=projections,
                                   week=week,
                                   team_id=team1)
@@ -290,6 +322,8 @@ def simulate_matchup(week_data: DataLoader,
         team2 = m['home']['teamId']
         lineup2 = get_best_lineup(week_data=week_data,
                                   rosters=rosters,
+                                  params=params,
+                                  replacement_players=replacement_players,
                                   projections=projections,
                                   week=week,
                                   team_id=team2)
@@ -320,6 +354,8 @@ def simulate_matchup(week_data: DataLoader,
 def simulate_week(week_data: DataLoader,
                   teams: Teams,
                   rosters: Rosters,
+                  params: Params,
+                  replacement_players: dict[float],
                   matchups: list,
                   projections: list[dict],
                   week: int,
@@ -338,6 +374,8 @@ def simulate_week(week_data: DataLoader,
         random.seed(random.randrange(n_sims))
         matchup_sim = simulate_matchup(week_data=week_data,
                                        rosters=rosters,
+                                       params=params,
+                                       replacement_players=replacement_players,
                                        week=week,
                                        matchups=matchups,
                                        projections=projections)
@@ -389,7 +427,7 @@ def get_matchup_id(teams: Teams,
 
 
 def get_replacement_players(data: DataLoader,
-                            n_top: int = 3):
+                            n: int = 3):
     players_data = data.players_info()
 
     # first get all free agents
@@ -407,7 +445,7 @@ def get_replacement_players(data: DataLoader,
             projection = 0
             for stat in player['player']['stats']:
                 if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
-                    projection += stat['appliedAverage']
+                    projection = stat['appliedAverage']
             try:
                 free_agents.append({
                     'id': player_id,
@@ -422,8 +460,8 @@ def get_replacement_players(data: DataLoader,
     pos_dict = {}
     for position in ['QB', 'RB', 'WR', 'TE', 'DST']:
         pos_fa = [fa for fa in free_agents if fa['position'] == position]
-        top3 = sorted(pos_fa, key=lambda x: x['projection'], reverse=True)[:n_top]
-        pos_dict[position] = sum(p['projection'] for p in top3) / n_top
+        top_n = sorted(pos_fa, key=lambda x: x['projection'], reverse=True)[:n]
+        pos_dict[position] = sum(p['projection'] for p in top_n) / n
 
     return pos_dict
 
@@ -457,6 +495,7 @@ def get_ros_projections(data: DataLoader,
 
                 for stat in player['playerPoolEntry']['player']['stats']:
                     # check if correct season, week and statSourceId are present in any of the player's dictionaries
+                    # if not, get a replacement player
                     if not any(
                             all(
                                 stat.get(key) == value
@@ -487,6 +526,30 @@ def get_ros_projections(data: DataLoader,
                     'projection': projection,
                     'played': 0
                 }
+
+            # check if roster is full, if not fill with replacement player
+            roster_non_ir = {k: v for k, v in roster_dict.items() if v['slot_id'] != 21}  # can't put IR player in lineup
+            if len(roster_non_ir) < params.roster_size:
+                for position in ['QB', 'RB', 'WR', 'TE', 'DST']:
+                    pos_dict = {k: v for k, v in roster_dict.items() if v['position'] == position}
+                    pos_id = [k for k, v in rosters.slotcodes.items() if v == position][0]
+                    limit = rosters.slot_limits[pos_id]
+                    if len(pos_dict) < limit:
+                        needed = limit - len(pos_dict)
+                        for i in range(1, needed+1):
+                            player_id = int(str(-1 * i) + str(pos_id))
+                            roster_dict[player_id] = {
+                                'week': week,
+                                'team': team_name,
+                                'player_id': player_id,
+                                'player_name': 'Free Agent',
+                                'slot_id': pos_id,
+                                'position_id': pos_id,
+                                'position': position,
+                                'projection': replacement_players[position],
+                                'played': 0
+                            }
+
             team_dict[team_name] = calculate_best_lineup(team_roster=roster_dict, rosters=rosters)
         projections_dict[week] = team_dict
     return projections_dict

@@ -625,22 +625,6 @@ def simulate_season(params: Params,
     return season_sim_dict
 
 
-def get_playoff_teams(params: Params,
-                      sim_data: dict):
-    """Calculate playoff teams: top 5 decided by total wins, final seed by most point out of remaining teams"""
-    playoff_teams = []
-
-    # top 5 teams by wins
-    top5 = [t[0] for t in sorted(sim_data.items(), key=lambda x: (x[1]['total_wins'], x[1]['total_points']), reverse=True)][0: params.playoff_teams-1]
-    playoff_teams.extend(top5)
-
-    # sixth seed by most points
-    sixth = [t[0] for t in sorted(sim_data.items(), key=lambda x: (x[1]['total_points']), reverse=True) if t[0] not in top5][0]
-    playoff_teams.extend([sixth])
-
-    return playoff_teams
-
-
 def sim_playoff_round(week: int,
                       lineups: dict,
                       n_bye: int = None,

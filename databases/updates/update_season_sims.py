@@ -37,6 +37,7 @@ for sim in range(n_sims):
     if sim % 100 == 0: print(sim)
     sim_results = {  # initialize sim counter
         o: {
+            'rank': 0,
             'matchup_wins': 0,
             'tophalf_wins': 0,
             'total_wins': 0,
@@ -56,7 +57,13 @@ for sim in range(n_sims):
             sim_results[team]['total_points'] += row.total_points
 
     sim_data = simulations.simulate_season(params=params, teams=teams, lineups=lineups, team_names=team_names)
-    playoff_teams = simulations.get_playoff_teams(params=params, sim_data=sim_data)
+    top_by_wins = sorted(sim_data.items(), key=lambda x: (x[1]['total_wins'], x[1]['total_points']), reverse=True)[:5]
+    bottom_five = {k: v for k, v in sim_data.items() if k not in [t[0] for t in top_by_wins]}
+    next_by_points = sorted(bottom_five.items(), key=lambda x: x[1]['total_points'], reverse=True)[:5]
+    sim_data_standings = dict(top_by_wins + next_by_points)
+    for i, (k, v) in enumerate(sim_data_standings.items()):
+        sim_data_standings[k]['rank'] = i+1
+    playoff_teams = simulations.get_playoff_teams(params=params, sim_data=sim_data_standings)
 
     sf_teams = simulations.sim_playoff_round(week=15, lineups=lineups, n_bye=2, round_teams=playoff_teams)
     finals_teams = simulations.sim_playoff_round(week=16, lineups=lineups, round_teams=sf_teams)
@@ -65,10 +72,11 @@ for sim in range(n_sims):
     ## update sim stats
     for team in team_names:
         # regular season
-        sim_results[team]['matchup_wins'] += sim_data[team]['matchup_wins']
-        sim_results[team]['tophalf_wins'] += sim_data[team]['tophalf_wins']
-        sim_results[team]['total_wins'] += sim_data[team]['total_wins']
-        sim_results[team]['total_points'] += sim_data[team]['total_points']
+        sim_results[team]['rank'] += sim_data_standings[team]['rank']
+        sim_results[team]['matchup_wins'] += sim_data_standings[team]['matchup_wins']
+        sim_results[team]['tophalf_wins'] += sim_data_standings[team]['tophalf_wins']
+        sim_results[team]['total_wins'] += sim_data_standings[team]['total_wins']
+        sim_results[team]['total_points'] += sim_data_standings[team]['total_points']
 
         # playoffs
         if team in playoff_teams:
@@ -93,8 +101,8 @@ for sim_index, sim_result in enumerate(all_sim_results):
         flattened_results.append(stats)
 
 # Convert to a DataFrame
-all_sim_results_df = pd.DataFrame(flattened_results)
-columns_order = ['simulation', 'team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
+all_sim_results_df = pd.DataFrame(flattened_results).sort_values('team')
+columns_order = ['simulation', 'team', 'rank', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
 all_sim_results_df = all_sim_results_df[columns_order]
 
 # update wins table

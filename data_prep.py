@@ -58,7 +58,11 @@ keep_cols = ['team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points
 season_sim_table[['playoffs', 'finals', 'champion']] = (season_sim_table[['playoffs', 'finals', 'champion']]*100).round(0).astype(int).astype(str) + '%'
 season_sim_table[['matchup_wins', 'tophalf_wins', 'total_points']] = season_sim_table[['matchup_wins', 'tophalf_wins', 'total_points']].round(1)
 season_sim_table['total_points'] = season_sim_table.total_points.apply(lambda x: f'{x:,.1f}')
-season_sim_table = season_sim_table.sort_values('total_points', ascending=False)[keep_cols]
+teams_order = season_sim_table.sort_values(['total_wins', 'total_points'], ascending=False).iloc[:5, 3].to_list()
+teams_order.extend(season_sim_table[~season_sim_table.team.isin(teams_order)].sort_values('total_points', ascending=False).iloc[:1, 3].to_list())
+teams_order.extend(season_sim_table[~season_sim_table.team.isin(teams_order)].sort_values(['total_wins', 'total_points'], ascending=False).iloc[:4, 3].to_list())
+season_sim_table = season_sim_table.set_index('team')
+season_sim_table = season_sim_table.reindex(teams_order).reset_index()[keep_cols]
 
 order = season_sim_table.team.tolist()
 db_season_sim_wins = Database(table='season_sim_wins', season=season, week=week+1)

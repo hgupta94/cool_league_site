@@ -40,7 +40,7 @@ table.center {
 <h1>Season Simulation Results</h1>
 <h3>Projected Standings</h3>
 <div class="tscroll" style="overflow-x:auto;">
-    <table class="table table-hover center content-table" style="table-layout:auto; width:40%">
+    <table class="table table-hover center content-table standings" style="table-layout:auto; width:40%">
         <caption><i>Updated: {{ tstamp_s }}</i></caption>
         <thead>
             <tr>
@@ -60,31 +60,8 @@ table.center {
         </tbody>
     </table>
 </div>
-{#<br>#}
-{#<h3>Playoff Projections</h3>#}
-{#<div class="tscroll" style="overflow-x:auto;">#}
-{#    <table class="table table-hover center content-table" style="table-layout:auto; width:50%">#}
-{#        <caption>xPay-Expected payout ($870 for 1st, $430 for 2nd, $170 for 3rd)</caption>#}
-{#        <thead>#}
-{#            <tr>#}
-{#                {% for header in headings_p %}#}
-{#                    <th>{{ header }}</th>#}
-{#                {% endfor %}#}
-{#            </tr>#}
-{#        </thead>#}
-{#        <tbody>#}
-{#        {% for row in data_p %}#}
-{#            <tr>#}
-{#                {% for cell in row %}#}
-{#                    <td>{{ cell }}</td>#}
-{#                {% endfor %}#}
-{#            </tr>#}
-{#        {% endfor %}#}
-{#        </tbody>#}
-{#    </table>#}
-{#</div>#}
-{#<br>#}
-{#<h3>Rank Distribution</h3>#}
+<br>
+<h3>Rank Distribution</h3>
 <p>Percentage of simulations where team finished in <i>nth</i> place</p>
 <div class="tscroll" style="overflow-x:auto;">
     <table class="table table-hover center content-table vert" style="table-layout:auto; width:60%">
@@ -99,7 +76,15 @@ table.center {
         {% for row in data_r %}
             <tr>
                 {% for cell in row %}
-                    <td>{{ cell }}%</td>
+                    <td style="{% if cell is number %}background-color: rgba(255, 0, 0, {{ cell }});{% endif %}">
+                        {% if cell is number and cell > 0 %}
+                            {{ cell|int }}%
+                        {% elif cell == 0 %}
+                            {{ '' }}
+                        {% else %}
+                            {{ cell }}
+                        {% endif %}
+                    </td>
                 {% endfor %}
             </tr>
         {% endfor %}
@@ -122,12 +107,19 @@ table.center {
         {% for row in data_w %}
             <tr>
                 {% for cell in row %}
-                    <td>{{ cell }}%</td>
+                    <td style="{% if cell is number %}background-color: rgba(255, 0, 0, {{ cell }});{% endif %}">
+                        {% if cell is number and cell > 0 %}
+                            {{ cell|int }}%
+                        {% elif cell == 0 %}
+                            {{ '' }}
+                        {% else %}
+                            {{ cell }}
+                        {% endif %}
+                    </td>
                 {% endfor %}
             </tr>
         {% endfor %}
         </tbody>
     </table>
 </div>
-<br>
 {% endblock %}

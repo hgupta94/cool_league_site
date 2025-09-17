@@ -13,7 +13,7 @@ import pandas as pd
 import time
 
 
-n_sims = 10
+n_sims = 1000
 
 data = DataLoader()
 params = Params(data)
@@ -21,15 +21,23 @@ teams = Teams(data)
 rosters = Rosters()
 players_data = data.players_info()
 replacement_players = simulations.get_replacement_players(data)
+lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters, replacement_players=replacement_players)
+
+# get actual standings
+results = Database(table='matchups', season=constants.SEASON).retrieve_data(how='season')
+results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum()
+results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
+
+# get current week sim results
+week_sim = Database(table='betting_table', season=constants.SEASON).retrieve_data(how='season').sort_values('created').tail(params.league_size)
+week_sim = week_sim[['team', 'avg_score', 'p_win', 'p_tophalf']].set_index('team')
+week_sim.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
+to_add = results + week_sim
 
 team_names = []
 for team in teams.team_ids:
     team_names.append(constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display'])
 
-lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters, replacement_players=replacement_players)
-results = Database(table='matchups', season=constants.SEASON, week=params.as_of_week).retrieve_data(how='season')
-results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum()
-results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
 
 start = time.perf_counter()
 all_sim_results = []
@@ -48,9 +56,10 @@ for sim in range(n_sims):
         }
         for o in team_names
     }
-    # get actual season results
+
+    # get actual season and current week sim results
     if len(results) > 0:
-        for team, row in results.iterrows():
+        for team, row in to_add.iterrows():
             sim_results[team]['matchup_wins'] += row.matchup_wins
             sim_results[team]['tophalf_wins'] += row.tophalf_wins
             sim_results[team]['total_wins'] += row.matchup_wins + row.tophalf_wins
@@ -175,13 +184,3 @@ for idx, row in sim_df.iterrows():
                 row.total_wins, row.total_points, row.playoffs, row.finals, row.champion)
     db = Database(data=sim_df, table=season_sim_table, columns=season_sim_cols, values=sim_vals)
     db.commit_row()
-
-# rows = []
-# for wk in lineups.items():
-#     for tm in wk[1].items():
-#         proj = 0
-#         for p in tm[1].items():
-#             proj += p[1]['projection']
-#         rows.append([tm[0], wk[0], round(proj, 2)])
-# df = pd.DataFrame(rows, columns=['team', 'week', 'projected']).sort_values(['team', 'week'])
-# df.groupby('team').projected.mean()

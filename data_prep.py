@@ -18,7 +18,7 @@ season = constants.SEASON
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
-matchups = data.matchups()
+# matchups = data.matchups()
 week = params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
 n_teams = len(teams.team_ids)
 # week_data = data.load_week(week=week)

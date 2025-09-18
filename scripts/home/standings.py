@@ -1,8 +1,9 @@
 import pandas as pd
 
-from scripts.api.Teams import Teams
 from scripts.api.DataLoader import DataLoader
+from scripts.utils.database import Database
 from scripts.api.Settings import Params
+from scripts.api.Teams import Teams
 from scripts.utils import constants
 from scripts.utils import utils
 
@@ -297,19 +298,19 @@ class Standings:
         """
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
+        matchups = Database(table='matchups', season=self.season).retrieve_data(how='season').iloc[:, 0:-1]
+        matchups = matchups.to_dict(orient='records')
 
         for team_id in self.teams.team_ids:
-            results = [self.get_matchup_results(week=wk, team_id=team_id) for wk in range(1, as_of_week+1)]
-                
             # standings data for each team
             display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[team_id]]['name']['display']
-            team_matchups = [m for m in results if m['team'] == display_name]
+            team_matchups = [m for m in matchups if m['team'] == display_name]
 
             m_wins = sum(d['matchup_result'] for d in team_matchups)
             m_losses = as_of_week - m_wins
             m_record = f'{int(m_wins)}-{int(m_losses)}'
 
-            th_wins = sum(d['top_half_result'] for d in team_matchups)
+            th_wins = sum(d['tophalf_result'] for d in team_matchups)
             th_losses = as_of_week - th_wins
             th_record = f'{int(th_wins)}-{int(th_losses)}'
 

@@ -3,6 +3,7 @@ import numpy as np
 import math
 
 from scripts.utils.database import Database
+from scripts.api.Settings import Params
 
 
 def linear_decay(x, r):
@@ -35,7 +36,9 @@ def scale_luck(x, from_min=-1, from_max=1, to_min=0, to_max=1):
     return (x - from_min) * (to_max - to_min) / (from_max - from_min) + to_min
 
 
-def power_rank(season, week):
+def power_rank(params: Params,
+               season: int,
+               week: int):
     """
     Calculates a weekly power ranking and power score for each team
     Factors taken into account:
@@ -44,33 +47,48 @@ def power_rank(season, week):
         2. Consistency Index (20%) - variance of weekly scoring
         3. Luck Index (10%) - difference in matchup wins vs. expected
     """
+    wks_played_factor = week / params.regular_season_end
+    wks_rem_factor = (params.regular_season_end - week) / params.regular_season_end
+
+    # load data from db
     eff = Database(table='efficiency', season=season, week=week).retrieve_data(how='season')
+    h2h = Database(table='h2h', season=season, week=week).retrieve_data(how='season')
+    ss = Database(table='switcher', season=season, week=week).retrieve_data(how='season')
+    season_sim = Database(table='season_sim', season=season, week=week+1).retrieve_data(how='week')
     matchups = Database(table='matchups', season=season, week=week).retrieve_data(how='season')
     matchups['median'] = matchups.groupby('week')['score'].transform('median')
 
     # scoring weights
-    if week-1 == 1:
+    if week == 1:
         ts_idx_wt = 0.45
         ws_idx_wt = 0.45
-        c_idx_wt = 0.0
-        l_idx_wt = 0.1
-        # m_idx_wt = 0.2
+        c_idx_wt  = 0.00
+        l_idx_wt  = 0.05
+        m_idx_wt  = 0.05
     else:
-        ts_idx_wt = 0.4
-        ws_idx_wt = 0.3
-        c_idx_wt = 0.2
-        l_idx_wt = 0.1
-        # m_idx_wt = 0.2
+        ts_idx_wt = 0.40
+        ws_idx_wt = 0.30
+        c_idx_wt  = 0.15
+        m_idx_wt  = 0.10
+        l_idx_wt  = 0.05
 
-    ppg_med = matchups.groupby('team').score.mean().median()
+    sim_ppg_med = (season_sim.total_points.median() / params.regular_season_end) * wks_rem_factor
+    ppg_med = matchups.groupby('team').score.mean().median() * wks_played_factor
+    eff_med = eff.groupby('team').actual_lineup_score.mean().median() / eff.groupby('team').optimal_lineup_score.mean().median()
     wts = exp_decay(week=week, reverse=False)
     pr_dict = {}
-    for t in matchups.team:
-        scores = []
+    c_scores = {}
+    l_scores = {}
+    for t in set(matchups.team):
+        # Season Scoring Index (includes season projections)
         pr_tm = matchups[matchups.team == t]
-        tm_score_index = scoring_index(pr_tm.score.mean(), ppg_med, weight=1)
+        pr_tm_sim = season_sim[season_sim.team == t]
+        tm_ppg = (pr_tm.score.mean() * wks_played_factor) + ((pr_tm_sim.total_points.values[0] / params.regular_season_end) * wks_rem_factor)
+        tm_score_index = scoring_index(tm_ppg, sim_ppg_med + ppg_med, weight=1)
         pr_dict[t] = {'season_idx': tm_score_index.item()}
-        for wk in range(1, week):
+
+        scores = []
+        for wk in range(1, week+1):
             # Weekly Scoring Index
             pr_wk = pr_tm[pr_tm.week == wk]
             wk_med = pr_wk['median'].values[0]
@@ -78,33 +96,47 @@ def power_rank(season, week):
             wk_t_score = pr_wk.score.values[0]
             s_idx = scoring_index(score=wk_t_score, median=wk_med, weight=wk_wt)
             scores.append(s_idx)
-        pr_dict[t].update({'week_idx': sum(scores).item()})
+        pr_dict[t].update({'week_idx': sum(scores)})
+
+        # Luck Index
+        # compare matchup record to schedule switcher
+        tm_m_wp = matchups[matchups.team==t].matchup_result.sum() / week
+        ss_wp = ss[(ss.team==t) & (ss.schedule_of!=t)].result.sum() / ((len(set(matchups.team))-1) * week)
+        tm_m_luck = scale_luck(tm_m_wp - ss_wp)
+
+        # compare tophalf record to h2h data
+        tm_th_wp = matchups[matchups.team==t].tophalf_result.sum() / week
+        th_wp = h2h[h2h.team==t].result.sum() / ((len(set(matchups.team))-1) * week)
+        tm_th_luck = scale_luck(tm_th_wp - th_wp)
+        l_scores[t] = tm_m_luck + tm_th_luck
+        pr_dict[t].update({'luck_idx': (tm_m_luck + tm_th_luck) / 2})
 
         # Consistency Index
         sd = pr_tm.score.std()
         tm_ppg = pr_tm.score.mean()
-        c_idx = float(0) if len(pr_tm) < 2 else consistency_index(sd=sd, ppg=tm_ppg, ppg_median=ppg_med)
-        try:
-            pr_dict[t].update({'consistency_idx': c_idx.item()})
-        except AttributeError:
+        c_idx = 0 if len(pr_tm) < 2 else consistency_index(sd=sd, ppg=tm_ppg, ppg_median=ppg_med)
+        c_scores[t] = c_idx
+
+        # Manager Index
+        tm_eff = eff[eff.team==t]
+        lineup_eff = tm_eff.actual_lineup_score.sum() / tm_eff.optimal_lineup_score.sum()
+        m_idx = scoring_index(score=lineup_eff, median=eff_med, weight=1)
+        pr_dict[t].update({'manager_idx': m_idx})
+
+    for t in set(matchups.team):
+        # get some scores
+        if week > 2:
+            c_idx = scoring_index(score=c_scores[t], median=np.median([c for c in c_scores.values()]), weight=1)
             pr_dict[t].update({'consistency_idx': c_idx})
+        else:
+            pr_dict[t].update({'consistency_idx': 1})
 
-        # Luck Index
-        luck_score = pr_tm.tophalf_result.sum() - pr_tm.matchup_result.sum()
-        pr_dict[t].update({'luck_idx': scale_luck(luck_score, from_min=-week, from_max=week).item()})
-
-        # # Manager Index
-        # cols = eff.select_dtypes(include=['float']).columns.tolist()
-        # df = eff.groupby('team')[cols].sum() / eff.week.max()
-        # df['act_opt_perc'] = df['actual_lineup_score'] / df['optimal_lineup_score']
-        # manager_score = (df.optimal_lineup_score / df.optimal_lineup_score.median()) * (df.act_opt_perc / df.act_opt_perc.median())
-        # pr_dict[t].update({'manager_idx': manager_score.loc[t]})
-
-        total_score = (pr_dict[t]['season_idx'] * ts_idx_wt)\
-                      + (pr_dict[t]['week_idx'] * ws_idx_wt)\
+    for t in set(matchups.team):
+        total_score = (pr_dict[t]['season_idx'] * wks_rem_factor * ts_idx_wt) \
+                      + (pr_dict[t]['week_idx'] * wks_played_factor * ws_idx_wt) \
                       + (pr_dict[t]['consistency_idx'] * c_idx_wt) \
-                      + ((pr_dict[t]['luck_idx'] - 0.5) * l_idx_wt)
-                      # + (pr_dict[t]['manager_idx'] * m_idx_wt)
+                      + (pr_dict[t]['manager_idx'] * m_idx_wt) \
+                      + (pr_dict[t]['luck_idx'] * wks_played_factor * l_idx_wt)
         pr_dict[t].update({'power_score_raw': total_score})
 
     meds = []

@@ -149,12 +149,13 @@ def get_optimal_points(params: Params,
 
 
 def plot_efficiency(season: int,
+                    week: int,
                     x: str,
                     y: str,
                     xlab: str,
                     ylab: str,
                     title: str):
-    eff = Database(table='efficiency', season=season, week=10).retrieve_data(how='season')
+    eff = Database(table='efficiency', season=season, week=week).retrieve_data(how='season')
     cols = eff.select_dtypes(include=['float']).columns.tolist()
     df = eff.groupby('team')[cols].sum() / eff.week.max()
     df['act_opt_perc'] = df[x] / df[y]

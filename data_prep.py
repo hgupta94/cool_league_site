@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime as dt
 
 import pandas as pd
 
@@ -7,8 +7,8 @@ from scripts.api.DataLoader import DataLoader
 from scripts.utils.database import Database
 from scripts.api.Settings import Params
 from scripts.api.Teams import Teams
-from scripts.utils import constants
 from scripts.home.standings import Standings
+from scripts.utils import constants
 import scripts.scenarios.scenarios as scenarios
 from scripts.simulations import simulations
 from scripts.efficiency.efficiencies import plot_efficiency
@@ -18,12 +18,10 @@ season = constants.SEASON
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
-# matchups = data.matchups()
-week = params.regular_season_end+1 if params.as_of_week > params.regular_season_end+1 else params.as_of_week  # just finished previous week
+week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
 n_teams = len(teams.team_ids)
-# week_data = data.load_week(week=week)
-# rosters = Rosters()
 
+# HOME PAGE
 standings = Standings(season=season, week=week)
 standings_df = standings.format_standings()
 clinches = standings.clinching_scenarios()
@@ -35,28 +33,30 @@ pr_data[['power_score_norm', 'score_norm_change']] = round(pr_data[['power_score
 pr_table = pr_data[pr_data.week == week-1]
 pr_table = pr_table.sort_values('power_score_raw', ascending=False)
 pr_table['rank_change'] = -pr_table.rank_change
-pr_table[['total_points', 'weekly_points', 'consistency', 'luck']] = pr_table[['season_idx', 'week_idx', 'consistency_idx', 'luck_idx']].rank(ascending=False, method='min').astype('Int32')
-pr_cols = ['team', 'total_points', 'weekly_points', 'consistency', 'luck', 'power_rank', 'rank_change', 'power_score_norm', 'score_norm_change']
+pr_table[['total_points', 'weekly_points', 'consistency', 'manager', 'luck']] = pr_table[['season_idx', 'week_idx', 'consistency_idx', 'manager_idx', 'luck_idx']].rank(ascending=False, method='min').astype('Int32')
+pr_cols = ['team', 'total_points', 'weekly_points', 'consistency', 'manager', 'luck', 'power_rank', 'rank_change', 'power_score_norm', 'score_norm_change']
 rank_data = pr_data[['team', 'week', 'power_rank', 'power_score_norm']].sort_values(['week', 'power_score_norm'], ascending=[True, False]).to_dict(orient='records')
 rank_data = json.dumps(rank_data, indent=2)
 rank_data = {'rank_data': rank_data}
 
-db_betting = Database(table='betting_table', season=season, week=week+1)
-betting_table = db_betting.retrieve_data(how='week').sort_values('created').tail(10)  # most recent db updates
+
+# SIMULATIONS PAGE
+db_betting = Database(table='betting_table', season=season, week=week)
+betting_table = db_betting.retrieve_data(how='week').sort_values('created').tail(n_teams)  # most recent db updates
 timestamp_betting = pd.to_datetime(betting_table.created.values[0]).strftime("%A, %b %d %Y")
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
-betting_table['avg_score'] = betting_table.avg_score.round(1).apply(lambda x: f'{x:.2f}')
+betting_table['avg_score'] = betting_table.avg_score.round(2).apply(lambda x: f'{x:.2f}')
 betting_table['p_win'] = betting_table.p_win.apply(lambda x: simulations.calculate_odds(init_prob=x))
 betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: simulations.calculate_odds(init_prob=x))
 betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 
-db_season_sim = Database(table='season_sim', season=season, week=week+1)
-season_sim_table = db_season_sim.retrieve_data(how='week')
+db_season_sim = Database(table='season_sim', season=season)
+season_sim_table = db_season_sim.retrieve_data(how='season').sort_values('created').tail(n_teams)
 timestamp_season_sim = pd.to_datetime(season_sim_table.created.values[0]).strftime("%A, %b %d %Y")
 keep_cols = ['team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
 season_sim_table[['playoffs', 'finals', 'champion']] = (season_sim_table[['playoffs', 'finals', 'champion']]*100).round(0).astype(int).astype(str) + '%'
-season_sim_table[['matchup_wins', 'tophalf_wins', 'total_points']] = season_sim_table[['matchup_wins', 'tophalf_wins', 'total_points']].round(1)
+season_sim_table[['matchup_wins', 'tophalf_wins', 'total_wins', 'total_points']] = season_sim_table[['matchup_wins', 'tophalf_wins', 'total_wins', 'total_points']].round(1)
 season_sim_table['total_points'] = season_sim_table.total_points.apply(lambda x: f'{x:,.1f}')
 teams_order = season_sim_table.sort_values(['total_wins', 'total_points'], ascending=False).iloc[:5, 3].to_list()
 teams_order.extend(season_sim_table[~season_sim_table.team.isin(teams_order)].sort_values('total_points', ascending=False).iloc[:1, 3].to_list())
@@ -64,46 +64,56 @@ teams_order.extend(season_sim_table[~season_sim_table.team.isin(teams_order)].so
 season_sim_table = season_sim_table.set_index('team')
 season_sim_table = season_sim_table.reindex(teams_order).reset_index()[keep_cols]
 
+day = dt.now().strftime('%a')
+the_week = params.as_of_week if day == 'Tue' else params.current_week  # Tue/Wed is start of new week, and season_sim runs on Tue
 order = season_sim_table.team.tolist()
-db_season_sim_wins = Database(table='season_sim_wins', season=season, week=week+1)
+db_season_sim_wins = Database(table='season_sim_wins', season=season, week=the_week)
 season_sim_wins_table = db_season_sim_wins.retrieve_data(how='week')
 season_sim_wins_table['p_str'] = round(season_sim_wins_table.p * 100).astype(int)
 season_sim_wins_table = season_sim_wins_table[['team', 'wins', 'p_str']].pivot(index='team', columns='wins', values='p_str').fillna('')
 season_sim_wins_table = season_sim_wins_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
-db_season_sim_ranks = Database(table='season_sim_ranks', season=season, week=week+1)
+db_season_sim_ranks = Database(table='season_sim_ranks', season=season, week=the_week)
 season_sim_ranks_table = db_season_sim_ranks.retrieve_data(how='week')
 season_sim_ranks_table['p_str'] = round(season_sim_ranks_table.p * 100).astype(int)
 season_sim_ranks_table = season_sim_ranks_table[['team', 'ranks', 'p_str']].pivot(index='team', columns='ranks', values='p_str').fillna('')
 season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
+
+# SCENARIOS PAGE
 db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')
 total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)
 wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, teams=teams)
 wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)
 
-db_ss = Database(table='switcher', season=season, week=week)
+db_ss = Database(table='schedule_switcher', season=season, week=week)
 ss_data = db_ss.retrieve_data(how='season')
 ss_disp_temp = scenarios.get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, week=week)
 ss_luck = pd.DataFrame.from_dict(scenarios.calculate_schedule_luck(ss_data), orient='index').reset_index().rename(columns={'index':'team', 0:'Luck'})
 ss_disp = pd.merge(ss_disp_temp, ss_luck, on='team')
 
-eff_plot = plot_efficiency(season=season,
-                           x='actual_lineup_score', y='optimal_lineup_score',
-                           xlab='Difference From Optimal Points per Week',
-                           ylab='Optimal Points per Week',
-                           title='')
 
+# TEAM EFFICIENCY PAGE
+eff_plot = plot_efficiency(season=season, week=week,
+                          x='actual_lineup_score', y='optimal_lineup_score',
+                          xlab='Difference From Optimal Points per Week',
+                          ylab='Optimal Points per Week',
+                          title='')
+
+
+# HISTORY/RECORDS PAGE
 alltime_db = Database(table='alltime_standings')
 alltime_df = alltime_db.retrieve_data(how='all')
 
 records_db = Database(table='records')
 records_df = records_db.retrieve_data(how='all')
 
-# champs = pd.read_csv("//home//hgupta//fantasy-football-league-report//champions.csv")
+
+# HISTORY/CHAMPIONS PAGE
 champs = pd.read_csv(r'C:\Dev\hgupta94\cool_league\champions.csv').sort_values('Season', ascending=False)
-prev_champs = champs[['Season', 'Team', 'Runner Up']].sort_values('Season', ascending=False)
+prev_champs = champs[['Season', 'Team', 'Runner Up']]
+
 
 champ_count = (
     pd.concat(

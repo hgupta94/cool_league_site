@@ -53,8 +53,7 @@ class Database:
             query = f'''
                     SELECT *
                     FROM {self.table}
-                    WHERE season = {self.season}
-                        AND week <= {self.week};
+                    WHERE season = {self.season};
                     '''
         if how == 'all':
             query = f'''

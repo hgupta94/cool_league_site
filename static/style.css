@@ -108,7 +108,10 @@ body {
 
 
 /* add vline to pr table to separate columns */
-.pr td:nth-child(6){
+.pr td:nth-child(7){
+  border-left: 1px solid #dddddd;
+}
+.pr td:nth-child(9){
   border-left: 1px solid #dddddd;
 }
 /* end format power ranks */

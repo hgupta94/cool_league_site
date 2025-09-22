@@ -318,7 +318,10 @@ class Standings:
             ov_losses = m_losses + th_losses
             ov_record = f'{int(ov_wins)}-{int(ov_losses)}'
 
-            win_pct = f'{(ov_wins / (as_of_week*2)):.3f}'
+            try:
+                win_pct = f'{(ov_wins / (as_of_week*2)):.3f}'
+            except ZeroDivisionError:
+                win_pct = '0.000'
             total_points = round(sum(d['score'] for d in team_matchups), 2)
 
             row = [display_name, ov_record, ov_wins, win_pct, m_record, th_record, total_points]

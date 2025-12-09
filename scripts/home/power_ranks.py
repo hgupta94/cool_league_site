@@ -71,6 +71,7 @@ def power_rank(params: Params,
         c_idx_wt  = 0.15
         m_idx_wt  = 0.10
         l_idx_wt  = 0.05
+    consistency_factor = 1 if week >= 5 else week / 5  # increase by 20% each week
 
     sim_ppg_med = (season_sim.total_points.median() / params.regular_season_end) * wks_rem_factor
     ppg_med = matchups.groupby('team').score.mean().median() * wks_played_factor
@@ -115,7 +116,7 @@ def power_rank(params: Params,
         sd = pr_tm.score.std()
         tm_ppg = pr_tm.score.mean()
         c_idx = 0 if len(pr_tm) < 2 else consistency_index(sd=sd, ppg=tm_ppg, ppg_median=ppg_med)
-        c_scores[t] = c_idx
+        c_scores[t] = c_idx * consistency_factor
 
         # Manager Index
         tm_eff = eff[eff.team==t]

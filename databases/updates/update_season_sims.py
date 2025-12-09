@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-n_sims = 1000
+n_sims = 1
 
 data = DataLoader()
 params = Params(data)

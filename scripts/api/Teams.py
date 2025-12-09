@@ -1,3 +1,5 @@
+from os.path import exists
+
 from scripts.api.Settings import Params
 from scripts.utils import utils
 
@@ -42,7 +44,17 @@ class Teams:
                 score1 = m['home']['totalPoints']
                 team2 = m['away']['teamId']
                 score2 = m['away']['totalPoints']
-                game_type = 'REG' if week <= self.params.regular_season_end else 'POST'
+                # game_type = 'REG' if week <= self.params.regular_season_end else 'POST'
+                if week <= self.params.regular_season_end:
+                    game_type = 'REG'
+                else:
+                    if 'playoffTierType' in m:
+                        if m['playoffTierType'] == 'WINNERS_BRACKET':
+                            game_type = 'POST_WINNER'
+                        else:
+                            game_type = 'POST_CONSOL'
+                    else:
+                        game_type = 'POST_BYE'
 
                 temp = {
                     'week': week,

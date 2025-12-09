@@ -16,7 +16,7 @@ import time
 week_sim_table = 'betting_table'
 week_sim_cols = constants.WEEK_SIM_COLUMNS
 day = dt.now().strftime('%a')
-n_sims = 1000
+n_sims = 10
 
 data = DataLoader(year=constants.SEASON)
 rosters = Rosters(year=constants.SEASON)
@@ -25,7 +25,7 @@ teams = Teams(data=data)
 week = params.current_week
 
 week_data = data.load_week(week=week)
-matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
+matchups = [m for m in teams._fetch_matchups() if m['week'] == week]
 projections_df = simulations.get_week_projections(week=params.current_week)
 projections_df.columns = ['name', 'projection', 'position', 'receptions', 'team', 'season', 'week', 'match_on', 'id', 'espn_id']
 projections_dict = projections_df.to_dict(orient='records')
@@ -53,7 +53,7 @@ for team in teams.team_ids:
     p_highest = sim_highest[team] / n_sims
     p_lowest = sim_lowest[team] / n_sims
     week_sim_vals = (db_id, constants.SEASON, week, matchup_id, display_name, avg_score, p_win, p_tophalf, p_highest, p_lowest)
-    # print(week_sim_vals)
+    print(week_sim_vals)
     try:
         db = Database(table=week_sim_table, columns=week_sim_cols, values=week_sim_vals)
         db.sql_insert_query()

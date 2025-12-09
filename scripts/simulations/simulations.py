@@ -310,7 +310,7 @@ def simulate_matchup(week_data: DataLoader,
     for idx, m in enumerate(matchups):
         game_id = idx + 1  # used to group matchups for website
 
-        team1 = m['away']['teamId']
+        team1 = m['team1']
         lineup1 = get_best_lineup(week_data=week_data,
                                   rosters=rosters,
                                   params=params,
@@ -320,7 +320,7 @@ def simulate_matchup(week_data: DataLoader,
                                   team_id=team1)
         sim1 = simulate_lineup(lineup1)
 
-        team2 = m['home']['teamId']
+        team2 = m['team2']
         lineup2 = get_best_lineup(week_data=week_data,
                                   rosters=rosters,
                                   params=params,
@@ -419,12 +419,15 @@ def get_matchup_id(teams: Teams,
                    week: int,
                    display_name: str):
     """Get ESPN matchup ID for a team's matchup to display in UI table"""
-    tm_matchup = [m for m in teams._fetch_matchups() if (
-            constants.TEAM_IDS[teams.teamid_to_primowner[m['team1']]]['name']['display'] == display_name or
-            constants.TEAM_IDS[teams.teamid_to_primowner[m['team2']]]['name']['display'] == display_name) and m[
-                      'week'] == week][0]
-    matchup_id = int((len(teams.team_ids) / 2) - ((week * len(teams.team_ids) / 2) - tm_matchup['matchup_id']))
-    return matchup_id
+    try:
+        tm_matchup = [m for m in teams._fetch_matchups() if (
+                constants.TEAM_IDS[teams.teamid_to_primowner[m['team1']]]['name']['display'] == display_name or
+                constants.TEAM_IDS[teams.teamid_to_primowner[m['team2']]]['name']['display'] == display_name) and m[
+                          'week'] == week][0]
+        matchup_id = int((len(teams.team_ids) / 2) - ((week * len(teams.team_ids) / 2) - tm_matchup['matchup_id']))
+        return matchup_id
+    except IndexError:  # team has no opponent (playoff bye)
+     return 99
 
 
 def get_replacement_players(data: DataLoader,
@@ -440,13 +443,13 @@ def get_replacement_players(data: DataLoader,
             player_name = player['player']['fullName']
             for pos in player['player']['eligibleSlots']:
                 if pos in constants.POSITION_MAP:
-                    position_id = pos
                     position = constants.POSITION_MAP[pos]
 
             projection = 0
-            for stat in player['player']['stats']:
-                if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
-                    projection = stat['appliedAverage']
+            if 'stat' in player['player']:
+                for stat in player['player']['stats']:
+                    if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
+                        projection = stat['appliedAverage']
             try:
                 free_agents.append({
                     'id': player_id,

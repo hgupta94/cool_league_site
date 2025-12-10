@@ -478,7 +478,7 @@ def get_ros_projections(data: DataLoader,
     """Get rest of season projections from ESPN for all rostered players"""
 
     projections_dict = {}
-    for week in range(params.current_week+1, 17+1):  # next week (already simmed current week) to end of playoffs+1
+    for week in range(params.current_week, 17+1):  # next week (already simmed current week) to end of playoffs+1  # TODO: need to figure out current_week+1 vs no +1 between regular season and playoffs
         week_data = data.load_week(week)
         team_dict = {}
         for team in week_data['teams']:

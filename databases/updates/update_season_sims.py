@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-n_sims = 1
+n_sims = 10
 
 data = DataLoader()
 params = Params(data)
@@ -30,10 +30,13 @@ results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby
 results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
 
 # get current week sim results and combine
-week_sim = Database(table='betting_table', season=constants.SEASON).retrieve_data(how='season').sort_values('created').tail(params.league_size)
-week_sim = week_sim[['team', 'avg_score', 'p_win', 'p_tophalf']].set_index('team')
-week_sim.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
-to_add = results + week_sim
+if params.current_week <= params.regular_season_end:
+    week_sim = Database(table='betting_table', season=constants.SEASON).retrieve_data(how='season').sort_values('created').tail(params.league_size)
+    week_sim = week_sim[['team', 'avg_score', 'p_win', 'p_tophalf']].set_index('team')
+    week_sim.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
+    to_add = results + week_sim
+else:
+    to_add = results.copy()
 
 team_names = []
 for team in teams.team_ids:
@@ -69,17 +72,46 @@ for sim in range(n_sims):
     # get playoff standings
     top_by_wins = sorted(sim_data.items(), key=lambda x: (x[1]['total_wins'], x[1]['total_points']), reverse=True)[:params.playoff_teams-1]
     bottom_five = {k: v for k, v in sim_data.items() if k not in [t[0] for t in top_by_wins]}
-    next_by_points = sorted(bottom_five.items(), key=lambda x: x[1]['total_points'], reverse=True)[:1]
-    rest_by_wins = sorted({k: v for k, v in bottom_five.items() if k not in [t[0] for t in next_by_points]}.items(), key=lambda x: (x[1]['total_wins']), reverse=True)
-    sim_data_standings = dict(top_by_wins + next_by_points + rest_by_wins)
+    wild_card = sorted(bottom_five.items(), key=lambda x: x[1]['total_points'], reverse=True)[:1]
+    rest_by_wins = sorted({k: v for k, v in bottom_five.items() if k not in [t[0] for t in wild_card]}.items(), key=lambda x: (x[1]['total_wins']), reverse=True)
+    sim_data_standings = dict(top_by_wins + wild_card + rest_by_wins)
     for i, (k, v) in enumerate(sim_data_standings.items()):
         sim_data_standings[k]['ranks'] = i+1
-    playoff_teams = list({k: v for k, v in sim_data_standings.items() if v['ranks'] <= params.playoff_teams}.keys())
+
+    if params.current_week <= params.regular_season_end:
+        playoff_teams = list({k: v for k, v in sim_data_standings.items() if v['ranks'] <= params.playoff_teams}.keys())
+    else:
+        week_data = data.load_week(week=params.current_week)
+        playoff_matchups = [m for m in week_data['schedule'] if m['playoffTierType'] == 'WINNERS_BRACKET']
+        playoff_teams = []
+        for m in playoff_matchups:
+            playoff_teams.extend([constants.TEAM_IDS[teams.teamid_to_primowner[m.get('home').get('teamId')]]['name']['display']])
+            if 'away' in m:
+                playoff_teams.extend([constants.TEAM_IDS[teams.teamid_to_primowner[m.get('away').get('teamId')]]['name']['display']])
+
 
     # sim playoffs
-    sf_teams = simulations.sim_playoff_round(week=15, lineups=lineups, n_bye=2, round_teams=playoff_teams)
-    finals_teams = simulations.sim_playoff_round(week=16, lineups=lineups, round_teams=sf_teams)
-    champion = simulations.sim_playoff_round(week=17, lineups=lineups, round_teams=finals_teams)
+    start_wk = params.regular_season_end+1 if params.current_week <= params.regular_season_end else params.current_week
+    champ_wk = params.regular_season_end+4
+    playoff_wks_left = champ_wk - start_wk
+    if playoff_wks_left == 3:
+        sf_teams = simulations.sim_playoff_round(week=15, lineups=lineups, n_bye=2, round_teams=playoff_teams)
+        finals_teams = simulations.sim_playoff_round(week=16, lineups=lineups, round_teams=sf_teams)
+        champion = simulations.sim_playoff_round(week=17, lineups=lineups, round_teams=finals_teams)
+    if playoff_wks_left == 2:
+        sf_teams = playoff_teams.copy()
+        finals_teams = simulations.sim_playoff_round(week=16, lineups=lineups, round_teams=sf_teams)
+        champion = simulations.sim_playoff_round(week=17, lineups=lineups, round_teams=finals_teams)
+    if playoff_wks_left == 1:
+        # get semifinal teams
+        week_data = data.load_week(week=params.current_week-1)
+        m_semis = [m for m in week_data['schedule'] if m['matchupPeriodId'] == 16 and m['playoffTierType'] == 'WINNERS_BRACKET']
+        sf_teams = []
+        for m_semi in m_semis:
+            sf_teams.extend([constants.TEAM_IDS[teams.teamid_to_primowner[m_semi.get('home').get('teamId')]]['name']['display']])
+            sf_teams.extend([constants.TEAM_IDS[teams.teamid_to_primowner[m_semi.get('away').get('teamId')]]['name']['display']])
+        finals_teams = playoff_teams.copy()
+        champion = simulations.sim_playoff_round(week=17, lineups=lineups, round_teams=finals_teams)
 
     ## update sim stats
     for team in team_names:

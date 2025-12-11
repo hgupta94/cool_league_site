@@ -630,8 +630,15 @@ def simulate_season(params: Params,
 
 def sim_playoff_round(week: int,
                       lineups: dict,
+                      params: Params,
+                      teams: Teams,
+                      replacement_players: dict[float],
+                      projections: list[dict] = None,
+                      week_data: DataLoader = None,
+                      rosters: Rosters = None,
                       n_bye: int = None,
-                      round_teams: list[str] = None):
+                      round_teams: list[str] = None,
+                      matchups: list[dict] = None):
     """Simulates one week of playoffs to determine which teams advance
 
     week: the week to simulate
@@ -639,6 +646,7 @@ def sim_playoff_round(week: int,
     rosters: rosters settings from ESPN API
     n_bye: number of teams with a BYE this round
     round_teams: list of teams in the current round
+    matchups: if in the playoffs, current week matchups
 
     returns: list of teams advancing to the next round
     """
@@ -652,14 +660,21 @@ def sim_playoff_round(week: int,
     # simulate round with remaining teams
     this_round_teams = [t for t in round_teams if t not in next_round_teams]
     n_advance = int(len(this_round_teams) / 2)
-    this_round_scores = {}
-    for team, lineup in {k: v for k, v in this_round_lineups.items() if k in this_round_teams}.items():
-        for id, player in lineup.items():
-            # get standard deviation for each player
-            player['sd'] = player['projection'] * (0.2 if player['position'] == 'QB' else player['projection'] * 0.4)
-        this_round_scores[team] = simulate_lineup(lineup=lineup)
+    if week_data:
+        # if in the playoffs, simulate current matchup
+        results = simulate_matchup(week=week, week_data=week_data, rosters=rosters, params=params, replacement_players=replacement_players, matchups=matchups, projections=projections)
+        winners = [constants.TEAM_IDS[teams.teamid_to_primowner[r['team']]]['name']['display'] for r in results if r['result']==1]
+        next_round_teams.extend(winners)
+        return next_round_teams
+    else:
+        this_round_scores = {}
+        for team, lineup in {k: v for k, v in this_round_lineups.items() if k in this_round_teams}.items():
+            for id, player in lineup.items():
+                # get standard deviation for each player
+                player['sd'] = player['projection'] * (0.2 if player['position'] == 'QB' else player['projection'] * 0.4)
+            this_round_scores[team] = simulate_lineup(lineup=lineup)
 
-    # top scoring teams advance to next round
-    teams_sorted = dict(sorted(this_round_scores.items(), key=lambda item: item[1], reverse=True))
-    next_round_teams.extend(list(teams_sorted.keys())[:n_advance])
-    return next_round_teams
+        # top scoring teams advance to next round
+        teams_sorted = dict(sorted(this_round_scores.items(), key=lambda item: item[1], reverse=True))
+        next_round_teams.extend(list(teams_sorted.keys())[:n_advance])
+        return next_round_teams

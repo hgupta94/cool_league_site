@@ -53,7 +53,7 @@ def power_rank(params: Params,
     # load data from db
     eff = Database(table='efficiency', season=season, week=week).retrieve_data(how='season')
     h2h = Database(table='h2h', season=season, week=week).retrieve_data(how='season')
-    ss = Database(table='switcher', season=season, week=week).retrieve_data(how='season')
+    ss = Database(table='schedule_switcher', season=season, week=week).retrieve_data(how='season')
     season_sim = Database(table='season_sim', season=season, week=week+1).retrieve_data(how='week')
     matchups = Database(table='matchups', season=season, week=week).retrieve_data(how='season')
     matchups['median'] = matchups.groupby('week')['score'].transform('median')

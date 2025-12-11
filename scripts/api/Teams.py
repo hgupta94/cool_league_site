@@ -33,26 +33,14 @@ class Teams:
         """
         matchups_list = []
         for m in self.matchups['schedule']:
-            if all(name in m.keys() for name in ['home', 'away']):
-                # checks if a matchup has a home and away team
-                # playoff bye weeks do not have both
-                week = m['matchupPeriodId']
-                matchup_id = m['id']
-                team1 = m['home']['teamId']
-                score1 = m['home']['totalPoints']
+            week = m['matchupPeriodId']
+            game_type = 'REG' if week <= self.params.regular_season_end else 'POST'
+            matchup_id = m['id']
+            team1 = m['home']['teamId']
+            score1 = m['home']['totalPoints']
+            if 'away' in m:
                 team2 = m['away']['teamId']
                 score2 = m['away']['totalPoints']
-                # game_type = 'REG' if week <= self.params.regular_season_end else 'POST'
-                if week <= self.params.regular_season_end:
-                    game_type = 'REG'
-                else:
-                    # if 'playoffTierType' in m:
-                    #     if m['playoffTierType'] == 'WINNERS_BRACKET':
-                    #         game_type = 'POST_WINNER'
-                    #     else:
-                    #         game_type = 'POST_CONSOL'
-                    # else:
-                    game_type = 'POST'
 
                 temp = {
                     'week': week,
@@ -63,7 +51,16 @@ class Teams:
                     'score2': score2,
                     'type': game_type
                 }
-                matchups_list.append(temp)
+            else:
+                # team has playoff bye
+                temp = {
+                    'week': week,
+                    'matchup_id': matchup_id,
+                    'team1': team1,
+                    'score1': score1,
+                    'type': game_type
+                }
+            matchups_list.append(temp)
         return matchups_list
 
     def team_schedule(self, team_id: int) -> dict:

@@ -45,8 +45,11 @@ end = time.perf_counter()
 
 for team in teams.team_ids:
     display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
-    db_id = f'{constants.SEASON}_{week:02d}_{display_name}'
-    matchup_id = simulations.get_matchup_id(teams=teams, week=week, display_name=display_name)
+    if day in ['Thu', 'Sun']:  # save out on gameday. TODO check if game is being played today (ie saturday/christmas/weird schedule)
+        db_id = f'{constants.SEASON}_{week:02d}_{display_name}_{day}'
+    else:
+        db_id = f'{constants.SEASON}_{week:02d}_{display_name}'
+    matchup_id = simulations.get_matchup_id(teams=teams, week=week, team_id=team)
     avg_score = sim_scores[team] / n_sims
     p_win = sim_wins[team] / n_sims
     p_tophalf = sim_tophalf[team] / n_sims

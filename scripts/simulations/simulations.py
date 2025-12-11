@@ -320,34 +320,43 @@ def simulate_matchup(week_data: DataLoader,
                                   team_id=team1)
         sim1 = simulate_lineup(lineup1)
 
-        team2 = m['team2']
-        lineup2 = get_best_lineup(week_data=week_data,
-                                  rosters=rosters,
-                                  params=params,
-                                  replacement_players=replacement_players,
-                                  projections=projections,
-                                  week=week,
-                                  team_id=team2)
-        sim2 = simulate_lineup(lineup2)
-
-        # redo sim if they are somehow tied
-        if sim1 == sim2:
-            sim1 = simulate_lineup(lineup1)
+        if 'team2' in m:
+            team2 = m['team2']
+            lineup2 = get_best_lineup(week_data=week_data,
+                                      rosters=rosters,
+                                      params=params,
+                                      replacement_players=replacement_players,
+                                      projections=projections,
+                                      week=week,
+                                      team_id=team2)
             sim2 = simulate_lineup(lineup2)
 
-        matchup_sim.append({
-            'game_id': game_id,
-            'team': team1,
-            'score': sim1,
-            'result': 1 if sim1 > sim2 else 0
-        })
+            # redo sim if they are somehow tied
+            if sim1 == sim2:
+                sim1 = simulate_lineup(lineup1)
+                sim2 = simulate_lineup(lineup2)
 
-        matchup_sim.append({
-            'game_id': game_id,
-            'team': team2,
-            'score': sim2,
-            'result': 1 if sim2 > sim1 else 0
-        })
+            matchup_sim.append({
+                'game_id': game_id,
+                'team': team1,
+                'score': sim1,
+                'result': 1 if sim1 > sim2 else 0
+            })
+
+            matchup_sim.append({
+                'game_id': game_id,
+                'team': team2,
+                'score': sim2,
+                'result': 1 if sim2 > sim1 else 0
+            })
+        else:
+            # team has no opponent (playoff bye)
+            matchup_sim.append({
+                'game_id': game_id,
+                'team': team1,
+                'score': sim1,
+                'result': 1
+            })
 
     return matchup_sim
 
@@ -417,17 +426,17 @@ def calculate_odds(init_prob: dict) -> dict:
 
 def get_matchup_id(teams: Teams,
                    week: int,
-                   display_name: str):
+                   team_id: int):
     """Get ESPN matchup ID for a team's matchup to display in UI table"""
-    try:
-        tm_matchup = [m for m in teams._fetch_matchups() if (
-                constants.TEAM_IDS[teams.teamid_to_primowner[m['team1']]]['name']['display'] == display_name or
-                constants.TEAM_IDS[teams.teamid_to_primowner[m['team2']]]['name']['display'] == display_name) and m[
-                          'week'] == week][0]
-        matchup_id = int((len(teams.team_ids) / 2) - ((week * len(teams.team_ids) / 2) - tm_matchup['matchup_id']))
-        return matchup_id
-    except IndexError:  # team has no opponent (playoff bye)
-     return 99
+    for m in teams._fetch_matchups():
+        if m['week'] == week:
+            if m.get('team1') == team_id or m.get('team2') == team_id:
+                if m.get('team2'):
+                    matchup_id = int((len(teams.team_ids) / 2) - ((week * len(teams.team_ids) / 2) - m['matchup_id']))
+                    return matchup_id
+                else:
+                    # no team2 > team1 has playoff bye
+                    return 99
 
 
 def get_replacement_players(data: DataLoader,

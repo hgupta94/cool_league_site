@@ -45,6 +45,7 @@ else:
         i['id'] for i in
         week_matchups
         if all(name in i.keys() for name in ['home', 'away'])
+           and i['matchupPeriodId'] == params.current_week
     ]
     playoff_matchups = [m for m in teams._fetch_matchups() if m['matchup_id'] in playoff_matchup_ids]
 
@@ -216,25 +217,25 @@ sim_df['week'] = params.current_week
 sim_df['id'] = sim_df.season.astype(str) + '_' + sim_df.week.astype(str).str.zfill(2) + '_' + sim_df.team
 
 # # update db's
-# sim_wins_table = 'season_sim_wins'
-# sim_wins_cols = 'id, season, week, team, wins, p'
-# for idx, row in wins_prob_df.iterrows():
-#     sim_vals = (row.id, row.season, row.week, row.team, row.wins, row.p)
-#     db = Database(data=wins_prob_df, table=sim_wins_table, columns=sim_wins_cols, values=sim_vals)
-#     db.commit_row()
-#
-# sim_ranks_table = 'season_sim_ranks'
-# sim_ranks_cols = 'id, season, week, team, ranks, p'
-# for idx, row in ranks_prob_df.iterrows():
-#     sim_vals = (row.id, row.season, row.week, row.team, row.ranks, row.p)
-#     db = Database(data=ranks_prob_df, table=sim_ranks_table, columns=sim_ranks_cols, values=sim_vals)
-#     db.commit_row()
-#
-# season_sim_table = 'season_sim'
-# season_sim_cols = constants.SEASON_SIM_COLUMNS
-# for idx, row in sim_df.iterrows():
-#     sim_vals = (row.id, row.season, row.week, row.team, row.matchup_wins, row.tophalf_wins,
-#                 row.total_wins, row.total_points, row.playoffs, row.finals, row.champion)
-#     print(sim_vals)
-#     db = Database(data=sim_df, table=season_sim_table, columns=season_sim_cols, values=sim_vals)
-#     db.commit_row()
+season_sim_table = 'season_sim'
+season_sim_cols = constants.SEASON_SIM_COLUMNS
+for idx, row in sim_df.iterrows():
+    sim_vals = (row.id, row.season, row.week, row.team, row.matchup_wins, row.tophalf_wins,
+                row.total_wins, row.total_points, row.playoffs, row.finals, row.champion)
+    db = Database(data=sim_df, table=season_sim_table, columns=season_sim_cols, values=sim_vals)
+    db.commit_row()
+
+if params.current_week <= params.regular_season_end+1:
+    sim_wins_table = 'season_sim_wins'
+    sim_wins_cols = 'id, season, week, team, wins, p'
+    for idx, row in wins_prob_df.iterrows():
+        sim_vals = (row.id, row.season, row.week, row.team, row.wins, row.p)
+        db = Database(data=wins_prob_df, table=sim_wins_table, columns=sim_wins_cols, values=sim_vals)
+        db.commit_row()
+
+    sim_ranks_table = 'season_sim_ranks'
+    sim_ranks_cols = 'id, season, week, team, ranks, p'
+    for idx, row in ranks_prob_df.iterrows():
+        sim_vals = (row.id, row.season, row.week, row.team, row.ranks, row.p)
+        db = Database(data=ranks_prob_df, table=sim_ranks_table, columns=sim_ranks_cols, values=sim_vals)
+        db.commit_row()

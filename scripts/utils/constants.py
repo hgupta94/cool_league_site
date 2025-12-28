@@ -14,7 +14,6 @@ ELIMINATED = 99
 CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
-
 N_SIMS = 100_000
 
 # ESPN API parameters

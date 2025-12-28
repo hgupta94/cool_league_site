@@ -72,20 +72,23 @@ class Teams:
         matchups_list = self._fetch_matchups()
         home_remap = {'team1': 'team',
                       'score1': 'score',
-                      'team2': 'opp',
-                      'score2': 'opp_score'}
+                      'team2': 'opponent',
+                      'score2': 'opponent_score'}
         away_remap = {'team2': 'team',
                       'score2': 'score',
-                      'team1': 'opp',
-                      'score1': 'opp_score'}
+                      'team1': 'opponent',
+                      'score1': 'opponent_score'}
         team_schedule_home = [x for x in matchups_list if x['team1'] == team_id]
         team_schedule_home = [{home_remap.get(k, k): v for k, v in d.items()} for d in team_schedule_home]
-        team_schedule_away = [x for x in matchups_list if x['team2'] == team_id]
+        team_schedule_away = [x for x in matchups_list if 'team2' in x and x['team2'] == team_id]
         team_schedule_away = [{away_remap.get(k, k): v for k, v in d.items()} for d in team_schedule_away]
         team_schedule_home.extend(team_schedule_away)
         team_schedule = sorted(team_schedule_home, key=lambda d: d['week'])
         for d in team_schedule:
-            d['result'] = 1.0 if d['score'] > d['opp_score'] else 0.5 if d['score'] == d['opp_score'] else 0.0
+            if 'opponent_score' in d:
+                d['result'] = 1.0 if d['score'] > d['opponent_score'] else 0.5 if d['score'] == d['opponent_score'] else 0.0
+            else:
+                d['result'] = None
         return team_schedule
 
     def team_scores(self, team_id: int) -> list[float]:

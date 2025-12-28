@@ -272,11 +272,17 @@ class Standings:
 
         matchups = self.teams.team_schedule(team_id)
         matchups_filter = [{k: v for k, v in d.items()} for d in matchups if d.get('week') == week][0]
-        opponent_display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[matchups_filter['opp']]]['name']['display']
+        if matchups_filter.get('opponent'):
+            opponent_display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[matchups_filter['opponent']]]['name']['display']
+        else:
+            opponent_display_name = None
         matchup_result = matchups_filter['result']
         th_result = 1.0 if matchups_filter['score'] > week_median else 0.5 if matchups_filter['score'] == week_median else 0.0
         score = matchups_filter['score']
-        opp_score = matchups_filter['opp_score']
+        if matchups_filter.get('opponent_score'):
+            opp_score = matchups_filter['opponent_score']
+        else:
+            opp_score = None
 
         return {
             'id': db_id,

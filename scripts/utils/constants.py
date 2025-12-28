@@ -9,6 +9,13 @@ DB_PASS = os.getenv('DB_PASS_LOCAL')
 DB_HOST = os.getenv('DB_HOST_LOCAL')
 DB_NAME = os.getenv('DB_NAME_LOCAL')
 
+SSH_USER = os.getenv('DB_USER_SSH')
+SSH_PASS = os.getenv('DB_PASS_SSH')
+PA_PASS = os.getenv('PA_PASS')
+SSH_HOST = os.getenv('DB_HOST_SSH')
+SSH_NAME = os.getenv('DB_NAME_SSH')
+
+
 CLINCHED = -99
 ELIMINATED = 99
 CLINCHED_DISP = 'c'
@@ -79,7 +86,7 @@ GAMMA_VALUES = {
 }
 
 NFL_TEAM_MAP = {
-    # NFL team ID to team abbreviation
+    # ESPN NFL team ID to team abbreviation
     0:  'None',
     1:  'ATL',
     2:  'BUF',
@@ -116,8 +123,8 @@ NFL_TEAM_MAP = {
 }
 
 POSITION_MAP = {
-    # position ID to position name
-    # only for NFL positions
+    # ESPN position ID to position name
+    # only for NFL positions used in fantasy
     0:  'QB',
     2:  'RB',
     4:  'WR',
@@ -127,7 +134,7 @@ POSITION_MAP = {
 }
 
 SLOTCODES = {
-    # position ID to position
+    # ESPN position ID to position
     # all fantasy positions
     0:  'QB',
     1:  'TQB',
@@ -338,6 +345,15 @@ PLAYER_STATS_MAP = {
 }
 
 TEAM_IDS = {
+    # Unique team IDs from ESPN, and owner names. Ex:
+    # 'espn_team_id': {
+    #     'name': {
+    #         'first': ...
+    #         'last': ...
+    #         'display': ...
+    #     }
+    # }
+
     # add new teams here
     '{04E660A8-5B4E-4B6C-AD79-AF6820D2904A}': {
         'name': {

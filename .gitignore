@@ -5,8 +5,11 @@ venv/
 old/
 .idea/
 tests/
+scripts/testing
 **/__pycache__/
 
 .env
 *.txt
 *.pkl
+*.json
+*.csv

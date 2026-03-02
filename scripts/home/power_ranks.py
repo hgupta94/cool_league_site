@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 import math
 
@@ -56,6 +55,7 @@ def power_rank(params: Params,
     ss = Database(table='schedule_switcher', season=season, week=week).retrieve_data(how='season')
     season_sim = Database(table='season_sim', season=season, week=week+1).retrieve_data(how='week')
     matchups = Database(table='matchups', season=season, week=week).retrieve_data(how='season')
+    matchups = matchups[matchups.week <= params.regular_season_end]
     matchups['median'] = matchups.groupby('week')['score'].transform('median')
 
     # scoring weights

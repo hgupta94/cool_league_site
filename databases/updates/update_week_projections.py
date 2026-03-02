@@ -4,19 +4,16 @@ from scripts.simulations.simulations import get_week_projections
 from scripts.utils.database import Database
 from scripts.utils import constants
 
-import pandas as pd
 import mysql.connector.errors
-
-import re
-from datetime import datetime as dt
 
 wk_proj_table = 'player_projections'
 wk_proj_cols = constants.PROJECTIONS_COLUMNS
-data = DataLoader(year=constants.SEASON)
-params = Params(data=data)
+datal = DataLoader(year=constants.SEASON)
+params = Params(data=datal)
 week = params.current_week
+players = DataLoader().players_info()['players']
 
-data = get_week_projections(week=week)
+data = get_week_projections(players=players, week=week)
 data = data[['id', 'season', 'week', 'player', 'espn_id', 'position', 'rec', 'fpts']]
 data.columns = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receptions', 'projection']
 for idx, row in data.iterrows():
@@ -32,16 +29,12 @@ for idx, row in data.iterrows():
 
 
 # get actual scores
-if day == 'Wed':
-    players = data.load_week(week=1)['players']
-    for player in players:
-        # if player['id'] == 3120348:break
-        print(player['player']['fullName'])
-        actual = 0
-        # name = re.sub(r'[^a-zA-Z]', '', player['player']['fullName'])
-        # db_id = f'{name}_{constants.SEASON}_{week-1:02d}'
-        for stat in player['player']['stats']:
-            if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == week-1 and stat['statSourceId'] == 0:
-                actual = stat['appliedTotal']
-        db = Database(table=wk_proj_table)
-        db.sql_update_table(set_column='actual', new_value=actual, id_column='espn_id', id_value=player['id'], season=constants.SEASON, week=week-1)
+# if day == 'Wed':
+players = datal.load_week(week=week)['players']
+for player in players:
+    actual = 0
+    for stat in player['player']['stats']:
+        if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == week and stat['statSourceId'] == 0:
+            actual = stat['appliedTotal']
+    db = Database(table=wk_proj_table)
+    db.sql_update_table(set_column='actual', new_value=actual, id_column='espn_id', id_value=player['id'], season=constants.SEASON, week=week)

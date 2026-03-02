@@ -19,7 +19,7 @@ def _match_player_to_espn(the_player: str,
     Matches a name to ESPN's database and returns a player ID
 
     Args:
-        the_player: a player's full name and team abbreviation (ex: Full Name|TM)
+        the_player: a player's full name, position, and team abbreviation (ex: Full Name|Pos|TM)
         players: list of players to match on from ESPN using same format as the_player
 
     Returns:
@@ -94,7 +94,7 @@ def get_week_projections(week: int) -> pd.DataFrame:
 
     # match player to ESPN
     projections['match_on'] = projections.player + '|' + projections.position + '|' + projections.team
-    projections['id'] = (projections.player.str.replace(r'[^a-zA-Z]', '', regex=True)
+    projections['id'] = (projections.player.str.replace(r'[^a-zA-Z0-9]', '', regex=True)
                          + '_' + projections.season.astype(str)
                          + '_' + projections.week.astype(str).str.zfill(2))
 
@@ -357,7 +357,6 @@ def simulate_matchup(week_data: DataLoader,
                 'score': sim1,
                 'result': 1
             })
-
     return matchup_sim
 
 
@@ -379,8 +378,7 @@ def simulate_week(week_data: DataLoader,
     n_highest = {key: 0 for key in teams.team_ids}
     n_lowest  = {key: 0 for key in teams.team_ids}
     for i, sim in enumerate(range(n_sims)):
-        if i % 1000 == 0:
-            print(f'{i+1}/{n_sims}', end='\r')
+        # if i % 1000 == 0: print(f'{i+1}/{n_sims}', end='\r')
         random.seed(random.randrange(n_sims))
         matchup_sim = simulate_matchup(week_data=week_data,
                                        rosters=rosters,
@@ -410,18 +408,24 @@ def calculate_odds(init_prob: dict) -> dict:
     """Convert counters from simulation into american odds"""
 
     # init_prob = sim_value / n_sims
-    try:
-        if init_prob >= 0.5:
-            odds = (-1 * init_prob / (1 - init_prob)) * 100
-            return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
-        else:
-            odds = (1 * (1 - init_prob) / init_prob) * 100
-            return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
-    except ZeroDivisionError:
-        if init_prob == 1:
-            return '&#x2713;'  # check mark if team secured category
-        else:
-            return '-'
+    # round off very likely and unlikely events, less than 10/100,000
+    if init_prob >= 0.9999:
+        return '&#x2713;'  # check mark
+    elif init_prob <= 0.0001:
+        return '-'
+    else:
+        try:
+            if init_prob >= 0.5:
+                odds = (-1 * init_prob / (1 - init_prob)) * 100
+                return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
+            else:
+                odds = (1 * (1 - init_prob) / init_prob) * 100
+                return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
+        except ZeroDivisionError:  # init_prob = 1 or 0
+            if init_prob == 1:
+                return '&#x2713;'  # check mark
+            else:
+                return '-'
 
 
 def get_matchup_id(teams: Teams,
@@ -459,6 +463,7 @@ def get_replacement_players(data: DataLoader,
                 for stat in player['player']['stats']:
                     if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
                         projection = stat['appliedAverage']
+
             try:
                 free_agents.append({
                     'id': player_id,
@@ -487,7 +492,7 @@ def get_ros_projections(data: DataLoader,
     """Get rest of season projections from ESPN for all rostered players"""
 
     projections_dict = {}
-    for week in range(params.current_week, 17+1):  # next week (already simmed current week) to end of playoffs+1  # TODO: need to figure out current_week+1 vs no +1 between regular season and playoffs
+    for week in range(params.current_week, 17+1):  # next week (already simmed current week) to end of playoffs+1
         week_data = data.load_week(week)
         team_dict = {}
         for team in week_data['teams']:
@@ -637,6 +642,22 @@ def simulate_season(params: Params,
     return season_sim_dict
 
 
+def get_playoff_teams(params: Params,
+                      sim_data: dict):
+    """Calculate playoff teams: top 5 decided by total wins, final seed by most point out of remaining teams"""
+    playoff_teams = []
+
+    # top 5 teams by wins
+    top5 = [t[0] for t in sorted(sim_data.items(), key=lambda x: (x[1]['total_wins'], x[1]['total_points']), reverse=True)][0: params.playoff_teams-1]
+    playoff_teams.extend(top5)
+
+    # sixth seed by most points
+    sixth = [t[0] for t in sorted(sim_data.items(), key=lambda x: (x[1]['total_points']), reverse=True) if t[0] not in top5][0]
+    playoff_teams.extend([sixth])
+
+    return playoff_teams
+
+
 def sim_playoff_round(week: int,
                       lineups: dict,
                       params: Params,
@@ -655,7 +676,6 @@ def sim_playoff_round(week: int,
     rosters: rosters settings from ESPN API
     n_bye: number of teams with a BYE this round
     round_teams: list of teams in the current round
-    matchups: if in the playoffs, current week matchups
 
     returns: list of teams advancing to the next round
     """
@@ -669,6 +689,7 @@ def sim_playoff_round(week: int,
     # simulate round with remaining teams
     this_round_teams = [t for t in round_teams if t not in next_round_teams]
     n_advance = int(len(this_round_teams) / 2)
+
     if week_data:
         # if in the playoffs, simulate current matchup
         results = simulate_matchup(week=week, week_data=week_data, rosters=rosters, params=params, replacement_players=replacement_players, matchups=matchups, projections=projections)

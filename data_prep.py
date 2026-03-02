@@ -18,7 +18,8 @@ season = constants.SEASON
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
-week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
+# week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
+week = 11
 n_teams = len(teams.team_ids)
 
 # HOME PAGE
@@ -41,8 +42,8 @@ rank_data = {'rank_data': rank_data}
 
 
 # SIMULATIONS PAGE
-db_betting = Database(table='betting_table', season=season, week=week)
-betting_table = db_betting.retrieve_data(how='week').sort_values('created').tail(n_teams)  # most recent db updates
+db_betting = Database(table='betting_table', season=season, week=params.current_week)
+betting_table = db_betting.retrieve_data(how='season').sort_values('created').tail(n_teams)  # most recent db updates
 timestamp_betting = pd.to_datetime(betting_table.created.values[0]).strftime("%A, %b %d %Y")
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(2).apply(lambda x: f'{x:.2f}')

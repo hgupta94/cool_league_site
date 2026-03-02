@@ -21,9 +21,9 @@ class DataLoader:
     def _loader(self, view: str):
         # construct url, headers, and parameters
         url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
-              f'{int(self.year)}' \
+              f'{self.year}' \
               f'/segments/0/leagues/' \
-              f'{int(self.league_id)}' \
+              f'{self.league_id}' \
               f'?view={view}'
         headers = None
 

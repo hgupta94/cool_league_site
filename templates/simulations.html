@@ -76,7 +76,7 @@ table.center {
         {% for row in data_r %}
             <tr>
                 {% for cell in row %}
-                    <td style="{% if cell is number %}background-color: rgba(255, 0, 0, {{ cell }});{% endif %}">
+                    <td><!-- style="{% if cell is number %}background-color: rgba(255, 0, 0, {{ cell }});{% endif %}">-->
                         {% if cell is number and cell > 0 %}
                             {{ cell|int }}%
                         {% elif cell == 0 %}
@@ -107,7 +107,7 @@ table.center {
         {% for row in data_w %}
             <tr>
                 {% for cell in row %}
-                    <td style="{% if cell is number %}background-color: rgba(255, 0, 0, {{ cell }});{% endif %}">
+                    <td><!-- style="{% if cell is number %}background-color: rgba(255, 0, 0, {{ cell }});{% endif %}">-->
                         {% if cell is number and cell > 0 %}
                             {{ cell|int }}%
                         {% elif cell == 0 %}

@@ -13,7 +13,7 @@ data = DataLoader(year=constants.SEASON)
 params = Params(data=data)
 # week = params.as_of_week
 
-for week in range(1, params.current_week):
+for week in range(3, params.current_week):
     # get previous week data
     prev_wk = Database(season=constants.SEASON, week=week-1, table='power_ranks').retrieve_data(how='week')
 

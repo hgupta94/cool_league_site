@@ -284,6 +284,7 @@ class Standings:
         else:
             opp_score = None
 
+
         return {
             'id': db_id,
             'season': self.season,
@@ -305,6 +306,7 @@ class Standings:
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
         matchups = Database(table='matchups', season=self.season).retrieve_data(how='season').iloc[:, 0:-1]
+        matchups = matchups[matchups.week <= self.params.regular_season_end]
         matchups = matchups.to_dict(orient='records')
 
         for team_id in self.teams.team_ids:

@@ -10,7 +10,6 @@ from scripts.utils import utils
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from adjustText import adjust_text
 import matplotlib
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 matplotlib.use('Agg')
@@ -92,7 +91,7 @@ def get_optimal_points(params: Params,
                 proj_pts_proj += vals['proj']  # best projected lineup projected points
                 proj_pts_act += vals['points']  # best projected lineup actual points
         to_remove_proj_flat = utils.flatten_list(to_remove_proj)  # flatten list
-    
+
         # get flex player
         flex_pool = {k: v for k, v in roster.items() if k not in to_remove_proj_flat and v['position_id'] in [2, 4, 6]}
         flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['proj'], reverse=True)[0:1][0]
@@ -104,7 +103,7 @@ def get_optimal_points(params: Params,
         to_remove_proj_flat.append(flex_selector)
         lineup_proj = {k: v for k, v in roster.items() if k in to_remove_proj_flat}
 
-    
+
         # get optimal lineup
         opt_pts_proj = 0
         opt_pts_act = 0
@@ -120,7 +119,7 @@ def get_optimal_points(params: Params,
                 opt_pts_act += vals['points']
 
         to_remove_opt_flat = utils.flatten_list(to_remove_opt)  # flatten list
-    
+
         # get flex player
         flex_pool = {k: v for k, v in roster.items() if k not in to_remove_opt_flat and v['position_id'] in [2, 4, 6]}
         flex_selector = sorted(flex_pool, key=lambda x: flex_pool[x]['points'], reverse=True)[0:1][0]
@@ -155,6 +154,8 @@ def plot_efficiency(season: int,
                     xlab: str,
                     ylab: str,
                     title: str):
+    from adjustText import adjust_text
+
     eff = Database(table='efficiency', season=season, week=week).retrieve_data(how='season')
     cols = eff.select_dtypes(include=['float']).columns.tolist()
     df = eff.groupby('team')[cols].sum() / eff.week.max()
@@ -187,13 +188,11 @@ def plot_efficiency(season: int,
     plt.axvline(x=np.median(x), color='grey', linestyle='--', alpha=0.3)
     plt.axhline(y=np.median(y), color='grey', linestyle='--', alpha=0.3)
     adjust_text(texts, autoalign='xy',
-                expand_points=(2, 2))
+                expand_points=(1, 2))
 
     plt.xlabel(xlab)
     plt.ylabel(ylab)
     plt.setp(ax.spines.values(), color='lightgrey')
-    # plt.figtext(0.99, 0.5, "Right Margin Text", va="center", rotation="vertical", ha="right")
-    # plt.savefig('www/plots/efficiency_plot.png')
 
     # Convert plot to PNG image
     png_img = io.BytesIO()

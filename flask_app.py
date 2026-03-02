@@ -4,7 +4,6 @@ from flask_fontawesome import FontAwesome
 import scripts.utils.utils as ut
 from data_prep import *
 from scripts.utils.constants import STANDINGS_COLUMNS_FLASK, RECORDS_COLUMNS_FLASK, ALLTIME_COLUMNS_FLASK
-from sklearn.preprocessing import MinMaxScaler
 
 
 # create flask app
@@ -17,7 +16,7 @@ fa = FontAwesome(app)
 
 @app.route("/")
 def home():
-    headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'THW', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
+    headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'TopHalf', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
     data_st = ut.flask_get_data(standings_df[STANDINGS_COLUMNS_FLASK])
 
     cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if week == params.regular_season_end else 'Clinch Over']
@@ -32,7 +31,7 @@ def home():
     data_pr = ut.flask_get_data(pr_table[pr_cols])
 
     return render_template(
-        "powerrank.html", week=f'Week {week}',
+        "powerrank.html", week=f'Week {week-1}',
         headings_st=headings_st, data_st=data_st,
         headings_cl=headings_cl, data_cl=data_cl,
         headings_el=headings_el, data_el=data_el,
@@ -42,38 +41,39 @@ def home():
 
 @app.route("/simulations/")
 def sims():
-    headings_bets = tuple(['ID', 'Team', 'Points', 'Matchup', 'THW', 'Highest', 'Lowest'])
-    data_bets = ut.flask_get_data(betting_table[['matchup_id', 'team', 'avg_score', 'p_win', 'p_tophalf', 'p_highest', 'p_lowest']])
+    headings_bets = tuple(['Team', 'Points', 'Matchup', 'TopHalf', 'Highest', 'Lowest'])
+    data_bets = ut.flask_get_data(betting_table[['team', 'avg_score', 'p_win', 'p_tophalf', 'p_highest', 'p_lowest']])
 
-    headings_season_sim = tuple(['Team', 'Matchup', 'THW', 'Total', 'Points', 'Playoff%', 'Finals%', 'Champion%'])
+    headings_season_sim = tuple(['Team', 'Matchup', 'TopHalf', 'Total', 'Points', 'Playoff%', 'Finals%', 'Champion%'])
     data_season_sim = ut.flask_get_data(season_sim_table)
 
     headings_w = tuple(season_sim_wins_table.columns)
     data_w = ut.flask_get_data(season_sim_wins_table)
-    team_df = season_sim_wins_table[['Team']]
-    wins_df = season_sim_wins_table.iloc[:, 1:]
-    wins_df.columns = wins_df.columns.astype(str)
-    scaler = MinMaxScaler()
-    normalized_df = pd.DataFrame(scaler.fit_transform(wins_df), columns=wins_df.columns)
-    win_colors_df = pd.merge(team_df, normalized_df, left_index=True, right_index=True)
-    colors_w = ut.flask_get_data(win_colors_df)
+    # team_df = season_sim_wins_table[['Team']]
+    # wins_df = season_sim_wins_table.iloc[:, 1:]
+    # wins_df.columns = wins_df.columns.astype(str)
+    # scaler = MinMaxScaler()
+    # normalized_df = pd.DataFrame(scaler.fit_transform(wins_df), columns=wins_df.columns)
+    # win_colors_df = pd.merge(team_df, normalized_df, left_index=True, right_index=True)
+    # colors_w = ut.flask_get_data(win_colors_df)
 
     headings_r = tuple(season_sim_ranks_table.columns)
     data_r = ut.flask_get_data(season_sim_ranks_table)
-    team_df = season_sim_ranks_table[['Team']]
-    ranks_df = season_sim_ranks_table.iloc[:, 1:]
-    ranks_df.columns = ranks_df.columns.astype(str)
-    scaler = MinMaxScaler()
-    normalized_df = pd.DataFrame(scaler.fit_transform(ranks_df), columns=ranks_df.columns)
-    rank_colors_df = pd.merge(team_df, normalized_df, left_index=True, right_index=True)
-    colors_r = ut.flask_get_data(rank_colors_df)
+    # team_df = season_sim_ranks_table[['Team']]
+    # ranks_df = season_sim_ranks_table.iloc[:, 1:]
+    # ranks_df.columns = ranks_df.columns.astype(str)
+    # scaler = MinMaxScaler()
+    # normalized_df = pd.DataFrame(scaler.fit_transform(ranks_df), columns=ranks_df.columns)
+    # rank_colors_df = pd.merge(team_df, normalized_df, left_index=True, right_index=True)
+    # colors_r = ut.flask_get_data(rank_colors_df)
+
     return render_template(
         "simulations.html", week=f'Week {week}',
         headings_bets=headings_bets, data_bets=data_bets,
         headings_s=headings_season_sim, data_s=data_season_sim,
         headings_w=headings_w, data_w=data_w,
         headings_r=headings_r, data_r=data_r,
-        colors_r=colors_r, colors_w=colors_w,
+        # headings_p=headings_p, data_p=data_p,
         tstamp_bets=timestamp_betting, tstamp_s=timestamp_season_sim
     )
 
@@ -137,6 +137,7 @@ def records():
 
     headings_rec = tuple(['Category', 'Record', 'Holder', 'Season', 'Week'])
     data_rec = ut.flask_get_data(records_df[RECORDS_COLUMNS_FLASK])
+
     return render_template("records.html",
                            headings_alltime=headings_alltime, data_alltime=data_alltime,
                            headings_rec=headings_rec, data_rec=data_rec)

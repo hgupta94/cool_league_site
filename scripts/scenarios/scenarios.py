@@ -120,10 +120,6 @@ def schedule_switcher(teams: Teams,
             else:
                 result = tm_sched['result']
 
-            # print('Schedule of', sched_of_disp)
-            # print('Switch with', t_switch_disp, score)
-            # print('New opp', const.TEAM_IDS[teams.teamid_to_primowner[new_opp_tm]]['name']['display'], new_opp_score)
-            # print('Result:', result, end='\n\n')
             tm_id = f'{season}_{str(week).zfill(2)}_{team_switch_display}_{schedule_of_display}'
             row = [tm_id, season, week, team_switch_display, schedule_of_display, result]
             df.loc[len(df)] = row

@@ -76,7 +76,7 @@ class Database:
 
     def sql_update_table(self, set_column, new_value, id_column, id_value, season, week) -> str:
         """Generate a SQL query to update a specific value"""
-        if type(id_value) == str:
+        if type(id_value) == str:  # need to add quotes around value
             query = f"""
                 UPDATE {self.table}
                 SET {set_column} = {new_value}
@@ -103,7 +103,7 @@ class Database:
 
     def commit_data(self) -> None:
         """Commit data to the database"""
-        with self.connection:
+        with self:
             if isinstance(self.data, dict):
                 for _, _ in self.data.items():
                     self.commit_row()

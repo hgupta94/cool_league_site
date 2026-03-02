@@ -102,6 +102,7 @@ body {
 }
 
 .standings tr:nth-child(6){
+  border-top: 2px dashed #909090;
   border-bottom: 2px solid #909090;
 }
 /* end format standings */

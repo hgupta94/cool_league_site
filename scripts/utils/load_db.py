@@ -6,7 +6,7 @@ from scripts.api.Teams import Teams
 from scripts.api.Rosters import Rosters
 from scripts.utils.database import Database
 from scripts.utils import constants
-
+print(constants.DB_USER, constants.DB_HOST, constants.DB_NAME)
 
 ##### MATCHUPS
 from scripts.home.standings import Standings
@@ -32,14 +32,14 @@ import pandas as pd
 
 pr_table = 'power_ranks'
 pr_cols = constants.POWER_RANK_COLUMNS
-for season in range(2023, 2025):
-    data = DataLoader(year=season)
+for s in range(2018, 2024):
+    data = DataLoader(year=s)
     params = Params(data=data)
     df_final = pd.DataFrame()
-    for week in range(2, params.regular_season_end+1):
-        df = pd.DataFrame(power_rank(season, week)).transpose()
-        df['season'] = season
-        df['week'] = week
+    for wk in range(1, params.regular_season_end+1):
+        df = pd.DataFrame(power_rank(s, wk)).transpose()
+        df['season'] = s
+        df['week'] = wk
         df = df.reset_index().rename(columns={'index': 'team'})
         df['id'] = df['season'].astype(str) + '_' + df['week'].astype(str) + '_' + df['team']
         df['power_rank'] = df.power_score_norm.rank(ascending=False)
@@ -114,14 +114,14 @@ plot = plot_efficiency(database=Database(), season=2023, week=10)
 ##### Projections
 from scripts.api.Rosters import Rosters
 from scripts.api.Teams import Teams
-from scripts.simulations import simulations
+from scripts.simulations import week_sim as ws
 from datetime import datetime as dt
 import time
 proj_table = 'player_projections'
 proj_cols = constants.PROJECTIONS_COLUMNS
 for w in range(3, 19):
     print(w)
-    projections = simulations.get_week_projections(w)
+    projections = ws.get_week_projections(w)
     for idx, row in projections.iterrows():
         vals = (row.id, row.season, row.week, row.player, row.espn_id, row.position, row.rec, row.fpts)
         db = Database(data=projections, table=proj_table, columns=proj_cols, values=vals)
@@ -146,23 +146,23 @@ for week in range(3,15):
         teams = Teams(data=data)
         week_data = data.load_week(week=week)
         matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
-        projections = simulations.get_week_projections(week)
+        projections = ws.get_week_projections(week)
         projections = projections.to_dict(orient='records')
 
         start = time.perf_counter()
-        sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = simulations.simulate_week(week_data=week_data,
-                                                                                               teams=teams,
-                                                                                               rosters=rosters,
-                                                                                               matchups=matchups,
-                                                                                               projections=projections,
-                                                                                               week=week,
-                                                                                               n_sims=n_sims)
+        sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = ws.simulate_week(week_data=week_data,
+                                                                                      teams=teams,
+                                                                                      rosters=rosters,
+                                                                                      matchups=matchups,
+                                                                                      projections=projections,
+                                                                                      week=week,
+                                                                                      n_sims=n_sims)
         end = time.perf_counter()
 
         for team in teams.team_ids:
             display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
             db_id = f'{season}_{str(week).zfill(2)}_{display_name}_{day}'
-            matchup_id = simulations.get_matchup_id(teams=teams, week=week, display_name=display_name)
+            matchup_id = ws.get_matchup_id(teams=teams, week=week, display_name=display_name)
             avg_score = sim_scores[team] / n_sims
             p_win = sim_wins[team] / n_sims
             p_tophalf = sim_tophalf[team] / n_sims
@@ -179,14 +179,19 @@ for week in range(3,15):
         continue
 
 
+
+ws.calculate_odds(sim_result=sim_tophalf, n_sims=n_sims)
+ws.calculate_odds(sim_result=sim_highest, n_sims=n_sims)
+ws.calculate_odds(sim_result=sim_lowest, n_sims=n_sims)
+
+
 ##### Records
 from scripts.records.initialize import *
-season=constants.SEASON+1
-standings_recs = get_standings_records(season)
-matchups_recs = get_matchup_records(season)
-per_stat_recs = get_per_stat_records(season)
-stat_group_records = get_stat_group_records(season)
-points_by_position = get_most_points_by_position(season)
+standings_recs = get_standings_records()
+matchups_recs = get_matchup_records()
+per_stat_recs = get_per_stat_records()
+stat_group_records = get_stat_group_records()
+points_by_position = get_most_points_by_position()
 records = pd.concat([standings_recs, matchups_recs, per_stat_recs, stat_group_records, points_by_position])
 records = records.reset_index(drop=True).reset_index().rename(columns={'index': 'id'})
 

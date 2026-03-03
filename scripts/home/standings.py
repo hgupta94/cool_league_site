@@ -268,7 +268,6 @@ class Standings:
         week_median = self.teams.week_median(week)
 
         display_name = utils.teamid_to_name(ids=constants.TEAM_IDS, teams=self.teams, teamid=team_id)
-        # display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[team_id]]['name']['display']
         db_id = f'{self.season}_{str(week).zfill(2)}_{display_name}'
 
         matchups = self.teams.team_schedule(team_id)
@@ -314,7 +313,6 @@ class Standings:
         for team_id in self.teams.team_ids:
             # standings data for each team
             display_name = utils.teamid_to_name(ids=constants.TEAM_IDS, teams=self.teams, teamid=team_id)
-            # display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[team_id]]['name']['display']
             team_matchups = [m for m in matchups if m['team'] == display_name]
 
             m_wins = sum(d['matchup_result'] for d in team_matchups)

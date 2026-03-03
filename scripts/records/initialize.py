@@ -54,7 +54,6 @@ def get_all_time_standings(last_season):
             if playoff_seed <= num_teams:
                 playoffs.append(1 if playoff_seed <= num_teams else 0)
                 lg_season.append(season)
-                # team_name.append(constants.TEAM_IDS[teams.teamid_to_primowner[team['id']]]['name']['display'])
                 team_name.append(teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=team['id']))
     playoffs_df = pd.DataFrame(
         {'season': lg_season,
@@ -314,8 +313,6 @@ def get_matchup_records(last_season):
                 closest_matchup_check = diff < closest_matchup
                 if closest_matchup_check:
                     closest_matchup = diff
-                    # tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    # tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     tm1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
                     tm2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
@@ -324,8 +321,6 @@ def get_matchup_records(last_season):
                 biggest_blowout_check = diff > biggest_blowout
                 if biggest_blowout_check:
                     biggest_blowout = diff
-                    # tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    # tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     tm1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
                     tm2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
@@ -367,7 +362,7 @@ def get_per_stat_records(last_season):
             week = m['matchupPeriodId']
             if week <= regular_season_end:
                 for tm in ['home', 'away']:
-                    team = constants.TEAM_IDS[teams.teamid_to_primowner[m[tm]['teamId']]]['name']['display']
+                    team = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m[tm]['teamId'])
                     stats = m[tm]['cumulativeScore']
                     for idx, (stat, row) in enumerate(zip(all_stats, rows)):
                         stat_name = constants.PLAYER_STATS_MAP[stat]['display']
@@ -413,7 +408,6 @@ def get_stat_group_records(last_season):
             week = m['matchupPeriodId']
             if week <= regular_season_end:
                 for tm in ['home', 'away']:
-                    # team = constants.TEAM_IDS[teams.teamid_to_primowner[m[tm]['teamId']]]['name']['display']
                     team = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m[tm]['teamId'])
                     stats = m[tm]['cumulativeScore']
                     for idx, (k, v) in enumerate(records_dict.items()):
@@ -458,7 +452,6 @@ def get_most_points_by_position(last_season):
         for w in range(1, regular_season_end + 1):
             teams_data = data.load_week(w)['teams']
             for t in teams_data:
-                # team = constants.TEAM_IDS[teams_info.teamid_to_primowner[t['id']]]['name']['display']
                 team = teamid_to_name(ids=constants.TEAM_IDS, teams=teams_info, teamid=t['id'])
                 for idx, (k, v) in enumerate(records_dict.items()):  # loop over each record type
                     for plr in t['roster']['entries']:  # loop over each player on team

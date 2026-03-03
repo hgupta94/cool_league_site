@@ -1,12 +1,14 @@
 import mysql.connector.errors
 
+from scripts.utils.utils import teamid_to_name
 from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
-from scripts.api.Teams import Teams
-from scripts.api.Rosters import Rosters
 from scripts.utils.database import Database
+from scripts.api.Settings import Params
+from scripts.api.Rosters import Rosters
+from scripts.api.Teams import Teams
 from scripts.utils import constants
 print(constants.DB_USER, constants.DB_HOST, constants.DB_NAME)
+
 
 ##### MATCHUPS
 from scripts.home.standings import Standings
@@ -160,7 +162,8 @@ for week in range(3,15):
         end = time.perf_counter()
 
         for team in teams.team_ids:
-            display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
+            # display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
+            display_name = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=team)
             db_id = f'{season}_{str(week).zfill(2)}_{display_name}_{day}'
             matchup_id = ws.get_matchup_id(teams=teams, week=week, display_name=display_name)
             avg_score = sim_scores[team] / n_sims

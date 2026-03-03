@@ -1,5 +1,8 @@
+from scripts.api.Teams import Teams
+
 import time
 from functools import wraps
+
 import pandas as pd
 
 
@@ -31,6 +34,15 @@ def flatten_list(lst: list) -> list:
         for xs in lst
         for x in xs
     ]
+
+
+def teamid_to_name(ids: dict[str, str],
+                   teams: Teams,
+                   teamid: int) -> str:
+    """
+    Converts an ESPN team ID to the owner's display name for Flask
+    """
+    return ids[teams.teamid_to_primowner[teamid]]['name']['display']
 
 
 def timer(function):

@@ -1,15 +1,16 @@
+from scripts.utils.utils import teamid_to_name
 from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
 from scripts.utils.database import Database
-from scripts.api.Teams import Teams
+from scripts.api.Settings import Params
 from scripts.api.Rosters import Rosters
+from scripts.api.Teams import Teams
 from scripts.utils import constants
 
-import difflib
 import scipy.stats as st
-import random
-import numpy as np
 import pandas as pd
+import numpy as np
+import difflib
+import random
 pd.options.mode.chained_assignment = None
 
 
@@ -503,7 +504,8 @@ def get_ros_projections(data: DataLoader,
             team_name = ''
             for player in team['roster']['entries']:
                 player_id = player['playerId']
-                team_name = constants.TEAM_IDS[teams.teamid_to_primowner[player['playerPoolEntry']['onTeamId']]]['name']['display']
+                # team_name = constants.TEAM_IDS[teams.teamid_to_primowner[player['playerPoolEntry']['onTeamId']]]['name']['display']
+                team_name = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=player['playerPoolEntry']['onTeamId'])
                 player_name = player['playerPoolEntry']['player']['fullName']
                 slot_id = player['lineupSlotId']
                 for pos in player['playerPoolEntry']['player']['eligibleSlots']:
@@ -586,11 +588,13 @@ def simulate_season(params: Params,
             matchup_sim = []
             scores = []
             for idx, m in enumerate(matchups):
-                team1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
+                # team1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
+                team1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
                 lineup1 = team_lineups[team1]
                 sim1 = simulate_lineup(lineup1)
 
-                team2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
+                # team2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
+                team2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
                 lineup2 = team_lineups[team2]
                 sim2 = simulate_lineup(lineup2)
 
@@ -693,7 +697,8 @@ def sim_playoff_round(week: int,
     if week_data:
         # if in the playoffs, simulate current matchup
         results = simulate_matchup(week=week, week_data=week_data, rosters=rosters, params=params, replacement_players=replacement_players, matchups=matchups, projections=projections)
-        winners = [constants.TEAM_IDS[teams.teamid_to_primowner[r['team']]]['name']['display'] for r in results if r['result']==1]
+        # winners = [constants.TEAM_IDS[teams.teamid_to_primowner[r['team']]]['name']['display'] for r in results if r['result']==1]
+        winners = [teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=r['team']) for r in results if r['result']==1]
         next_round_teams.extend(winners)
         return next_round_teams
     else:

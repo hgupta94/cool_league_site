@@ -16,6 +16,7 @@ fa = FontAwesome(app)
 
 @app.route("/")
 def home():
+    week_str = 'Final' if week > 14 else f'Week {week-1}'
     headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'TopHalf', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
     data_st = ut.flask_get_data(standings_df[STANDINGS_COLUMNS_FLASK])
 
@@ -31,7 +32,7 @@ def home():
     data_pr = ut.flask_get_data(pr_table[pr_cols])
 
     return render_template(
-        "powerrank.html", week=f'Week {week-1}',
+        "powerrank.html", week=week_str,
         headings_st=headings_st, data_st=data_st,
         headings_cl=headings_cl, data_cl=data_cl,
         headings_el=headings_el, data_el=data_el,

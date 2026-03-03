@@ -18,8 +18,7 @@ season = constants.SEASON
 data = DataLoader(season)
 params = Params(data)
 teams = Teams(data)
-# week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
-week = 11
+week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
 n_teams = len(teams.team_ids)
 
 # HOME PAGE
@@ -84,6 +83,7 @@ season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().ren
 # SCENARIOS PAGE
 db_h2h = Database(table='h2h', season=season, week=week)
 h2h_data = db_h2h.retrieve_data(how='season')
+h2h_data = h2h_data[h2h_data.week <= params.regular_season_end]
 total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)
 wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, teams=teams)
 wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)

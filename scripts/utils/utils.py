@@ -1,5 +1,3 @@
-from scripts.api.Teams import Teams
-
 import time
 from functools import wraps
 
@@ -37,7 +35,7 @@ def flatten_list(lst: list) -> list:
 
 
 def teamid_to_name(ids: dict[str, str],
-                   teams: Teams,
+                   teams,
                    teamid: int) -> str:
     """
     Converts an ESPN team ID to the owner's display name for Flask

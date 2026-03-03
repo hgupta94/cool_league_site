@@ -41,7 +41,7 @@ def get_all_time_standings(last_season):
     team_name = []
     lg_season = []
     playoffs = []
-    for season in range(2018, last_season):
+    for season in range(2018, last_season + 1):
         print(season)
         # get playoff appearances
         data = DataLoader(year=season)
@@ -137,7 +137,7 @@ def get_standings_records(last_season):
     - Highest/lowest PPG
     """
     df = pd.DataFrame()
-    for s in range(2018, last_season):
+    for s in range(2018, last_season + 1):
         print(s)
         data = DataLoader(year=s)
         params = Params(data)
@@ -217,6 +217,57 @@ def get_standings_records(last_season):
                         columns=['category', 'record', 'holder', 'season', 'week'])
 
 
+def get_tophalf_records():
+    """
+    Calculate top half records:
+    - Most/fewest
+    - Closest win/loss
+    - Largest disparity
+    """
+
+    matchups = Database(table='matchups').retrieve_data(how='all')[['season', 'week', 'team', 'score']]
+    matchups = matchups.sort_values(['season', 'week', 'score'], ascending=False)
+    matchups['med_rank'] = matchups.groupby(['season', 'week']).score.rank()
+    matchups['med'] = matchups.groupby(['season', 'week']).score.transform('median')
+    matchups['med_diff'] = abs(matchups.score - matchups.med)
+    matchups['n_teams'] = matchups.groupby(['season', 'week']).team.transform('nunique') // 2
+
+    # highest median score
+    highest = matchups[matchups.med == matchups.med.max()]
+    highest_teams = highest[(highest.med_rank == highest.n_teams) | (highest.med_rank == highest.n_teams+1)]
+    season = highest.season.values[0]
+    week = highest.week.values[0]
+    holder_str = f'{highest_teams.team.values[0]} ({highest_teams.score.values[0]:.2f})-{highest_teams.team.values[1]} ({highest_teams.score.values[1]:.2f})'
+    highest_row = ('Highest Median Score', f'{highest.med.max():.2f}', holder_str, season, week)
+
+    # lowest median score
+    lowest = matchups[matchups.med == matchups.med.min()]
+    lowest_teams = lowest[(lowest.med_rank == lowest.n_teams) | (lowest.med_rank == lowest.n_teams+1)]
+    season = lowest.season.values[0]
+    week = lowest.week.values[0]
+    holder_str = f'{lowest_teams.team.values[0]} ({lowest_teams.score.values[0]:.2f})-{lowest_teams.team.values[1]} ({lowest_teams.score.values[1]:.2f})'
+    lowest_row = ('Lowest Median Score', f'{lowest.med.min():.2f}', holder_str, season, week)
+
+    # closest tophalf matchup
+    closest = matchups[matchups.med_diff.round(2) == round(matchups.med_diff.min(), 2)]
+    holder_str = f'{closest.team.values[0]} ({closest.score.values[0]:.2f})-{closest.team.values[1]} ({closest.score.values[1]:.2f})'
+    closest_row = ('Closest Top Half Matchup', f'{matchups.med_diff.min() * 2:.2f}', holder_str, closest.season.values[0], closest.week.values[0])
+
+    # biggest tophalf matchup disparity
+    furthest = matchups[(matchups.med_rank == matchups.n_teams) | (matchups.med_rank == matchups.n_teams+1)]
+    furthest = furthest[furthest.med_diff == furthest.med_diff.max()]
+    holder_str = f'{furthest.team.values[0]} ({furthest.score.values[0]:.2f})-{furthest.team.values[1]} ({furthest.score.values[1]:.2f})'
+    furthest_row = ('Biggest Top Half Difference', f'{furthest.med_diff.max() * 2:.2f}', holder_str, furthest.season.values[0], furthest.week.values[0])
+
+    return pd.DataFrame([
+        highest_row,
+        lowest_row,
+        closest_row,
+        furthest_row
+    ],
+        columns=['category', 'record', 'holder', 'season', 'week'])
+
+
 def get_matchup_records(last_season):
     """
     Calculate matchup-related records:
@@ -229,7 +280,7 @@ def get_matchup_records(last_season):
     least_matchup_points = 999
     closest_matchup = 999
     biggest_blowout = -999
-    for s in range(2018, last_season):
+    for s in range(2018, last_season + 1):
         print(s)
         data = DataLoader(year=s)
         params = Params(data)
@@ -246,8 +297,6 @@ def get_matchup_records(last_season):
                 most_matchup_points_check = total > most_matchup_points
                 if most_matchup_points_check:
                     most_matchup_points = total
-                    # tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    # tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     tm1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
                     tm2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
@@ -256,8 +305,6 @@ def get_matchup_records(last_season):
                 least_points_check = total < least_matchup_points
                 if least_points_check:
                     least_matchup_points = total
-                    # tm1 = constants.TEAM_IDS[teams.teamid_to_primowner[m['away']['teamId']]]['name']['display']
-                    # tm2 = constants.TEAM_IDS[teams.teamid_to_primowner[m['home']['teamId']]]['name']['display']
                     tm1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
                     tm2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
@@ -309,7 +356,7 @@ def get_per_stat_records(last_season):
     rows = [[] for stat in all_stats]
     records_dict = {constants.PLAYER_STATS_MAP[s]["display"]: -99 for s in all_stats}
 
-    for s in range(2019, last_season):
+    for s in range(2019, last_season + 1):
         print(s)
         data = DataLoader(year=s)
         teams = Teams(data=data)
@@ -355,7 +402,7 @@ def get_stat_group_records(last_season):
     }
     rows = [[] for k in records_dict]
 
-    for s in range(2019, last_season):
+    for s in range(2019, last_season + 1):
         print(s)
         data = DataLoader(year=s)
         teams = Teams(data=data)
@@ -402,7 +449,7 @@ def get_most_points_by_position(last_season):
     }
     rows = [[] for k in records_dict]
 
-    for s in range(2018, last_season):
+    for s in range(2018, last_season + 1):
         print(s)
         data = DataLoader(year=s)
         teams_info = Teams(data=data)

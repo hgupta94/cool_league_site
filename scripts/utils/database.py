@@ -1,6 +1,8 @@
+import os
 from scripts.utils import constants
 import mysql.connector
 import pandas as pd
+from sshtunnel import SSHTunnelForwarder
 
 
 class Database:
@@ -10,7 +12,8 @@ class Database:
                  columns: str = None,
                  values: tuple = None,
                  season: int = None,
-                 week: int = None):
+                 week: int = None,
+                 use_ssh: bool = False):
         """
         Initializes a Database object
 
@@ -27,19 +30,39 @@ class Database:
         self.values = values
         self.season = season
         self.week = week
+        self.use_ssh = use_ssh
+        self.tunnel = None
 
     def __enter__(self):
-        self.connection = mysql.connector.connect(
-            host=constants.DB_HOST,
-            user=constants.DB_USER,
-            password=constants.DB_PASS,
-            database=constants.DB_NAME
-        )
+        if self.use_ssh:
+            self.tunnel = SSHTunnelForwarder(
+                (constants.DB_HOST_SSH, 22),
+                ssh_username=constants.DB_USER_SSH,
+                ssh_password=os.getenv('PA_PASS'),
+                remote_bind_address=(constants.DB_MYSQL_HOST_SSH, 3306)
+            )
+            self.tunnel.start()
+            self.connection = mysql.connector.connect(
+                host='127.0.0.1',
+                port=self.tunnel.local_bind_port,
+                user=constants.DB_USER_SSH,
+                password=constants.DB_PASS_SSH,
+                database=constants.DB_NAME_SSH
+            )
+        else:
+            self.connection = mysql.connector.connect(
+                host=constants.DB_HOST,
+                user=constants.DB_USER,
+                password=constants.DB_PASS,
+                database=constants.DB_NAME
+            )
         return self.connection
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.connection:
             self.connection.close()
+        if self.tunnel:
+            self.tunnel.stop()
 
     def retrieve_data(self, how: str):
         if how == 'week':

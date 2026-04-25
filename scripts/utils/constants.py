@@ -9,6 +9,14 @@ DB_PASS = os.getenv('DB_PASS_LOCAL')
 DB_HOST = os.getenv('DB_HOST_LOCAL')
 DB_NAME = os.getenv('DB_NAME_LOCAL')
 
+# SSH DB credentials
+DB_USER_SSH = os.getenv('DB_USER_SSH')
+DB_PASS_SSH = os.getenv('DB_PASS_SSH')
+DB_HOST_SSH = os.getenv('DB_HOST_SSH')  # SSH host
+DB_NAME_SSH = os.getenv('DB_NAME_SSH')
+# MySQL host for SSH tunnel (e.g., hgupta.mysql.pythonanywhere-services.com)
+DB_MYSQL_HOST_SSH = os.getenv('DB_MYSQL_HOST_SSH')
+
 CLINCHED = -99
 ELIMINATED = 99
 CLINCHED_DISP = 'c'

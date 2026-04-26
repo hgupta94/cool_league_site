@@ -27,7 +27,8 @@ N_SIMS = 100_000
 # ESPN API parameters
 _CURRENT_YEAR = dt.datetime.now().year
 _CURRENT_MONTH = dt.datetime.now().month
-SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
+# SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
+SEASON = 2025
 LEAGUE_ID = os.getenv('LEAGUE_ID')
 SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')

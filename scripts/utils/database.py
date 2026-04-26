@@ -13,7 +13,7 @@ class Database:
                  values: tuple = None,
                  season: int = None,
                  week: int = None,
-                 use_ssh: bool = False):
+                 use_ssh: bool = True):
         """
         Initializes a Database object
 
@@ -76,7 +76,8 @@ class Database:
             query = f'''
                     SELECT *
                     FROM {self.table}
-                    WHERE season = {self.season};
+                    WHERE season = {self.season}
+                        AND week <= {self.week};
                     '''
         if how == 'all':
             query = f'''

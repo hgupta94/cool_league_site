@@ -51,7 +51,7 @@ betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: simulations
 betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 
-db_season_sim = Database(table='season_sim', season=season)
+db_season_sim = Database(table='season_sim', season=season, week=week)
 season_sim_table = db_season_sim.retrieve_data(how='season').sort_values('created').tail(n_teams)
 timestamp_season_sim = pd.to_datetime(season_sim_table.created.values[0]).strftime("%A, %b %d %Y")
 keep_cols = ['team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
@@ -112,7 +112,7 @@ records_df = records_db.retrieve_data(how='all')
 
 
 # HISTORY/CHAMPIONS PAGE
-champs = pd.read_csv(r'C:\Dev\hgupta94\cool_league\champions.csv').sort_values('Season', ascending=False)
+champs = pd.read_csv(r'champions.csv').sort_values('Season', ascending=False)
 prev_champs = champs[['Season', 'Team', 'Runner Up']]
 
 

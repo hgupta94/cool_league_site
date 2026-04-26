@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 
 from scripts.api.DataLoader import DataLoader
@@ -55,7 +57,7 @@ class Standings:
 
     def _clinch_bye(self,
                     row: pd.Series,
-                    three_seed_wins: float) -> int:
+                    three_seed_wins: float) -> int | None:
         """
         Calculate if a team clinched playoff BYE week (top 2 seed)
         :param row: A team's standings data
@@ -73,10 +75,11 @@ class Standings:
 
             else:
                 return weeks_behind
+        return None
 
     def _clinch_playoff(self,
                         row: pd.Series,
-                        sixth_wins: float):
+                        sixth_wins: float) -> int | None:
         """
         Calculate if a team clinched playoff spot week (top 5 seed by wins)
         :param row: A team's standings data
@@ -94,10 +97,11 @@ class Standings:
 
             else:
                 return weeks_behind
+        return None
 
     def _clinch_scenarios(self,
                           team_name: str,
-                          seed: int) -> list:
+                          seed: int) -> list[Any]:
         """
         Calculate clinching scenarios for the current matchup week
         :param team_name: Team display name to calculate clinching scenarios for
@@ -171,7 +175,7 @@ class Standings:
 
     def _elim_scenarios(self,
                         team_name: str,
-                        seed: int) -> list:
+                        seed: int) -> list[Any]:
         """
         Calculate elimination scenarios for the current matchup week
         :param team_name: Team display name to calculate elimination scenarios for
@@ -248,7 +252,7 @@ class Standings:
 
     def get_matchup_results(self,
                             week: int,
-                            team_id: int) -> list[dict]:
+                            team_id: int) -> dict[str, Any]:
         """
         A team's matchup results for a given week
         :param week: The week to get results for
@@ -298,7 +302,7 @@ class Standings:
             'top_half_result': th_result
         }
 
-    def format_standings(self) -> pd.DataFrame:
+    def format_standings(self) -> pd.DataFrame | None:
         """
         Create standings table for Flask UI
         - 2018-2021: 4 team playoffs by record
@@ -306,7 +310,7 @@ class Standings:
         """
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
-        matchups = Database(table='matchups', season=self.season).retrieve_data(how='season').iloc[:, 0:-1]
+        matchups = Database(table='matchups', season=self.season, week=self.week).retrieve_data(how='season').iloc[:, 0:-1]
         matchups = matchups[matchups.week <= self.params.regular_season_end]
         matchups = matchups.to_dict(orient='records')
 

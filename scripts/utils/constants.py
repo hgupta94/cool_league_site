@@ -349,6 +349,7 @@ PLAYER_STATS_MAP = {
 TEAM_IDS = {
     # add new teams here
     '{04E660A8-5B4E-4B6C-AD79-AF6820D2904A}': {
+        'active': True,
         'name': {
             'first': 'Aditya',
             'last': 'Parikh',
@@ -357,6 +358,7 @@ TEAM_IDS = {
     },
 
     '{107907DD-E9E2-426A-81C1-33FB7AA6983B}': {
+        'active': False,
         'name': {'first': 'Sharan',
                  'last': 'Gottumukkala',
                  'display': 'Shar'
@@ -364,6 +366,7 @@ TEAM_IDS = {
     },
 
     '{127A0B03-FD89-4462-AE01-840A18124086}': {
+        'active': True,
         'name': {
             'first': 'Ayaz',
             'last': 'Ghesani',
@@ -372,6 +375,7 @@ TEAM_IDS = {
     },
 
     '{15FA7955-FCA6-4E11-8D73-9EB30DD67D0B}': {
+        'active': False,
         'name': {
             'first': 'Vikram',
             'last': 'Kesavabhotla',
@@ -380,6 +384,7 @@ TEAM_IDS = {
     },
 
     '{2EA590DD-55F5-41CF-A29F-AC67B612265A}': {
+        'active': True,
         'name': {
             'first': 'Varun',
             'last': 'Viswanathan',
@@ -388,6 +393,7 @@ TEAM_IDS = {
     },
 
     '{377D02F0-6C7C-4333-9D4B-DAB9EDD9A44D}': {
+        'active': True,
         'name': {
             'first': 'Akshat',
             'last': 'Rajan',
@@ -396,6 +402,7 @@ TEAM_IDS = {
     },
 
     '{89D51209-9763-4BC1-9512-0997634BC139}': {
+        'active': False,
         'name': {
             'first': 'Faizan',
             'last': 'Khan',
@@ -404,6 +411,7 @@ TEAM_IDS = {
     },
 
     '{C152DDDA-D6A5-4B19-B4C8-3B60D3A5784F}': {
+        'active': False,
         'name': {
             'first': 'Harsh',
             'last': 'Randhawa',
@@ -412,6 +420,7 @@ TEAM_IDS = {
     },
 
     '{DFDE661C-852D-422F-99C9-0D06AD1B9B2D}': {
+        'active': True,
         'name': {
             'first': 'Charles',
             'last': 'Cai',
@@ -420,6 +429,7 @@ TEAM_IDS = {
     },
 
     '{E01C2393-2E6F-420B-9C23-932E6F720B61}': {
+        'active': True,
         'name': {
             'first': 'Hirsh',
             'last': 'Gupta',
@@ -428,6 +438,7 @@ TEAM_IDS = {
     },
 
     '{EB1CD420-9D9A-4649-873A-1A97DEFB5542}': {
+        'active': True,
         'name': {
             'first': 'Nick',
             'last': 'Shekar',
@@ -436,6 +447,7 @@ TEAM_IDS = {
     },
 
     '{FB094EC3-E4D2-4E81-AAA6-1D776B8259C7}': {
+        'active': True,
         'name': {
             'first': 'Aaron',
             'last': 'Srikantha',
@@ -444,6 +456,7 @@ TEAM_IDS = {
     },
 
     '{95160076-FE63-41C0-9600-76FE63B1C0DD}': {
+        'active': True,
         'name': {
             'first': 'Arjun',
             'last': 'Bains',
@@ -452,6 +465,7 @@ TEAM_IDS = {
     },
 
     '{52EF6954-9BFF-4A41-9617-1ECD3F5EEBAF}': {
+        'active': True,
         'name': {
             'first': 'Aiden',
             'last': 'Ghesani',

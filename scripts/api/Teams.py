@@ -1,5 +1,6 @@
 from scripts.api.Settings import Params
 from scripts.utils import utils
+from scripts.utils.constants import TEAM_IDS
 
 import numpy as np
 
@@ -23,8 +24,15 @@ class Teams:
             self.primowner_to_teamid[o_id] = t_id
             self.teamid_to_primowner[t_id] = o_id
 
+        self.teams = []
+        for team in self.teamid_to_primowner:
+            self.teams.append(self._teamid_to_display(team))
         self.faab_budget = self.settings['settings']['acquisitionSettings']['acquisitionBudget']
         self.faab_remaining = None
+
+    def _teamid_to_display(self, teamid: int) -> str:
+        """Convert ESPN team ID to display name"""
+        return TEAM_IDS[self.teamid_to_primowner[teamid]]['name']['display']
 
     def _fetch_matchups(self) -> dict:
         """

@@ -301,3 +301,16 @@ circle {
   color: #e3b902
 }
 /* end color trophy icons */
+
+/* start caption formatting */
+caption {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  caption-side: bottom;
+  text-align: center;
+  display: table-caption;
+  padding-left: 0;
+}
+/* end caption formatting */
+

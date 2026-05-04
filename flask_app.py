@@ -20,11 +20,11 @@ def home():
     headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'TopHalf', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
     data_st = ut.flask_get_data(standings_df[STANDINGS_COLUMNS_FLASK])
 
-    cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if week == params.regular_season_end else 'Clinch Over']
+    cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if week == params.regular_season_end else 'Clinch Over', 'Clinch Probability']
     headings_cl = tuple(cl_cols) if clinches['clinches'] else tuple()
     data_cl = ut.flask_get_data(clinches['clinches']) if clinches['clinches'] else tuple()
 
-    el_cols = ['Team', 'Elim. From', 'Net Wins', 'Elim. By (Net Pts)' if week == params.regular_season_end else 'Elim. By']
+    el_cols = ['Team', 'Elim. From', 'Net Wins', 'Elim. By (Net Pts)' if week == params.regular_season_end else 'Elim. By', 'Elim. Probability']
     headings_el = tuple(el_cols) if clinches['eliminations'] else tuple()
     data_el = ut.flask_get_data(clinches['eliminations']) if clinches['eliminations'] else tuple()
 

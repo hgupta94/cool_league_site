@@ -124,7 +124,7 @@ class PlayoffScenarios:
         this_weight = grouping_weight(winners=th_winners, losers=th_losers)
         return this_weight / total_weight if total_weight > 0 else 0.0
 
-    def get_teams(self, standings: list[dict], seed: int):
+    def get_teams(self, standings: list[dict], seed: int) -> tuple[str, str]:
         """Calculate which teams clinched or are eliminated"""
         weeks_left = self.params.regular_season_end - ((standings[0]['wins'] + standings[0]['losses']) // 2)
         clinched = {}
@@ -137,7 +137,7 @@ class PlayoffScenarios:
         eliminated_tms = [k for k, v in eliminated.items() if v]
         return clinched_tms, eliminated_tms
 
-    def get_new_clinches(self, seed: int):
+    def get_new_clinches(self, seed: int) -> list[dict]:
         """Calculate new clinching and elimination scenarios based on the current/upcoming week"""
         clinched, eliminated = self.get_teams(standings=self.standings, seed=seed)
         results = {
@@ -184,25 +184,34 @@ class PlayoffScenarios:
                     results[tm]['elim_scenarios'].append(s)
         return {k: v for k, v in results.items() if v['clinched'] > 0 or v['eliminated'] > 0}
 
-    def magic_number(self, team: str, playoff_spots: int):
+    def team_magic_number(self, team: str, playoff_spots: int) -> int | None:
         """Calculate magic number to clinch"""
-        weeks_left = self.params.weeks_left
         team = team.title()[:4]  # ensure name is a valid display name (first 4 letters)
-        _, already_elim = self.get_teams(standings=self.standings, seed=playoff_spots)
-        is_elim = True if team in already_elim else False
 
         the_team = [s for s in self.standings if s['team'] == team][0]
-        current_wins = int(the_team['wins'])
-        best_case = int(current_wins + (weeks_left * 2))
-        others_best = [int(t['wins']) + (weeks_left * 2) for t in self.standings if t['team'] != team]
+        current_losses = int(the_team['losses'])
+        leading_team_wins = self.standings[playoff_spots-1]['wins']  # -1 to get team in that seed
+        if the_team['wins'] >= leading_team_wins:
+            return None
+        return (
+            (self.params.regular_season_end * 2) + 1
+            - leading_team_wins
+            - current_losses
+        )
 
-        if is_elim:
-            magic = None
-        else:
-            magic = weeks_left * 2  # default case need to win every game
-            for w in range(current_wins, best_case + 1):
-                teams_that_can_surpass = sum(1 for bc in others_best if bc > w)
-                if teams_that_can_surpass < playoff_spots:
-                    magic = max(0, w - current_wins)  # additional wins needed
-                    break
-        return magic
+    def get_magic_numbers(self) -> dict[str, dict[str, int]]:
+        magic_numbers = {
+            tm: {
+                'bye': None,
+                'playoff': None
+            } for tm in self.teams.teams
+        }
+        for tm in self.teams.teams:
+            for seed in [2, 5]:
+                cat = 'bye' if seed == 2 else 'playoff'
+                magic = self.team_magic_number(team=tm, playoff_spots=seed)
+                if magic is None or magic <= 0:  # clinched or eliminated
+                    magic_numbers[tm][cat] = '-'
+                else:
+                    magic_numbers[tm][cat] = int(magic)
+        return magic_numbers

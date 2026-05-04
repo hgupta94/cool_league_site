@@ -17,7 +17,7 @@ fa = FontAwesome(app)
 @app.route("/")
 def home():
     week_str = 'Final' if week > 14 else f'Week {week-1}'
-    headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'TopHalf', 'Points', 'WB-Bye', 'WB-5', 'PB-6'])
+    headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'TopHalf', 'Points', 'WB-Bye', 'WB-5', 'PB-6', 'E#-Bye', 'E#-5'])
     data_st = ut.flask_get_data(standings_df[STANDINGS_COLUMNS_FLASK])
 
     cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if week == params.regular_season_end else 'Clinch Over', 'Clinch Probability']

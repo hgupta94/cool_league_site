@@ -45,7 +45,7 @@ SEASON_SIM_COLUMNS = 'id, season, week, team, matchup_wins, tophalf_wins, total_
 RECORDS_COLUMNS = 'id, category, record, holder, season, week'
 ALLTIME_STANDINGS_COLUMNS = 'id, team, seasons, playoffs, overall_rec, win_perc, matchup_rec, tophalf_rec, points'
 
-STANDINGS_COLUMNS_FLASK = ['seed', 'team', 'overall', 'win_perc', 'matchup', 'top_half', 'total_points_disp', 'wb2_disp', 'wb5_disp', 'pb6_disp']
+STANDINGS_COLUMNS_FLASK = ['seed', 'team', 'overall', 'win_perc', 'matchup', 'top_half', 'total_points_disp', 'wb2_disp', 'wb5_disp', 'pb6_disp', 'bye_magic_number', 'playoff_magic_number']
 RECORDS_COLUMNS_FLASK = ['category', 'record', 'holder', 'season', 'week']
 ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc', 'matchup_rec', 'tophalf_rec', 'points']
 

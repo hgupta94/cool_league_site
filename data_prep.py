@@ -53,6 +53,9 @@ clinches = standings.clinching_scenarios()
 ps = PlayoffScenarios(data=data, params=params, teams=teams)
 bye_scens = ps.get_new_clinches(seed=2)
 playoff_scens = ps.get_new_clinches(seed=5)
+magic_numbers = ps.get_magic_numbers()
+standings_df['bye_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('bye', None))
+standings_df['playoff_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('playoff', None))
 def format_prob(p):
     if 0 < p <= 0.001:
         return "<0.1%"

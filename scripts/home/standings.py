@@ -333,7 +333,7 @@ class Standings:
 
             try:
                 win_pct = f'{(ov_wins / (as_of_week*2)):.3f}'
-            except ZeroDivisionError:
+            except ZeroDivisionError:  # NFL preseason/opening week
                 win_pct = '0.000'
             total_points = round(sum(d['score'] for d in team_matchups), 2)
 

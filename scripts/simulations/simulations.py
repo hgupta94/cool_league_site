@@ -462,7 +462,7 @@ def get_replacement_players(data: DataLoader,
             projection = 0
             if 'stat' in player['player']:
                 for stat in player['player']['stats']:
-                    if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
+                    if stat['seasonId'] == constants.SEASON and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
                         projection = stat['appliedAverage']
 
             try:

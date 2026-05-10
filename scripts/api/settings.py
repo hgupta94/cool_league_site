@@ -12,7 +12,7 @@ class LeagueSettings:
         self.league_size = settings['settings']['size']
         self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())
         self.regular_season_end = settings['settings']['scheduleSettings']['matchupPeriodCount']
-        self.current_week = 14#settings['scoringPeriodId']
+        self.current_week = 13#settings['scoringPeriodId']
         self.as_of_week = self.current_week-1  # just finished
         # self.as_of_week = 0 if self.current_week-1 < 0 else self.current_week-1  # just finished
         self.playoff_teams = settings['settings']['scheduleSettings']['playoffTeamCount']
@@ -82,7 +82,7 @@ class TeamSettings:
         matchups_list = []
         for m in self.matchups['schedule']:
             week = m['matchupPeriodId']
-            game_type = 'REG' if week <= self.params.regular_season_end else 'POST'
+            game_type = 'REG' if week <= self.settings['settings']['scheduleSettings']['matchupPeriodCount'] else 'POST'
             matchup_id = m['id']
             team1 = m['home']['teamId']
             score1 = m['home']['totalPoints']

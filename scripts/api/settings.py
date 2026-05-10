@@ -1,16 +1,56 @@
-from scripts.api.Settings import Params
+from scripts.api.dataloader import DataLoader
+from scripts.utils import constants as const
 from scripts.utils import utils
-from scripts.utils.constants import TEAM_IDS
 
 import numpy as np
 
 
-class Teams:
+class LeagueSettings:
+    def __init__(self, data):
+        settings = data.settings()
+
+        self.league_size = settings['settings']['size']
+        self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())
+        self.regular_season_end = settings['settings']['scheduleSettings']['matchupPeriodCount']
+        self.current_week = 14#settings['scoringPeriodId']
+        self.as_of_week = self.current_week-1  # just finished
+        # self.as_of_week = 0 if self.current_week-1 < 0 else self.current_week-1  # just finished
+        self.playoff_teams = settings['settings']['scheduleSettings']['playoffTeamCount']
+        self.playoff_matchup_length = settings['settings']['scheduleSettings']['playoffMatchupPeriodLength']
+        self.has_bonus_win = 1 if settings['settings']['scoringSettings'].get('scoringEnhancementType') else 0
+        has_ppr = [s['points'] for s in settings['settings']['scoringSettings']['scoringItems'] if s['statId'] == 53]
+        self.ppr_type = 0 if not has_ppr else has_ppr[0]
+        self.weeks_left = 0 if self.as_of_week > self.regular_season_end else self.regular_season_end - self.as_of_week
+        self.team_map = const.TEAM_IDS
+
+class RosterSettings:
+    def __init__(self, year=const.SEASON):
+        self.data = DataLoader(year=year)
+        settings = self.data.settings()
+        slot_limits = settings['settings']['rosterSettings']['lineupSlotCounts']
+        roster_limits = settings['settings']['rosterSettings']['positionLimits']
+
+        self.player_stats_map = const.PLAYER_STATS_MAP
+        self.slotcodes = const.SLOTCODES
+        self.nfl_team_map = const.NFL_TEAM_MAP
+        self.espn_tonfl_position_map = const.POSITION_MAP
+        self.slot_limits = {int(k): v for k, v in slot_limits.items() if v > 0}
+        self.roster_limits = {int(k): v for k, v in roster_limits.items() if v > 0}
+        self.positions = [v for v in self.espn_tonfl_position_map.values()] + ['FLEX']
+
+    # def get_player_week_actual(self, player_id):
+    #     player_id = 4374302
+    #     players = self.data.players()
+    #     teams = Teams(self.data)
+    #
+    # def get_player_week_projected(self, player_id):
+    #     players = self.data.players()
+
+class TeamSettings:
     def __init__(self, data):
         self.settings = data.settings()
         self.teams = data.teams()
         self.matchups = data.matchups()
-        self.params = Params(data)
 
         self.team_ids = []
         self.owner_ids = []
@@ -32,7 +72,7 @@ class Teams:
 
     def _teamid_to_display(self, teamid: int) -> str:
         """Convert ESPN team ID to display name"""
-        return TEAM_IDS[self.teamid_to_primowner[teamid]]['name']['display']
+        return const.TEAM_IDS[self.teamid_to_primowner[teamid]]['name']['display']
 
     def _fetch_matchups(self) -> dict:
         """

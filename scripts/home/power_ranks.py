@@ -2,7 +2,7 @@ import numpy as np
 import math
 
 from scripts.utils.database import Database
-from scripts.api.Settings import Params
+from scripts.api.settings import LeagueSettings
 
 
 def linear_decay(x, r):
@@ -35,7 +35,7 @@ def scale_luck(x, from_min=-1, from_max=1, to_min=0, to_max=1):
     return (x - from_min) * (to_max - to_min) / (from_max - from_min) + to_min
 
 
-def power_rank(params: Params,
+def power_rank(params: LeagueSettings,
                season: int,
                week: int):
     """

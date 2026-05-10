@@ -1,4 +1,4 @@
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.api.Teams import Teams
 from scripts.utils.constants import TEAM_IDS, POSITION_MAP
 import pandas as pd

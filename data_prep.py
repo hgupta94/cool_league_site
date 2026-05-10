@@ -3,11 +3,10 @@ from datetime import datetime as dt
 
 import pandas as pd
 
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.home.playoff_scenarios import PlayoffScenarios
 from scripts.utils.database import Database
-from scripts.api.Settings import Params
-from scripts.api.Teams import Teams
+from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.home.standings import Standings
 from scripts.utils import constants
 import scripts.scenarios.scenarios as scenarios
@@ -17,8 +16,8 @@ from scripts.efficiency.efficiencies import plot_efficiency
 
 season = constants.SEASON
 data = DataLoader(season)
-params = Params(data)
-teams = Teams(data)
+params = LeagueSettings(data)
+teams = TeamSettings(data)
 week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
 n_teams = len(teams.team_ids)
 

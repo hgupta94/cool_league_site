@@ -1,7 +1,5 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
-from scripts.api.Teams import Teams
-from scripts.api.Rosters import Rosters
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import LeagueSettings, RosterSettings, TeamSettings
 from scripts.utils.database import Database
 from scripts.utils import constants
 from scripts.simulations import simulations
@@ -17,27 +15,24 @@ warnings.filterwarnings("ignore", category=UserWarning)
 n_sims = 10
 
 data = DataLoader()
-params = Params(data)
-teams = Teams(data)
-rosters = Rosters()
+params = LeagueSettings(data)
+teams = TeamSettings(data)
+rosters = RosterSettings()
 players_data = data.players_info()
+team_names = teams.teams
 replacement_players = simulations.get_replacement_players(data)
 lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters, replacement_players=replacement_players)
 
 # get actual standings
-results = Database(table='matchups', season=constants.SEASON).retrieve_data(how='season')
+results = Database(table='matchups', season=constants.SEASON, week=params.as_of_week).retrieve_data(how='season')
 results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum()
 results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
 
 # get current week sim results and combine
-if params.current_week <= params.regular_season_end:
-    week_sim = Database(table='betting_table', season=constants.SEASON).retrieve_data(how='season').sort_values('created').tail(params.league_size)
-    week_sim = week_sim[['team', 'avg_score', 'p_win', 'p_tophalf']].set_index('team')
-    week_sim.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
-    to_add = results + week_sim
-else:
-    to_add = results.copy()
-
+week_data = None
+playoff_matchups = None
+projections_dict = None
+if params.current_week > params.regular_season_end:
     # get winners bracket matchups
     week_data = data.load_week(week=params.current_week)
     week_matchups = [m for m in week_data['schedule'] if m['playoffTierType'] == 'WINNERS_BRACKET']
@@ -54,17 +49,13 @@ else:
                               'id', 'espn_id']
     projections_dict = projections_df.to_dict(orient='records')
 
-team_names = []
-for team in teams.team_ids:
-    team_names.append(constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display'])
-
 # run simulation
 start = time.perf_counter()
 all_sim_results = []
 for sim in range(n_sims):
     sim_results = {  # initialize sim counter
         o: {
-            'ranks': 0,
+            'rank': 0,
             'matchup_wins': 0,
             'tophalf_wins': 0,
             'total_wins': 0,
@@ -78,8 +69,8 @@ for sim in range(n_sims):
 
     # add actual season and current week sim results
     sim_data = simulations.simulate_season(params=params, teams=teams, lineups=lineups, team_names=team_names)
-    if len(to_add) > 0:
-        for team, row in to_add.iterrows():
+    if len(results) > 0:
+        for team, row in results.iterrows():
             sim_data[team]['matchup_wins'] += row.matchup_wins
             sim_data[team]['tophalf_wins'] += row.tophalf_wins
             sim_data[team]['total_wins'] += row.matchup_wins + row.tophalf_wins
@@ -92,10 +83,10 @@ for sim in range(n_sims):
     rest_by_wins = sorted({k: v for k, v in bottom_five.items() if k not in [t[0] for t in wild_card]}.items(), key=lambda x: (x[1]['total_wins']), reverse=True)
     sim_data_standings = dict(top_by_wins + wild_card + rest_by_wins)
     for i, (k, v) in enumerate(sim_data_standings.items()):
-        sim_data_standings[k]['ranks'] = i+1
+        sim_data_standings[k]['rank'] = i+1
 
     if params.current_week <= params.regular_season_end:
-        playoff_teams = list({k: v for k, v in sim_data_standings.items() if v['ranks'] <= params.playoff_teams}.keys())
+        playoff_teams = list({k: v for k, v in sim_data_standings.items() if v['rank'] <= params.playoff_teams}.keys())
     else:
         # if currently in playoffs, get teams and ranks
         playoff_teams = []
@@ -114,6 +105,36 @@ for sim in range(n_sims):
     start_wk = params.regular_season_end+1 if params.current_week <= params.regular_season_end else params.current_week
     champ_wk = params.regular_season_end+4
     playoff_wks_left = champ_wk - start_wk
+
+    # Define playoff weeks and the number of rounds left
+    playoff_weeks = list(range(params.regular_season_end+1, params.regular_season_end+4))
+
+    # Optionally, set up any special arguments for the first round
+    round_kwargs = [
+        {'n_bye': 2, 'week_data': week_data, 'matchups': playoff_matchups, 'projections': projections_dict, 'rosters': rosters} if playoff_wks_left == 3 else
+        {'week_data': week_data, 'matchups': playoff_matchups, 'projections': projections_dict, 'rosters': rosters} if 0 < playoff_wks_left < 3 else
+        {}
+        for _ in playoff_weeks
+    ]
+
+    finals_teams = None
+    champion = None
+    for i, week in enumerate(playoff_weeks[-playoff_wks_left:]):
+        kwargs = round_kwargs[i]
+        playoff_teams = simulations.sim_playoff_round(
+            week=week,
+            lineups=lineups,
+            round_teams=playoff_teams,
+            params=params,
+            replacement_players=replacement_players,
+            teams=teams,
+            **kwargs
+        )
+        if i == playoff_wks_left - 2:
+            finals_teams = playoff_teams
+        if i == playoff_wks_left - 1:
+            champion = playoff_teams
+
     if playoff_wks_left == 3:
         sf_teams = simulations.sim_playoff_round(week=15, lineups=lineups, n_bye=2, round_teams=playoff_teams, params=params, replacement_players=replacement_players, week_data=week_data, matchups=playoff_matchups, projections=projections_dict, rosters=rosters, teams=teams)
         finals_teams = simulations.sim_playoff_round(week=16, lineups=lineups, round_teams=sf_teams, params=params, replacement_players=replacement_players, teams=teams)
@@ -135,7 +156,7 @@ for sim in range(n_sims):
 
     ## update sim stats
     for team in team_names:
-        sim_results[team]['ranks'] += sim_data[team]['ranks']
+        sim_results[team]['rank'] += sim_data[team]['rank']
         sim_results[team]['matchup_wins'] += sim_data[team]['matchup_wins']
         sim_results[team]['tophalf_wins'] += sim_data[team]['tophalf_wins']
         sim_results[team]['total_wins'] += sim_data[team]['total_wins']
@@ -165,7 +186,7 @@ for sim_index, sim_result in enumerate(all_sim_results):
 
 # Convert to a DataFrame
 all_sim_results_df = pd.DataFrame(flattened_results).sort_values('team')
-columns_order = ['simulation', 'team', 'ranks', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
+columns_order = ['simulation', 'team', 'rank', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
 all_sim_results_df = all_sim_results_df[columns_order]
 rows = []
 for team in team_names:
@@ -180,11 +201,11 @@ wins_prob_df['week'] = params.current_week
 wins_prob_df['id'] = wins_prob_df.season.astype(str) + '_' + wins_prob_df.week.astype(str).str.zfill(2) + '_' + wins_prob_df.wins.astype(str).str.zfill(2) + '_' + wins_prob_df.team
 
 # get ranks table
-ranks_prob_df = all_sim_results_df.groupby(['team', 'ranks']).simulation.count().reset_index().rename(columns={'simulation':'p'})
+ranks_prob_df = all_sim_results_df.groupby(['team', 'rank']).simulation.count().reset_index().rename(columns={'simulation':'p'})
 ranks_prob_df['p'] = ranks_prob_df.p / n_sims
 ranks_prob_df['season'] = constants.SEASON
 ranks_prob_df['week'] = params.current_week
-ranks_prob_df['id'] = ranks_prob_df.season.astype(str) + '_' + ranks_prob_df.week.astype(str).str.zfill(2) + '_' + ranks_prob_df.ranks.astype(str).str.zfill(2) + '_' + ranks_prob_df.team
+ranks_prob_df['id'] = ranks_prob_df.season.astype(str) + '_' + ranks_prob_df.week.astype(str).str.zfill(2) + '_' + ranks_prob_df['rank'].astype(str).str.zfill(2) + '_' + ranks_prob_df.team
 
 # get season_sims table
 team_totals = {  # initialize sim counter
@@ -236,6 +257,6 @@ if params.current_week <= params.regular_season_end+1:
     sim_ranks_table = 'season_sim_ranks'
     sim_ranks_cols = 'id, season, week, team, ranks, p'
     for idx, row in ranks_prob_df.iterrows():
-        sim_vals = (row.id, row.season, row.week, row.team, row.ranks, row.p)
+        sim_vals = (row.id, row.season, row.week, row.team, row.rank, row.p)
         db = Database(data=ranks_prob_df, table=sim_ranks_table, columns=sim_ranks_cols, values=sim_vals)
         db.commit_row()

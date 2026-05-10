@@ -1,9 +1,9 @@
 import mysql.connector.errors
 
 from scripts.utils.utils import teamid_to_name
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.utils.database import Database
-from scripts.api.Settings import Params
+from scripts.api.settings import Params
 from scripts.api.Rosters import Rosters
 from scripts.api.Teams import Teams
 from scripts.utils import constants

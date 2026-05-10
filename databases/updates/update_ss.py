@@ -1,15 +1,14 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.utils.database import Database
-from scripts.api.Teams import Teams
 from scripts.scenarios.scenarios import schedule_switcher
 from scripts.utils import constants
 
 
 data = DataLoader(year=constants.SEASON)
-params = Params(data)
+params = LeagueSettings(data)
 week = params.as_of_week
-teams = Teams(data)
+teams = TeamSettings(data)
 
 for week in range(2, 15):
     switcher = schedule_switcher(teams=teams, season=constants.SEASON, week=week)

@@ -1,7 +1,5 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
-from scripts.api.Rosters import Rosters
-from scripts.api.Teams import Teams
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import LeagueSettings, RosterSettings, TeamSettings
 from scripts.utils.database import Database
 from scripts.utils import constants
 from scripts.simulations import simulations
@@ -19,9 +17,9 @@ day = dt.now().strftime('%a')
 n_sims = 10
 
 data = DataLoader(year=constants.SEASON)
-rosters = Rosters(year=constants.SEASON)
-params = Params(data)
-teams = Teams(data=data)
+rosters = RosterSettings(year=constants.SEASON)
+params = LeagueSettings(data)
+teams = TeamSettings(data=data)
 week = params.current_week
 
 week_data = data.load_week(week=week)

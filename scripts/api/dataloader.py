@@ -5,7 +5,6 @@ import json
 
 class DataLoader:
     """Load a view from ESPN's API"""
-
     def __init__(self,
                  year: int = const.SEASON,
                  league_id: int = const.LEAGUE_ID,
@@ -13,7 +12,7 @@ class DataLoader:
                  espn_s2: str = const.ESPN_S2,
                  week: int = None):
         self.year = year
-        self.league_id = league_id
+        self.league_id = str(league_id)
         self.swid = swid
         self.espn_s2 = espn_s2
         self.week = week

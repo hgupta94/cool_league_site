@@ -138,8 +138,7 @@ season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().ren
 # SCENARIOS PAGE
 h2h_data = h2h_data[h2h_data.week <= params.regular_season_end]
 total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)
-wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, teams=teams)
-print(wins_by_week)
+wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, params=params, teams=teams)
 wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)
 
 ss_disp_temp = scenarios.get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, week=week)

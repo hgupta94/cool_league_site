@@ -1,4 +1,4 @@
-from scripts.api.settings import TeamSettings
+from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.utils import constants as const
 import scripts.utils.utils as ut
 
@@ -48,6 +48,7 @@ def get_total_wins(h2h_data: pd.DataFrame,
 
 def get_wins_by_week(h2h_data: pd.DataFrame,
                      total_wins: pd.DataFrame,
+                     params: LeagueSettings,
                      teams: TeamSettings):
     """
     Calculate team's record vs league median for each week
@@ -58,6 +59,7 @@ def get_wins_by_week(h2h_data: pd.DataFrame,
     best_str = f'{int(wins_by_week.result.max())}-{int(wins_by_week.result.min())}'
     worst_str = f'{int(wins_by_week.result.min())}-{int(wins_by_week.result.max())}'
     wins_by_week_p = wins_by_week.pivot(index='team', columns='week', values='record')
+    wins_by_week_p = wins_by_week_p.reindex(columns=list(range(1, params.regular_season_end+1))).fillna('')
     wins_by_week_p['weeks_best'] = (wins_by_week_p == best_str).sum(axis=1).astype(str)
     wins_by_week_p['weeks_worst'] = (wins_by_week_p == worst_str).sum(axis=1).astype(str)
     return (

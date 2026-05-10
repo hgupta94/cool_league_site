@@ -92,7 +92,7 @@ def scenarios():
     headings_wk = tuple(
         ut.flatten_list(
             [
-                ['Team'], list(wins_by_week.columns[1:week]), ['# First', '# Last']
+                ['Team'], list(wins_by_week.columns[1:params.regular_season_end+1]), ['# First', '# Last']
             ]
         )
     )

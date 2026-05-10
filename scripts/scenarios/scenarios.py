@@ -1,11 +1,11 @@
-from scripts.api.Teams import Teams
+from scripts.api.settings import TeamSettings
 from scripts.utils import constants as const
 import scripts.utils.utils as ut
 
 import pandas as pd
 
 
-def get_h2h(teams: Teams, season: int, week: int):
+def get_h2h(teams: TeamSettings, season: int, week: int):
     """
     Create the h2h dataframe to use
     """
@@ -31,8 +31,8 @@ def get_h2h(teams: Teams, season: int, week: int):
 
 
 def get_total_wins(h2h_data: pd.DataFrame,
-                   teams: Teams,
-                   week):
+                   teams: TeamSettings,
+                   week: int):
     """
     Calculate team's total wins: sum of wins against all teams for each week
     """
@@ -48,7 +48,7 @@ def get_total_wins(h2h_data: pd.DataFrame,
 
 def get_wins_by_week(h2h_data: pd.DataFrame,
                      total_wins: pd.DataFrame,
-                     teams: Teams):
+                     teams: TeamSettings):
     """
     Calculate team's record vs league median for each week
     """
@@ -70,7 +70,7 @@ def get_wins_by_week(h2h_data: pd.DataFrame,
 def get_wins_vs_opp(h2h_data: pd.DataFrame,
                     total_wins: pd.DataFrame,
                     wins_by_week: pd.DataFrame,
-                    week):
+                    week: int):
     """
     Calculate team's record if he played every team each week
     """
@@ -89,7 +89,7 @@ def get_wins_vs_opp(h2h_data: pd.DataFrame,
     return wins_vs_opp_final.reset_index()
 
 
-def schedule_switcher(teams: Teams,
+def schedule_switcher(teams: TeamSettings,
                       season: int,
                       week: int):
     """

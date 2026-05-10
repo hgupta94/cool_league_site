@@ -15,7 +15,7 @@ import scipy.stats as stats
 import requests
 warnings.simplefilter(action='ignore')
 
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.utils.constants import POSITION_MAP
 
 # parameters

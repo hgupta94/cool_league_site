@@ -2,10 +2,9 @@ from typing import Any
 
 import pandas as pd
 
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.utils.database import Database
-from scripts.api.Settings import Params
-from scripts.api.Teams import Teams
+from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.utils import constants
 from scripts.utils import utils
 
@@ -15,8 +14,8 @@ class Standings:
         self.season = season
         self.week = week
         self.data = DataLoader(year=self.season, week=self.week)
-        self.teams = Teams(data=self.data)
-        self.params = Params(data=self.data)
+        self.params = LeagueSettings(data=self.data)
+        self.teams = TeamSettings(data=self.data)
         self.standings_df = pd.DataFrame(columns=['team', 'overall', 'overall_wins', 'win_perc',
                                                   'matchup', 'top_half', 'total_points'])
 

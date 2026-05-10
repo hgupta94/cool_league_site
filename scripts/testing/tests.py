@@ -1,6 +1,6 @@
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.api.Teams import Teams
-from scripts.api.Settings import Params
+from scripts.api.settings import Params
 from scripts.api.Rosters import Rosters
 from scripts.utils import (utils as ut, constants as const)
 from scripts.simulations.projections import (query_projections_db, simulate_week)
@@ -87,9 +87,9 @@ pr_df = pr_df.sort_values(['season', 'week', 'rank'])
 
 # Simulations Page
 # Week Sims
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.api.Teams import Teams
-from scripts.api.Settings import Params
+from scripts.api.settings import Params
 from scripts.api.Rosters import Rosters
 from scripts.utils import (utils as ut, constants as const)
 from scripts.simulations.projections import (query_projections_db, simulate_week, calculate_odds)

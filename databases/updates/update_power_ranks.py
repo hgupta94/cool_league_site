@@ -1,5 +1,5 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import LeagueSettings
 from scripts.utils.database import Database
 from scripts.utils import constants
 from scripts.home.power_ranks import power_rank
@@ -10,7 +10,7 @@ import pandas as pd
 pr_table = 'power_ranks'
 pr_cols = constants.POWER_RANK_COLUMNS
 data = DataLoader(year=constants.SEASON)
-params = Params(data=data)
+params = LeagueSettings(data=data)
 # week = params.as_of_week
 
 for week in range(3, params.current_week):

@@ -1,9 +1,7 @@
 from scripts.utils.utils import teamid_to_name
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.utils.database import Database
-from scripts.api.Settings import Params
-from scripts.api.Rosters import Rosters
-from scripts.api.Teams import Teams
+from scripts.api.settings import LeagueSettings, RosterSettings, TeamSettings
 from scripts.utils import constants
 
 import scipy.stats as st
@@ -124,7 +122,7 @@ def query_projections_db(season: int,
 
 
 def calculate_best_lineup(team_roster: dict,
-                          rosters: Rosters,
+                          rosters: RosterSettings,
                           n_flex: int = 1):
     positions = constants.POSITION_MAP
     slot_limits = rosters.slot_limits
@@ -164,9 +162,9 @@ def calculate_best_lineup(team_roster: dict,
 
 
 def get_best_lineup(week_data: dict,
-                    rosters: Rosters,
-                    params: Params,
-                    replacement_players: dict[float],
+                    rosters: RosterSettings,
+                    params: LeagueSettings,
+                    replacement_players: dict[str, float],
                     projections: list[dict],
                     week: int,
                     team_id: int) -> dict:
@@ -285,9 +283,9 @@ def simulate_lineup(lineup: dict) -> float:
 
 
 def simulate_matchup(week_data: DataLoader,
-                     rosters: Rosters,
-                     params: Params,
-                     replacement_players: dict[float],
+                     rosters: RosterSettings,
+                     params: LeagueSettings,
+                     replacement_players: dict[str, float],
                      week: int,
                      matchups: list[dict],
                      projections: list[dict]) -> list[dict]:
@@ -362,10 +360,10 @@ def simulate_matchup(week_data: DataLoader,
 
 
 def simulate_week(week_data: DataLoader,
-                  teams: Teams,
-                  rosters: Rosters,
-                  params: Params,
-                  replacement_players: dict[float],
+                  teams: TeamSettings,
+                  rosters: RosterSettings,
+                  params: LeagueSettings,
+                  replacement_players: dict[str, float],
                   matchups: list,
                   projections: list[dict],
                   week: int,
@@ -429,7 +427,7 @@ def calculate_odds(init_prob: dict) -> dict:
                 return '-'
 
 
-def get_matchup_id(teams: Teams,
+def get_matchup_id(teams: TeamSettings,
                    week: int,
                    team_id: int):
     """Get ESPN matchup ID for a team's matchup to display in UI table"""
@@ -486,10 +484,10 @@ def get_replacement_players(data: DataLoader,
 
 
 def get_ros_projections(data: DataLoader,
-                        params: Params,
-                        teams: Teams,
-                        rosters: Rosters,
-                        replacement_players: dict[float] = None):
+                        params: LeagueSettings,
+                        teams: TeamSettings,
+                        rosters: RosterSettings,
+                        replacement_players: dict[str, float] = None):
     """Get rest of season projections from ESPN for all rostered players"""
 
     projections_dict = {}
@@ -504,7 +502,7 @@ def get_ros_projections(data: DataLoader,
             team_name = ''
             for player in team['roster']['entries']:
                 player_id = player['playerId']
-                team_name = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=player['playerPoolEntry']['onTeamId'])
+                team_name = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=team['id'])
                 player_name = player['playerPoolEntry']['player']['fullName']
                 slot_id = player['lineupSlotId']
                 for pos in player['playerPoolEntry']['player']['eligibleSlots']:
@@ -575,8 +573,8 @@ def get_ros_projections(data: DataLoader,
     return projections_dict
 
 
-def simulate_season(params: Params,
-                    teams: Teams,
+def simulate_season(params: LeagueSettings,
+                    teams: TeamSettings,
                     lineups: dict,
                     team_names: list[str] = None):
     """Simulate a full regular season"""
@@ -643,7 +641,7 @@ def simulate_season(params: Params,
     return season_sim_dict
 
 
-def get_playoff_teams(params: Params,
+def get_playoff_teams(params: LeagueSettings,
                       sim_data: dict):
     """Calculate playoff teams: top 5 decided by total wins, final seed by most point out of remaining teams"""
     playoff_teams = []
@@ -661,12 +659,12 @@ def get_playoff_teams(params: Params,
 
 def sim_playoff_round(week: int,
                       lineups: dict,
-                      params: Params,
-                      teams: Teams,
-                      replacement_players: dict[float],
+                      params: LeagueSettings,
+                      teams: TeamSettings,
+                      replacement_players: dict[str, float],
                       projections: list[dict] = None,
                       week_data: DataLoader = None,
-                      rosters: Rosters = None,
+                      rosters: RosterSettings = None,
                       n_bye: int = None,
                       round_teams: list[str] = None,
                       matchups: list[dict] = None):

@@ -1,14 +1,13 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
-from scripts.api.Teams import Teams
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.utils.database import Database
 from scripts.home.standings import Standings
 from scripts.utils import constants
 
 
 data = DataLoader(year=constants.SEASON)
-teams = Teams(data=data)
-params = Params(data=data)
+params = LeagueSettings(data=data)
+teams = TeamSettings(data=data)
 # week = params.as_of_week
 # print(week)
 week=15

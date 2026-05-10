@@ -1,9 +1,7 @@
 import io
 import base64
 
-from scripts.api.Settings import Params
-from scripts.api.Rosters import Rosters
-from scripts.api.Teams import Teams
+from scripts.api.settings import LeagueSettings, RosterSettings, TeamSettings
 from scripts.utils.database import Database
 from scripts.utils import utils
 
@@ -15,9 +13,9 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 matplotlib.use('Agg')
 
 
-def get_optimal_points(params: Params,
-                       teams: Teams,
-                       rosters: Rosters,
+def get_optimal_points(params: LeagueSettings,
+                       teams: TeamSettings,
+                       rosters: RosterSettings,
                        week_data: dict,
                        season: int,
                        week: int):

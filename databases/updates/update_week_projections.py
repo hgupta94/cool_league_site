@@ -1,5 +1,5 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import LeagueSettings
 from scripts.simulations.simulations import get_week_projections
 from scripts.utils.database import Database
 from scripts.utils import constants
@@ -9,7 +9,7 @@ import mysql.connector.errors
 wk_proj_table = 'player_projections'
 wk_proj_cols = constants.PROJECTIONS_COLUMNS
 datal = DataLoader(year=constants.SEASON)
-params = Params(data=datal)
+params = LeagueSettings(data=datal)
 week = params.current_week
 players = DataLoader().players_info()['players']
 

@@ -1,8 +1,7 @@
-from scripts.api.DataLoader import DataLoader
+from scripts.api.dataloader import DataLoader
 from scripts.home.standings import Standings
 from scripts.utils.database import Database
-from scripts.api.Settings import Params
-from scripts.api.Teams import Teams
+from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.utils import constants
 from scripts.utils.utils import (
     flatten_list,
@@ -45,8 +44,8 @@ def get_all_time_standings(last_season):
         print(season)
         # get playoff appearances
         data = DataLoader(year=season)
-        params = Params(data=data)
-        teams = Teams(data=data)
+        params = LeagueSettings(data=data)
+        teams = TeamSettings(data=data)
         team_data = data.teams()
         for team in team_data['teams']:
             playoff_seed = team['rankCalculatedFinal']
@@ -139,7 +138,7 @@ def get_standings_records(last_season):
     for s in range(2018, last_season + 1):
         print(s)
         data = DataLoader(year=s)
-        params = Params(data)
+        params = LeagueSettings(data)
         regular_season_end = params.regular_season_end
         standings = Standings(season=s, week=regular_season_end+1)
         standings_df = standings.format_standings()
@@ -282,8 +281,8 @@ def get_matchup_records(last_season):
     for s in range(2018, last_season + 1):
         print(s)
         data = DataLoader(year=s)
-        params = Params(data)
-        teams = Teams(data)
+        params = LeagueSettings(data)
+        teams = TeamSettings(data)
         regular_season_end = params.regular_season_end
         matchups = data.matchups()
         for m in matchups['schedule']:
@@ -354,8 +353,8 @@ def get_per_stat_records(last_season):
     for s in range(2019, last_season + 1):
         print(s)
         data = DataLoader(year=s)
-        teams = Teams(data=data)
-        params = Params(data)
+        params = LeagueSettings(data)
+        teams = TeamSettings(data=data)
         regular_season_end = params.regular_season_end
         matchups = data.matchups()
         for m in matchups['schedule']:
@@ -400,8 +399,8 @@ def get_stat_group_records(last_season):
     for s in range(2019, last_season + 1):
         print(s)
         data = DataLoader(year=s)
-        teams = Teams(data=data)
-        params = Params(data)
+        params = LeagueSettings(data)
+        teams = TeamSettings(data=data)
         regular_season_end = params.regular_season_end
         matchups = data.matchups()
         for m in matchups['schedule']:
@@ -446,8 +445,8 @@ def get_most_points_by_position(last_season):
     for s in range(2018, last_season + 1):
         print(s)
         data = DataLoader(year=s)
-        teams_info = Teams(data=data)
-        params = Params(data)
+        params = LeagueSettings(data)
+        teams_info = TeamSettings(data=data)
         regular_season_end = params.regular_season_end
         for w in range(1, regular_season_end + 1):
             teams_data = data.load_week(w)['teams']

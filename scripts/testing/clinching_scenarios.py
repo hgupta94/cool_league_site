@@ -1,5 +1,5 @@
-from scripts.api.DataLoader import DataLoader
-from scripts.api.Settings import Params
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import Params
 from scripts.api.Teams import Teams
 from scripts.utils import constants
 from scripts.home.playoff_scenarios import PlayoffScenarios

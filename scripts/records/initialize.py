@@ -249,7 +249,7 @@ def get_tophalf_records():
     # closest tophalf matchup
     closest = matchups[matchups.med_diff.round(2) == round(matchups.med_diff.min(), 2)]
     holder_str = f'{closest.team.values[0]} ({closest.score.values[0]:.2f})-{closest.team.values[1]} ({closest.score.values[1]:.2f})'
-    closest_row = ('Closest Top Half Matchup', f'{matchups.med_diff.min() * 2:.2f}', holder_str, closest.season.values[0], closest.week.values[0])
+    closest_row = ('Closest Top Half Difference', f'{matchups.med_diff.min() * 2:.2f}', holder_str, closest.season.values[0], closest.week.values[0])
 
     # biggest tophalf matchup disparity
     furthest = matchups[(matchups.med_rank == matchups.n_teams) | (matchups.med_rank == matchups.n_teams+1)]
@@ -278,6 +278,7 @@ def get_matchup_records(last_season):
     least_matchup_points = 999
     closest_matchup = 999
     biggest_blowout = -999
+    most_points = -999
     for s in range(2018, last_season + 1):
         print(s)
         data = DataLoader(year=s)
@@ -298,7 +299,18 @@ def get_matchup_records(last_season):
                     tm1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
                     tm2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
-                    most_points_row = ('Most Matchup Points', f'{total:.2f}', holder_str, s, week)
+                    most_matchup_points_row = ('Most Matchup Points', f'{total:.2f}', holder_str, s, week)
+
+                most_points_check = max([tm1_score, tm2_score]) > most_points
+                if most_points_check:
+                    the_score = max([tm1_score, tm2_score])
+                    most_points = the_score
+                    the_team = (
+                        teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
+                        if m['home']['totalPoints'] == the_score else
+                        teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
+                    )
+                    most_points_row = ('Most Points', f'{the_score:.2f}', the_team, s, week)
 
                 least_points_check = total < least_matchup_points
                 if least_points_check:
@@ -306,7 +318,7 @@ def get_matchup_records(last_season):
                     tm1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
                     tm2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
                     holder_str = f'{tm1} ({tm1_score:.2f})-{tm2} ({tm2_score:.2f})'
-                    least_points_row = ('Fewest Matchup Points', f'{total:.2f}', holder_str, s, week)
+                    least_matchup_points_row = ('Fewest Matchup Points', f'{total:.2f}', holder_str, s, week)
 
                 diff = abs(round(tm1_score - tm2_score, 2))
                 closest_matchup_check = diff < closest_matchup
@@ -327,7 +339,8 @@ def get_matchup_records(last_season):
 
     return pd.DataFrame([
         most_points_row,
-        least_points_row,
+        most_matchup_points_row,
+        least_matchup_points_row,
         closest_matchup_row,
         biggest_blowout_row
     ],

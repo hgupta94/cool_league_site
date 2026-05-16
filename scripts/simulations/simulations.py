@@ -8,7 +8,6 @@ import scipy.stats as st
 import pandas as pd
 import numpy as np
 import difflib
-import random
 pd.options.mode.chained_assignment = None
 
 
@@ -105,8 +104,8 @@ def get_week_projections(week: int) -> pd.DataFrame:
 
 
 def query_projections_db(season: int,
-                         week: int) -> pd.DataFrame:
-    cols = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receptions', 'projection', 'created']
+                         week: int) -> dict:
+    cols = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receptions', 'projection', 'actual', 'created']
     with Database() as conn:
         c = conn.cursor()
         query = f'''
@@ -118,7 +117,7 @@ def query_projections_db(season: int,
         result = c.fetchall()
         df = pd.DataFrame(result)
         df.columns = cols
-    return df[['name', 'espn_id', 'projection']]
+    return df[['name', 'espn_id', 'projection']].to_dict(orient='records')
 
 
 def calculate_best_lineup(team_roster: dict,
@@ -232,9 +231,9 @@ def get_best_lineup(week_data: dict,
                 'lineup_slot': lineup_slot,
                 'position_id': position_id,
                 'position': position,
-                'actual': actual,
+                'actual': 0,
                 'projection': projection,
-                'played': played
+                'played': 0
             }
 
     # check if roster is full, if not fill with replacement player
@@ -304,58 +303,43 @@ def simulate_matchup(week_data: DataLoader,
     Returns:
         game id, team, simulated score, and simulated result for each team
     """
-
     matchup_sim = []
     for idx, m in enumerate(matchups):
+        matchup = {}
         game_id = idx + 1  # used to group matchups for website
 
-        team1 = m['team1']
-        lineup1 = get_best_lineup(week_data=week_data,
-                                  rosters=rosters,
-                                  params=params,
-                                  replacement_players=replacement_players,
-                                  projections=projections,
-                                  week=week,
-                                  team_id=team1)
-        sim1 = simulate_lineup(lineup1)
+        sim_scores = {}
+        for tm in m['teams']:
+            team_id = tm['team_id']
+            team_name = tm['team_disp']
+            lineup = get_best_lineup(week_data=week_data,
+                                     rosters=rosters,
+                                     params=params,
+                                     replacement_players=replacement_players,
+                                     projections=projections,
+                                     week=week,
+                                     team_id=team_id)
+            score = simulate_lineup(lineup)
+            sim_scores[team_name] = simulate_lineup(lineup)
 
-        if 'team2' in m:
-            team2 = m['team2']
-            lineup2 = get_best_lineup(week_data=week_data,
-                                      rosters=rosters,
-                                      params=params,
-                                      replacement_players=replacement_players,
-                                      projections=projections,
-                                      week=week,
-                                      team_id=team2)
-            sim2 = simulate_lineup(lineup2)
-
-            # redo sim if they are somehow tied
-            if sim1 == sim2:
-                sim1 = simulate_lineup(lineup1)
-                sim2 = simulate_lineup(lineup2)
-
-            matchup_sim.append({
+            matchup[team_name] = {
                 'game_id': game_id,
-                'team': team1,
-                'score': sim1,
-                'result': 1 if sim1 > sim2 else 0
-            })
+                'team_id': team_id,
+                'score': score
+            }
 
-            matchup_sim.append({
-                'game_id': game_id,
-                'team': team2,
-                'score': sim2,
-                'result': 1 if sim2 > sim1 else 0
-            })
-        else:
-            # team has no opponent (playoff bye)
-            matchup_sim.append({
-                'game_id': game_id,
-                'team': team1,
-                'score': sim1,
-                'result': 1
-            })
+        # get matchup result
+        teams = list(sim_scores.keys())
+        scores = list(sim_scores.values())
+        if scores[0] > scores[1]:
+            matchup[teams[0]]['result'] = 1
+            matchup[teams[1]]['result'] = 0
+        elif scores[0] < scores[1]:
+            matchup[teams[0]]['result'] = 0
+            matchup[teams[1]]['result'] = 1
+        else:  # tie
+            matchup[teams[0]]['result'], matchup[teams[1]]['result'] = 0.5, 0.5
+        matchup_sim.append(matchup)
     return matchup_sim
 
 
@@ -371,14 +355,15 @@ def simulate_week(week_data: DataLoader,
     """Simulate a week n_sims times and calculate number of occurrences for each category below"""
 
     # initialize counters
-    n_scores  = {key: 0 for key in teams.team_ids}
-    n_wins    = {key: 0 for key in teams.team_ids}
-    n_tophalf = {key: 0 for key in teams.team_ids}
-    n_highest = {key: 0 for key in teams.team_ids}
-    n_lowest  = {key: 0 for key in teams.team_ids}
+    n_scores  = {key: 0 for key in teams.teams}
+    n_wins    = {key: 0 for key in teams.teams}
+    n_tophalf = {key: 0 for key in teams.teams}
+    n_highest = {key: 0 for key in teams.teams}
+    n_lowest  = {key: 0 for key in teams.teams}
+
+    # run simulation
     for i, sim in enumerate(range(n_sims)):
-        # if i % 1000 == 0: print(f'{i+1}/{n_sims}', end='\r')
-        random.seed(random.randrange(n_sims))
+        print(f'{i}/{n_sims}', end='\r')
         matchup_sim = simulate_matchup(week_data=week_data,
                                        rosters=rosters,
                                        params=params,
@@ -388,19 +373,29 @@ def simulate_week(week_data: DataLoader,
                                        projections=projections)
 
         # update counters after simulation
-        for team in matchup_sim:
-            n_scores[team['team']] += team['score']
-            if team['result'] == 1:
-                n_wins[team['team']] += 1
+        # get matchup winners
+        scores = []
+        for matchup in matchup_sim:
+            for team, result in matchup.items():
+                scores.append(result['score'])
+                n_scores[team] += result['score']
+                if result['result'] == 1:
+                    n_wins[team] += 1
 
-        for_tophalf = sorted(matchup_sim, key=lambda d: d['score'], reverse=True)[:int((len(teams.team_ids)/2))]
-        for team in for_tophalf:
-            n_tophalf[team['team']] += 1
+        # get tophalf winners, highest and lowest scores
+        max_score = max(scores)
+        min_score = min(scores)
+        median_score = sum(sorted(scores)[(len(teams.teams) // 2) - 1:(len(teams.teams) // 2) + 1]) / 2
+        for matchup in matchup_sim:
+            for team, result in matchup.items():
+                if result['score'] > median_score:
+                    n_tophalf[team] += 1
+                if result['score'] == min_score:
+                    n_lowest[team] += 1
+                if result['score'] == max_score:
+                    n_highest[team] += 1
 
-        n_highest[max(matchup_sim, key=lambda x: x['score'])['team']] += 1
-        n_lowest[min(matchup_sim, key=lambda x: x['score'])['team']] += 1
-
-    return [n_scores, n_wins, n_tophalf, n_highest, n_lowest]
+    return n_scores, n_wins, n_tophalf, n_highest, n_lowest
 
 
 def calculate_odds(init_prob: dict) -> dict:
@@ -430,16 +425,12 @@ def calculate_odds(init_prob: dict) -> dict:
 def get_matchup_id(teams: TeamSettings,
                    week: int,
                    team_id: int):
-    """Get ESPN matchup ID for a team's matchup to display in UI table"""
-    for m in teams._fetch_matchups():
-        if m['week'] == week:
-            if m.get('team1') == team_id or m.get('team2') == team_id:
-                if m.get('team2'):
-                    matchup_id = int((len(teams.team_ids) / 2) - ((week * len(teams.team_ids) / 2) - m['matchup_id']))
-                    return matchup_id
-                else:
-                    # no team2 > team1 has playoff bye
-                    return 99
+    """Create a matchup ID for a team's matchup to display in UI table"""
+    matchups = [m for m in teams.matchups if m['week'] == week]
+    for m in matchups:
+        if any([t['team_disp'] == team_id for t in m['teams']]):  # the current team name is present in the matchup
+            return int((len(teams.team_ids) // 2) - ((week * len(teams.team_ids) / 2) - m['matchup_id']))
+    return None
 
 
 def get_replacement_players(data: DataLoader,
@@ -581,44 +572,45 @@ def simulate_season(params: LeagueSettings,
     all_weeks = []
     for week, team_lineups in lineups.items():
         if week <= params.regular_season_end:
-            matchups = [m for m in teams.matchups['schedule'] if m['matchupPeriodId'] == week]
+            matchups = [m for m in teams.matchups if m['week'] == week]
             matchup_sim = []
-            scores = []
-            for idx, m in enumerate(matchups):
-                team1 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['away']['teamId'])
-                lineup1 = team_lineups[team1]
-                sim1 = simulate_lineup(lineup1)
+            all_scores = []  # for tophalf results
+            for _, m in enumerate(matchups):  # entering a matchup
+                sim_scores = {}  # for matchup result
+                matchup = {}
+                for team_sim in m['teams']:  # entering a team in a matchup
+                    lineup = team_lineups[team_sim['team_disp']]
+                    score = simulate_lineup(lineup)
+                    all_scores.append(score)
+                    sim_scores[team_sim['team_disp']] = score
 
-                team2 = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m['home']['teamId'])
-                lineup2 = team_lineups[team2]
-                sim2 = simulate_lineup(lineup2)
+                    matchup[team_sim['team_disp']] = {
+                        'team_id': team_sim['team_id'],
+                        'team_disp': team_sim['team_disp'],
+                        'score': score
+                    }
 
-                # redo sim if they are somehow tied
-                if sim1 == sim2:
-                    sim1 = simulate_lineup(lineup1)
-                    sim2 = simulate_lineup(lineup2)
-                scores.append(sim1)
-                scores.append(sim2)
+                # get matchup result
+                m_teams = list(sim_scores.keys())
+                scores = list(sim_scores.values())
+                if scores[0] > scores[1]:
+                    matchup[m_teams[0]]['matchup'] = 1
+                    matchup[m_teams[1]]['matchup'] = 0
+                elif scores[0] < scores[1]:
+                    matchup[m_teams[0]]['matchup'] = 0
+                    matchup[m_teams[1]]['matchup'] = 1
+                else:  # tie
+                    matchup[m_teams[0]]['matchup'], matchup[m_teams[1]]['matchup'] = 0.5, 0.5
+                matchup_sim.append(matchup)
 
-                matchup_sim.append({
-                    'team': team1,
-                    'score': sim1,
-                    'matchup_result': 1 if sim1 > sim2 else 0
-                })
-
-                matchup_sim.append({
-                    'team': team2,
-                    'score': sim2,
-                    'matchup_result': 1 if sim2 > sim1 else 0
-                })
-            for team_result in matchup_sim:
-                if team_result['score'] > np.median(scores):
-                    team_result['tophalf_result'] = 1
-                elif team_result['score'] == np.median(scores):
-                    team_result['tophalf_result'] = 0.5
-                else:
-                    team_result['tophalf_result'] = 0
-                team_result['total_wins'] = team_result['matchup_result'] + team_result['tophalf_result']
+            # get tophalf result
+            median = sum(sorted(all_scores)[(len(all_scores) // 2) - 1:(len(all_scores) // 2) + 1]) / 2
+            for matchup in matchup_sim:
+                for team, result in matchup.items():
+                    if result['score'] > median:
+                        matchup[team]['tophalf'] = 1
+                    else:
+                        matchup[team]['tophalf'] = 0
             all_weeks.append(matchup_sim)
 
     season_sim_dict = {}
@@ -627,17 +619,18 @@ def simulate_season(params: LeagueSettings,
         team_m_wins = 0
         team_th_wins = 0
         for week in all_weeks:
-            team_data = [d for d in week if d['team'] == team]
-            team_points += [x for x in team_data if x['team'] == team][0]['score']
-            team_m_wins += [x for x in team_data if x['team'] == team][0]['matchup_result']
-            team_th_wins += [x for x in team_data if x['team'] == team][0]['tophalf_result']
+            for matchup in week:
+                for t, result in matchup.items():
+                    if t == team:
+                        team_points += result['score']
+                        team_m_wins += result['matchup']
+                        team_th_wins += result['tophalf']
         season_sim_dict[team] = {
             'matchup_wins': team_m_wins,
             'tophalf_wins': team_th_wins,
             'total_wins': team_m_wins + team_th_wins,
             'total_points': team_points
         }
-
     return season_sim_dict
 
 

@@ -7,5 +7,6 @@ CREATE TABLE player_projections (
     position VARCHAR(255),
     receptions FLOAT,
     projection FLOAT,
+    actual FLOAT,
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

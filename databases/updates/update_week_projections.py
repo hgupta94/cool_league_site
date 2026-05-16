@@ -13,9 +13,10 @@ params = LeagueSettings(data=datal)
 week = params.current_week
 players = DataLoader().players_info()['players']
 
-data = get_week_projections(players=players, week=week)
+data = get_week_projections(week=week)
 data = data[['id', 'season', 'week', 'player', 'espn_id', 'position', 'rec', 'fpts']]
-data.columns = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receptions', 'projection']
+data['actual'] = None
+data.columns = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receptions', 'projection', 'actual']
 for idx, row in data.iterrows():
     vals = (row.id, row.season, row.week, row['name'],
             row.espn_id, row.position, row.receptions, row.projection)

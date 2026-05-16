@@ -12,8 +12,7 @@ class LeagueSettings:
         self.league_size = settings['settings']['size']
         self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())
         self.regular_season_end = settings['settings']['scheduleSettings']['matchupPeriodCount']
-        self.current_week = 1 #settings['scoringPeriodId']
-        self.as_of_week = self.current_week-1  # just finished
+        self.current_week = settings['scoringPeriodId']
         self.as_of_week = 0 if self.current_week-1 < 0 else self.current_week-1  # just finished
         self.playoff_teams = settings['settings']['scheduleSettings']['playoffTeamCount']
         self.playoff_matchup_length = settings['settings']['scheduleSettings']['playoffMatchupPeriodLength']
@@ -115,26 +114,44 @@ class TeamSettings:
         :returns: Dictionary containing a team's matchup results
         """
         matchups_list = self._fetch_matchups()
-        home_remap = {'team1': 'team',
-                      'score1': 'score',
-                      'team2': 'opponent',
-                      'score2': 'opponent_score'}
-        away_remap = {'team2': 'team',
-                      'score2': 'score',
-                      'team1': 'opponent',
-                      'score1': 'opponent_score'}
-        team_schedule_home = [x for x in matchups_list if x['team1'] == team_id]
-        team_schedule_home = [{home_remap.get(k, k): v for k, v in d.items()} for d in team_schedule_home]
-        team_schedule_away = [x for x in matchups_list if 'team2' in x and x['team2'] == team_id]
-        team_schedule_away = [{away_remap.get(k, k): v for k, v in d.items()} for d in team_schedule_away]
-        team_schedule_home.extend(team_schedule_away)
-        team_schedule = sorted(team_schedule_home, key=lambda d: d['week'])
-        for d in team_schedule:
-            if 'opponent_score' in d:
-                d['result'] = 1.0 if d['score'] > d['opponent_score'] else 0.5 if d['score'] == d['opponent_score'] else 0.0
-            else:
-                d['result'] = None
-        return team_schedule
+        matchups = []
+        for matchup in matchups_list:
+            teams = matchup['teams']
+            if len(teams) != 2:
+                continue  # skip incomplete matchups
+            if teams[0]['team_id'] == team_id or teams[1]['team_id'] == team_id:
+                if teams[0]['team_id'] == team_id:
+                    team_score = teams[0]['score']
+                    team_disp = teams[0]['team_disp']
+                    opp_id = teams[1]['team_id']
+                    opp_score = teams[1]['score']
+                    opp_disp = teams[1]['team_disp']
+                else:
+                    team_score = teams[1]['score']
+                    team_disp = teams[0]['team_disp']
+                    opp_id = teams[0]['team_id']
+                    opp_score = teams[0]['score']
+                    opp_disp = teams[1]['team_disp']
+
+                # get matchup result
+                if team_score > opp_score:
+                    result = 1
+                elif team_score < opp_score:
+                    result = 0
+                else:
+                    result = 0.5
+                matchups.append({
+                    'week': matchup['week'],
+                    'team_id': team_id,
+                    'team_disp': team_disp,
+                    'team_score': team_score,
+                    'opponent_id': opp_id,
+                    'opponent_disp': opp_disp,
+                    'opponent_score': opp_score,
+                    'result': result
+                })
+
+        return matchups
 
     def team_scores(self, team_id: int) -> list[float]:
         """
@@ -153,15 +170,14 @@ class TeamSettings:
         :returns: League median score used to calculate top half results
         """
         matchups = self._fetch_matchups()
-        scores = utils.flatten_list(
-            [
-                list({
-                    d[k] for k in ['score1', 'score2'] if k in d
-                })
-                for d in matchups if d['week'] == week
-            ]
-        )
-        return float(round(np.median(scores), 2))
+        scores = []
+        for m in matchups:
+            if m['week'] == week:
+                for tm in m['teams']:
+                    if 'score' in tm:
+                        scores.append(tm['score'])
+
+        return sum(sorted(scores)[(len(scores) // 2) - 1: (len(scores) // 2) + 1]) / 2
 
     def get_all_faab_remaining(self):
         """

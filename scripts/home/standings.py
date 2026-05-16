@@ -275,17 +275,14 @@ class Standings:
 
         matchups = self.teams.team_schedule(team_id)
         matchups_filter = [{k: v for k, v in d.items()} for d in matchups if d.get('week') == week][0]
-        if matchups_filter.get('opponent'):
-            opponent_display_name = utils.teamid_to_name(ids=constants.TEAM_IDS, teams=self.teams, teamid=matchups_filter['opponent'])
-            # opponent_display_name = constants.TEAM_IDS[self.teams.teamid_to_primowner[matchups_filter['opponent']]]['name']['display']
-        else:
-            opponent_display_name = None
         matchup_result = matchups_filter['result']
-        th_result = 1.0 if matchups_filter['score'] > week_median else 0.5 if matchups_filter['score'] == week_median else 0.0
-        score = matchups_filter['score']
+        th_result = 1.0 if matchups_filter['team_score'] > week_median else 0.5 if matchups_filter['team_score'] == week_median else 0.0
+        score = matchups_filter['team_score']
         if matchups_filter.get('opponent_score'):
+            opp_name = matchups_filter['opponent_disp']
             opp_score = matchups_filter['opponent_score']
         else:
+            opp_name = None
             opp_score = None
 
 
@@ -295,7 +292,7 @@ class Standings:
             'week': week,
             'team': display_name,
             'score': score,
-            'opponent': opponent_display_name,
+            'opponent': opp_name,
             'opponent_score': opp_score,
             'matchup_result': matchup_result,
             'top_half_result': th_result

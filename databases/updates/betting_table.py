@@ -14,7 +14,7 @@ import time
 week_sim_table = 'betting_table'
 week_sim_cols = constants.WEEK_SIM_COLUMNS
 day = dt.now().strftime('%a')
-n_sims = 10
+n_sims = 1
 
 data = DataLoader(year=constants.SEASON)
 rosters = RosterSettings(year=constants.SEASON)
@@ -23,7 +23,7 @@ teams = TeamSettings(data=data)
 week = params.current_week
 
 week_data = data.load_week(week=week)
-matchups = [m for m in teams._fetch_matchups() if m['week'] == week]
+matchups = [m for m in teams.matchups if m['week'] == week]
 projections_df = simulations.get_week_projections(week=params.current_week)
 projections_df.columns = ['name', 'projection', 'position', 'receptions', 'team', 'season', 'week', 'match_on', 'id', 'espn_id']
 projections_dict = projections_df.to_dict(orient='records')
@@ -41,19 +41,19 @@ sim_scores, sim_wins, sim_tophalf, sim_highest, sim_lowest = simulations.simulat
                                                                                        n_sims=n_sims)
 end = time.perf_counter()
 
-for team in teams.team_ids:
-    display_name = constants.TEAM_IDS[teams.teamid_to_primowner[team]]['name']['display']
+for team in teams.teams:
+    db_id = f'{constants.SEASON}_{week:02d}_{team}'
     if day in ['Thu', 'Sun']:  # save out on gameday. TODO check if game is being played today (ie saturday/christmas/weird schedule)
-        db_id = f'{constants.SEASON}_{week:02d}_{display_name}_{day}'
-    else:
-        db_id = f'{constants.SEASON}_{week:02d}_{display_name}'
+        db_id += f'_{day}'
     matchup_id = simulations.get_matchup_id(teams=teams, week=week, team_id=team)
+    if matchup_id is None:  # byes?
+        matchup_id = 99
     avg_score = sim_scores[team] / n_sims
     p_win = sim_wins[team] / n_sims
     p_tophalf = sim_tophalf[team] / n_sims
     p_highest = sim_highest[team] / n_sims
     p_lowest = sim_lowest[team] / n_sims
-    week_sim_vals = (db_id, constants.SEASON, week, matchup_id, display_name, avg_score, p_win, p_tophalf, p_highest, p_lowest)
+    week_sim_vals = (db_id, constants.SEASON, week, matchup_id, team, avg_score, p_win, p_tophalf, p_highest, p_lowest)
     print(week_sim_vals)
     try:
         db = Database(table=week_sim_table, columns=week_sim_cols, values=week_sim_vals)

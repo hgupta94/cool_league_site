@@ -12,7 +12,8 @@ class LeagueSettings:
         self.league_size = settings['settings']['size']
         self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())
         self.regular_season_end = settings['settings']['scheduleSettings']['matchupPeriodCount']
-        self.current_week = settings['scoringPeriodId']
+        self.current_week = 1 #settings['scoringPeriodId']
+        self.as_of_week = self.current_week-1  # just finished
         self.as_of_week = 0 if self.current_week-1 < 0 else self.current_week-1  # just finished
         self.playoff_teams = settings['settings']['scheduleSettings']['playoffTeamCount']
         self.playoff_matchup_length = settings['settings']['scheduleSettings']['playoffMatchupPeriodLength']
@@ -47,9 +48,9 @@ class RosterSettings:
 
 class TeamSettings:
     def __init__(self, data):
-        self.settings = data.settings()
-        self.teams = data.teams()
-        self.matchups = data.matchups()
+        self._data = data
+        self.settings = self._data.settings()
+        self.teams = self._data.teams()
 
         self.team_ids = []
         self.owner_ids = []
@@ -63,6 +64,7 @@ class TeamSettings:
             self.primowner_to_teamid[o_id] = t_id
             self.teamid_to_primowner[t_id] = o_id
 
+        self.matchups = self._fetch_matchups()
         self.teams = []
         for team in self.teamid_to_primowner:
             self.teams.append(self._teamid_to_display(team))
@@ -73,42 +75,38 @@ class TeamSettings:
         """Convert ESPN team ID to display name"""
         return const.TEAM_IDS[self.teamid_to_primowner[teamid]]['name']['display']
 
-    def _fetch_matchups(self) -> dict:
+    def _fetch_matchups(self) -> list[dict]:
         """
         Fetch and format all matchups for the current season
         :returns: Dictionary containing matchup data
         """
-        matchups_list = []
-        for m in self.matchups['schedule']:
+        matchups = []
+        for m in self._data.matchups()['schedule']:
             week = m['matchupPeriodId']
             game_type = 'REG' if week <= self.settings['settings']['scheduleSettings']['matchupPeriodCount'] else 'POST'
             matchup_id = m['id']
-            team1 = m['home']['teamId']
-            score1 = m['home']['totalPoints']
-            if 'away' in m:
-                team2 = m['away']['teamId']
-                score2 = m['away']['totalPoints']
-
-                temp = {
-                    'week': week,
-                    'matchup_id': matchup_id,
-                    'team1': team1,
-                    'score1': score1,
-                    'team2': team2,
-                    'score2': score2,
-                    'type': game_type
-                }
-            else:
-                # team has playoff bye
-                temp = {
-                    'week': week,
-                    'matchup_id': matchup_id,
-                    'team1': team1,
-                    'score1': score1,
-                    'type': game_type
-                }
-            matchups_list.append(temp)
-        return matchups_list
+            matchup = {
+                'matchup_id': matchup_id,
+                'week': week,
+                'game_type': game_type
+            }
+            teams = []
+            for i, tm in enumerate(['home', 'away']):
+                try:
+                    team_id = m[tm]['teamId']
+                    team_disp = self._teamid_to_display(team_id)
+                    score = m[tm]['totalPoints']
+                    team = {
+                        'team_id': team_id,
+                        'team_disp': team_disp,
+                        'score': score
+                    }
+                    teams.append(team)
+                except KeyError:
+                    continue
+            matchup['teams'] = teams
+            matchups.append(matchup)
+        return matchups
 
     def team_schedule(self, team_id: int) -> dict:
         """

@@ -1,8 +1,5 @@
 from scripts.api.dataloader import DataLoader
 from scripts.utils import constants as const
-from scripts.utils import utils
-
-import numpy as np
 
 
 class LeagueSettings:
@@ -128,10 +125,10 @@ class TeamSettings:
                     opp_disp = teams[1]['team_disp']
                 else:
                     team_score = teams[1]['score']
-                    team_disp = teams[0]['team_disp']
+                    team_disp = teams[1]['team_disp']
                     opp_id = teams[0]['team_id']
                     opp_score = teams[0]['score']
-                    opp_disp = teams[1]['team_disp']
+                    opp_disp = teams[0]['team_disp']
 
                 # get matchup result
                 if team_score > opp_score:

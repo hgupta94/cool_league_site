@@ -48,49 +48,53 @@ records_df = Database(table='records').retrieve_data(how='all')
 # HOME PAGE
 standings = Standings(season=season, week=week)
 standings_df = standings.format_standings()
-clinches = standings.clinching_scenarios()
-ps = PlayoffScenarios(data=data, params=params, teams=teams)
-bye_scens = ps.get_new_clinches(seed=2)
-playoff_scens = ps.get_new_clinches(seed=5)
-magic_numbers = ps.get_magic_numbers()
-standings_df['bye_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('bye', None))
-standings_df['playoff_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('playoff', None))
-def format_prob(p):
-    if 0 < p <= 0.001:
-        return "<0.1%"
-    elif .999 <= p < 1:
-        return ">99.9%"
-    else:
-        return f"{p*100:.1f}%"
+standings_df['bye_magic_number'] = '-'
+standings_df['playoff_magic_number'] = '-'
+clinches = {'clinches': [], 'eliminations': []}
+if week > 1:
+    clinches = standings.clinching_scenarios()
+    ps = PlayoffScenarios(data=data, params=params, teams=teams)
+    bye_scens = ps.get_new_clinches(seed=2)
+    playoff_scens = ps.get_new_clinches(seed=5)
+    magic_numbers = ps.get_magic_numbers()
+    standings_df['bye_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('bye', None))
+    standings_df['playoff_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('playoff', None))
+    def format_prob(p):
+        if 0 < p <= 0.001:
+            return "<0.1%"
+        elif .999 <= p < 1:
+            return ">99.9%"
+        else:
+            return f"{p*100:.1f}%"
 
-for s in clinches['clinches']:
-    if s[1] == 'Bye':
-        try:
-            prob = f'{format_prob(bye_scens[s[0]]['p_clinch'])}'
-        except KeyError:
-            prob = f'0.0%'
-        s.extend([prob])
-    else:
-        try:
-            prob = f'{format_prob(playoff_scens[s[0]]['p_clinch'])}'
-        except KeyError:
-            prob = f'0.0%'
-        s.extend([prob])
+    for s in clinches['clinches']:
+        if s[1] == 'Bye':
+            try:
+                prob = f'{format_prob(bye_scens[s[0]]['p_clinch'])}'
+            except KeyError:
+                prob = f'0.0%'
+            s.extend([prob])
+        else:
+            try:
+                prob = f'{format_prob(playoff_scens[s[0]]['p_clinch'])}'
+            except KeyError:
+                prob = f'0.0%'
+            s.extend([prob])
 
-for s in clinches['eliminations']:
-    if s[1] == 'Bye':
-        try:
-            prob = f'{format_prob(bye_scens[s[0]]['p_elim'])}'
-        except KeyError:
-            prob = f'0.0%'
-        s.extend([prob])
-    else:
-        try:
-            prob = f'{format_prob(playoff_scens[s[0]]['p_elim'])}'
-        except KeyError:
-            prob = f'0.0%'
-        s.extend([prob])
-# TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
+    for s in clinches['eliminations']:
+        if s[1] == 'Bye':
+            try:
+                prob = f'{format_prob(bye_scens[s[0]]['p_elim'])}'
+            except KeyError:
+                prob = f'0.0%'
+            s.extend([prob])
+        else:
+            try:
+                prob = f'{format_prob(playoff_scens[s[0]]['p_elim'])}'
+            except KeyError:
+                prob = f'0.0%'
+            s.extend([prob])
+    # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
 
 
 pr_data = db_pr.retrieve_data(how='season')
@@ -138,8 +142,9 @@ season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().ren
 # SCENARIOS PAGE
 h2h_data = h2h_data[h2h_data.week <= params.regular_season_end]
 total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)
-wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, params=params, teams=teams)
-wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)
+if week > 1:
+    wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, params=params, teams=teams)
+    wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)
 
 ss_disp_temp = scenarios.get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, week=week)
 ss_luck = pd.DataFrame.from_dict(scenarios.calculate_schedule_luck(ss_data), orient='index').reset_index().rename(columns={'index':'team', 0:'Luck'})

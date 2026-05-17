@@ -160,7 +160,7 @@ class TeamSettings:
         :returns: All scores for a fantasy team
         """
         team_schedule = self.team_schedule(team_id=team_id)
-        team_scores = [d['score'] for d in team_schedule if 'score' in d]
+        team_scores = [d['team_score'] for d in team_schedule if 'team_score' in d]
         return team_scores
 
     def week_median(self, week: int) -> float:

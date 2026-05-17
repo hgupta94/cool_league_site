@@ -153,7 +153,7 @@ caption {font-size: small;}
 
     // define axis scales
     const xScale = d3.scaleLinear()
-  	  .domain([1, d3.max(data, xValue)])
+  	  .domain([0, 14])
   	  .range([0, innerWidth-250])
       .nice();
 
@@ -321,7 +321,7 @@ render(data, 'power_rank', 50);
 
     // define scales
     const xScale = d3.scaleLinear()
-  	  .domain([1, d3.max(data, xValue)])
+  	  .domain([0, 14])
   	  .range([0, innerWidth-250])
       .nice();
 

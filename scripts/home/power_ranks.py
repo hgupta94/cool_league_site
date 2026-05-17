@@ -77,7 +77,7 @@ def power_rank(params: LeagueSettings,
     sim_ppg_med = (season_sim.total_points.median() / params.regular_season_end) * wks_rem_factor
     ppg_med = (0 if week == 0 else matchups.groupby('team').score.mean().median()) * wks_played_factor
     eff_med = eff.groupby('team').actual_lineup_score.mean().median() / eff.groupby('team').optimal_lineup_score.mean().median()
-    wts =(0 if week == 0 else matchups.groupby('team').score.mean().median())
+    wts = [1] if week == 0 else exp_decay(week=week, reverse=False)
     pr_dict = {}
     c_scores = {}
     l_scores = {}

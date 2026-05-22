@@ -22,25 +22,58 @@ class LeagueSettings:
 class RosterSettings:
     def __init__(self, year=const.SEASON):
         self.data = DataLoader(year=year)
-        settings = self.data.settings()
-        slot_limits = settings['settings']['rosterSettings']['lineupSlotCounts']
-        roster_limits = settings['settings']['rosterSettings']['positionLimits']
+        _settings = self.data.settings()
+        _slot_limits = _settings['settings']['rosterSettings']['lineupSlotCounts']
+        _roster_limits = _settings['settings']['rosterSettings']['positionLimits']
 
         self.player_stats_map = const.PLAYER_STATS_MAP
         self.slotcodes = const.SLOTCODES
         self.nfl_team_map = const.NFL_TEAM_MAP
         self.espn_tonfl_position_map = const.POSITION_MAP
-        self.slot_limits = {int(k): v for k, v in slot_limits.items() if v > 0}
-        self.roster_limits = {int(k): v for k, v in roster_limits.items() if v > 0}
+        self.slot_limits = {int(k): v for k, v in _slot_limits.items() if v > 0}
+        self.roster_limits = {int(k): v for k, v in _roster_limits.items() if v > 0}
         self.positions = [v for v in self.espn_tonfl_position_map.values()] + ['FLEX']
+        self.replacement_players = self.get_replacements()
 
-    # def get_player_week_actual(self, player_id):
-    #     player_id = 4374302
-    #     players = self.data.players()
-    #     teams = Teams(self.data)
-    #
-    # def get_player_week_projected(self, player_id):
-    #     players = self.data.players()
+    def get_replacements(self, n: int = 3):
+        players_data = self._data.players_info()
+
+        # first get all free agents
+        free_agents = []
+        position = ''
+        for player in players_data['players']:
+            if player['onTeamId'] == 0:
+                player_id = player['id']
+                player_name = player['player']['fullName']
+                for pos in player['player']['eligibleSlots']:
+                    if pos in const.POSITION_MAP:
+                        position = const.POSITION_MAP[pos]
+
+                projection = 0
+                if 'stat' in player['player']:
+                    for stat in player['player']['stats']:
+                        if stat['seasonId'] == const.SEASON and stat['scoringPeriodId'] == 0 and stat[
+                            'statSourceId'] == 1:
+                            projection = stat['appliedAverage']
+
+                try:
+                    free_agents.append({
+                        'id': player_id,
+                        'name': player_name,
+                        'position': position,
+                        'projection': projection
+                    })
+                except NameError:
+                    pass
+
+        # get replacement player score - average of top 3
+        pos_dict = {}
+        for position in self.positions:
+            pos_fa = [fa for fa in free_agents if fa['position'] == position]
+            top_n = sorted(pos_fa, key=lambda x: x['projection'], reverse=True)[:n]
+            pos_dict[position] = sum(p['projection'] for p in top_n) / n
+
+        return pos_dict
 
 class TeamSettings:
     def __init__(self, data):

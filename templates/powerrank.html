@@ -122,341 +122,443 @@ caption {font-size: small;}
     </table>
 </div>
 <br>
-<div style="text-align:center; overflow-x:auto;">
-<svg width="960" height="1000"></svg>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
-// Power Rank chart
-  const data = {{ rank_data.rank_data | safe }}
-  const svg = d3.select("svg")
-    .attr("viewBox", "0 0 800 400")
-    .attr("preserveAspectRatio", "xMinYMin meet");
-  const width = +svg.attr("width");
-  const height = +svg.attr("height")/2.5;
+/**
+ * createLineChart — renders a multi-team line chart using D3.js
+ *
+ * @param {string|HTMLElement} container  CSS selector or DOM element to render into
+ * @param {Array<{x: number, y: number, team: string}>} data
+ * @param {Object} [options]
+ * @param {number} [options.width=640]           Total SVG width in px
+ * @param {Object} [options.margin]              {top, right, bottom, left}
+ */
+function createRankChart(container, data, options = {}) {
+  const {
+    width = 960,
+    height = 1000,
+    margin = {top:50, right:120, bottom:60, left:50},
+  } = options;
 
-  const render = (data, yvar, t1) =>{
-    const xValue = d => +d.week;
-    const yValue = d => +d[yvar];
-    const margin = {top:50, right:70, bottom:60, left:20};
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
-    const circleRadius = 4;
+  const isDark = matchMedia('(prefers-color-scheme: light)').matches;
 
-    const colorValue = d => d.team;
+  const addlColors = ['#20B2C8', '#9B59B6'];
+  const colorMap = {
+    'Aaro': '#378ADD',
+    'Adit': '#1D9E75',
+    'Aide': '#D85A30',
+    'Aksh': '#7F77DD',
+    'Arju': '#D4537E',
+    'Char': '#BA7517',
+    'Ayaz': '#639922',
+    'Hirs': '#888780',
+    'Nick': '#E07B39',
+    'Varu': '#C0392B',
+  };
 
-    // for interactive legend:
-    let selectedTeam;
+  const teams = Array.from(new Set(data.map(d => d.team)));
 
-    const onClick = d => {
-      selectedTeam = d;
-      console.log({selectedTeam});
-    };
+  const grouped = d3.group(data, d => d.team);
 
-    // define axis scales
-    const xScale = d3.scaleLinear()
-  	  .domain([0, 14])
-  	  .range([0, innerWidth-250])
-      .nice();
+  // Order legend by the y-value of each team's last point (descending)
+  const teamsOrderedByLastY = [...grouped.entries()]
+    .map(([team, pts]) => {
+      const sorted = [...pts].sort((a, b) => a.week - b.week);
+      return { team, lastY: sorted[sorted.length - 1].y };
+    })
+    .sort((a, b) => a.lastY - b.lastY)
+    .map(d => d.team);
 
-    const yScale = d3.scaleLinear()
-  	  .domain([1, d3.max(data, yValue)])
-  	  .range([0, innerHeight])
-      .nice();
+  const el = typeof container === 'string' ? document.querySelector(container) : container;
+  el.innerHTML = '';
 
-    const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+  const innerWidth  = width - margin.left - margin.right;
+  const innerHeight = 300;
+  const totalHeight = innerHeight + margin.top + margin.bottom;
 
-    const g = svg.append("g")
-  	  .attr('transform', `translate(75, ${t1})`);
+  const allX = data.map(d => d.week);
+  const allY = data.map(d => d.y);
+  const xScale = d3.scaleLinear().domain(d3.extent(allX)).nice().range([0, innerWidth]);
+  const yScale = d3.scaleLinear()
+    .domain([1, d3.max(allY)])
+    .range([0, innerHeight]);
 
-    const xAxis = d3.axisBottom(xScale)
-      .ticks(d3.max(data, xValue))
-  	  .tickSize(-innerHeight-10);
+  const svg = d3.select(el).append('svg')
+    .attr('viewBox', `0 0 ${width} ${totalHeight}`)
+    .attr('width', '75%')
+    .style('overflow', 'visible');
 
-    const xAxisG = g.append("g").call(xAxis)
-  	  .attr("transform", "translate(0, 300)");
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-    xAxisG.select(".domain")
-  		  .remove();
+  // Grid lines
+  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+  g.append('g')
+    .call(d3.axisLeft(yScale).ticks(d3.max(allY)).tickSize(-innerWidth).tickFormat(''))
+    .call(ax => ax.select('.domain').remove())
+    .call(ax => ax.selectAll('line').attr('stroke', gridColor));
 
-    xAxisG.append("text")
-  	  .attr("class", "axis-label")
-  	  .attr("y", 40)
-  	  .attr("x", (innerWidth-250)/2)
-  	  .attr("fill", "black")
-  	  .text("Week");
+  // Axes
+  const axisColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+  const textColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)';
 
-    const yAxis = d3.axisLeft(yScale)
-      .ticks(d3.max(data, yValue))
-  	  .tickSize(-innerWidth+240);
+  g.append('g')
+    .attr('transform', `translate(0,${innerHeight})`)
+    .call(d3.axisBottom(xScale).ticks(new Set(data.map(d => d.week)).size))
+    .call(ax => ax.select('.domain').attr('stroke', axisColor))
+    .call(ax => ax.selectAll('text').attr('fill', textColor).attr('font-size', 12));
 
-    const yAxisG = g.append("g").call(yAxis)
-  	  .attr("transform", "translate(-10, 0)");
+  g.append('g')
+    .call(d3.axisLeft(yScale).tickValues(d3.range(1, d3.max(allY) + 1)))
+    .call(ax => ax.select('.domain').attr('stroke', axisColor))
+    .call(ax => ax.selectAll('text').attr('fill', textColor).attr('font-size', 12));
 
-    yAxisG.select(".domain")
-    		.remove();
+  // Title
+  svg.append('text')
+  .attr('x', margin.left + innerWidth / 2)
+  .attr('y', margin.top / 2)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 32)
+  .attr('font-weight', 500)
+  .attr('fill', 'rgba(0,0,0,0.7)')
+  .text('Weekly Power Ranks');
 
-    yAxisG.append("text")
-  	  .attr("class", "axis-label")
-      .attr("transform", "rotate(-90)")
-  	  .attr("y", -25)
-  	  .attr("x", -innerHeight/4)
-  	  .attr("fill", "black")
-  	  .text("Power Rank");
+  // X label
+  svg.append('text')
+  .attr('x', margin.left + innerWidth / 2)
+  .attr('y', margin.top + innerHeight + margin.bottom - 15)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 16)
+  .attr('fill', 'rgba(0,0,0,0.5)')
+  .text('Week');
 
-    // generate lines
-    const lineGenerator = d3.line()
-      .x(d => xScale(xValue(d)))
-      .y(d => yScale(yValue(d)));
+  // Y label
+  svg.append('text')
+  .attr('transform', `rotate(-90)`)
+  .attr('x', -(margin.top + innerHeight / 2))
+  .attr('y', 9)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 16)
+  .attr('fill', 'rgba(0,0,0,0.5)')
+  .text('Power Rank');
 
-    const lastYValue = d =>
-      yValue(d.values[d.values.length - 1]);
+  // Line generator
+  const line = d3.line()
+    .x(d => xScale(d.week))
+    .y(d => yScale(d.y))
+    .curve(d3.curveMonotoneX);
 
-    // group data and sort for legend
-    const nested = d3.nest()
-      .key(colorValue)
-      .entries(data)
-      .sort((a, b) =>
-          d3.ascending(lastYValue(a), lastYValue(b)));
+  const lineGroups = {};
 
-    colorScale.domain(nested.map(d => d.key));
+  teamsOrderedByLastY.forEach(team => {
+    const pts = [...grouped.get(team)].sort((a, b) => a.week - b.week);
+    const grp = g.append('g');
 
-    // draw lines with mouseover effects
-    g.selectAll(".line-path").data(nested)
-      .enter().append("path")
-      .attr("class", "line-path")
-      .attr("d", d => lineGenerator(d.values))
-      .attr("stroke", d => colorScale(d.key))
-      .attr("stroke-width", "3")
-      .attr("opacity", "0.5")
-      .on("mouseover", function(d, i) {
-        d3.select(this).transition()
-          .duration("50")
-          .attr("stroke-width", "5")
-          .attr("opacity", "1")})
-      .on("mouseout", function(d, i) {
-        d3.select(this).transition()
-          .duration("50")
-          .attr("stroke-width", "3")
-          .attr("opacity", "0.5")});
+    const path = grp.append('path')
+      .datum(pts)
+      .attr('fill', 'none')
+      .attr('stroke', colorMap[team])
+      .attr('stroke-width', 2.5)
+      .attr('d', line)
+      .style('transition', 'stroke-width 0.15s ease, opacity 0.15s ease')
+      .style('cursor', 'pointer');
 
-    // draw legend
-    const colorLegend = (selection, props) => {
-      const {
-        colorScale,
-        circleRadius,
-        spacing,
-        textOffset
-      } = props;
+    lineGroups[team] = path;
 
-    const groups = selection.selectAll('g')
-      .data(colorScale.domain());
+    // Dots at each data point
+    grp.selectAll('circle')
+      .data(pts)
+      .join('circle')
+      .attr('cx', d => xScale(d.week))
+      .attr('cy', d => yScale(d.y))
+      .attr('r', 3.5)
+      .attr('fill', colorMap[team])
+      .attr('stroke', isDark ? '#1a1a1a' : '#fff')
+      .attr('stroke-width', 1.5)
+      .style('pointer-events', 'none');
+  });
 
-    const groupsEnter = groups
-      .enter().append('g')
-        .attr('class', 'tick');
-
-    groupsEnter
-      .merge(groups)
-        .attr('transform', (d, i) =>
-          `translate(0, ${i * spacing})`
-        )
-        .on("click", onClick);
-    groups.exit().remove();
-
-    groupsEnter.append('circle')
-      .merge(groups.select('circle'))
-        .attr('r', circleRadius)
-        .attr('fill', colorScale);
-
-    groupsEnter.append('text')
-      .merge(groups.select('text'))
-        .text(d => d)
-        .attr('dy', '0.32em')
-        .attr('x', textOffset);
-    }
-
-    svg.append("g")
-      .attr("transform", "translate(710,60)")
-      .call(colorLegend, {
-        colorScale,
-        circleRadius: 4,
-        spacing: 15,
-        textOffset: 8,
-        onClick
+  // Hover helpers
+  function boldLine(team) {
+    Object.entries(lineGroups).forEach(([t, path]) => {
+      path.attr('stroke-width', t === team ? 4.5 : 2)
+          .style('opacity', t === team ? 1 : 0.2);
     });
+  }
 
-    g.append("text")
-  	  .attr("class", "title")
-      .attr("x", (innerWidth-250)/4)
-  	  .attr("y", -10)
-  	  .style("font-size", "32px")
-  	  .text("Weekly Power Ranks");
-};
+  function resetLines() {
+    Object.values(lineGroups).forEach(path =>
+      path.attr('stroke-width', 2.5).style('opacity', 1)
+    );
+  }
 
-render(data, 'power_rank', 50);
+  // Line hover
+  const legendItems = {};
+
+  Object.entries(lineGroups).forEach(([team, path]) => {
+    path
+      .on('mouseenter', () => {
+        boldLine(team);
+        legendItems[team]?.style('font-weight', '500');
+      })
+      .on('mouseleave', () => {
+        resetLines();
+        Object.values(legendItems).forEach(el => el.style('font-weight', '400'));
+      });
+  });
+
+  // Legend — labels at end of each line
+  teamsOrderedByLastY.forEach(team => {
+    const pts = [...grouped.get(team)].sort((a, b) => a.week - b.week);
+    const lastPt = pts[pts.length - 1];
+
+    const label = g.append('text')
+      .attr('x', xScale(lastPt.week) + 8)
+      .attr('y', yScale(lastPt.y))
+      .attr('dy', '0.35em')
+      .attr('font-size', 13)
+      .attr('fill', colorMap[team])
+      .text(team);
+
+    legendItems[team] = label;
+
+    label
+      .on('mouseenter', () => {
+        boldLine(team);
+        label.style('font-weight', '500');
+      })
+      .on('mouseleave', () => {
+        resetLines();
+        label.style('font-weight', '400');
+      });
+  });
+  return svg.node();
+}
 </script>
+<script>
+/**
+ * createLineChart — renders a multi-team line chart using D3.js
+ *
+ * @param {string|HTMLElement} container  CSS selector or DOM element to render into
+ * @param {Array<{x: number, y: number, team: string}>} data
+ * @param {Object} [options]
+ * @param {number} [options.width=640]           Total SVG width in px
+ * @param {Object} [options.margin]              {top, right, bottom, left}
+ */
+function createScoreChart(container, data, options = {}) {
+  const {
+    width = 960,
+    height = 1000,
+    margin = {top:50, right:120, bottom:60, left:50},
+  } = options;
+
+  const isDark = matchMedia('(prefers-color-scheme: light)').matches;
+
+  const addlColors = ['#20B2C8', '#9B59B6'];
+  const colorMap = {
+    'Aaro': '#378ADD',
+    'Adit': '#1D9E75',
+    'Aide': '#D85A30',
+    'Aksh': '#7F77DD',
+    'Arju': '#D4537E',
+    'Char': '#BA7517',
+    'Ayaz': '#639922',
+    'Hirs': '#888780',
+    'Nick': '#E07B39',
+    'Varu': '#C0392B',
+  };
+
+  const teams = Array.from(new Set(data.map(d => d.team)));
+
+  const grouped = d3.group(data, d => d.team);
+
+  // Order legend by the y-value of each team's last point (descending)
+  const teamsOrderedByLastY = [...grouped.entries()]
+    .map(([team, pts]) => {
+      const sorted = [...pts].sort((a, b) => a.week - b.week);
+      return { team, lastY: sorted[sorted.length - 1].y };
+    })
+    .sort((a, b) => b.lastY - a.lastY)
+    .map(d => d.team);
+
+  const el = typeof container === 'string' ? document.querySelector(container) : container;
+  el.innerHTML = '';
+
+  const innerWidth  = width - margin.left - margin.right;
+  const innerHeight = 300;
+  const totalHeight = innerHeight + margin.top + margin.bottom;
+
+  const allX = data.map(d => d.week);
+  const allY = data.map(d => d.y);
+  const xScale = d3.scaleLinear().domain(d3.extent(allX)).nice().range([0, innerWidth]);
+  const yScale = d3.scaleLinear()
+    .domain([d3.min(allY), d3.max(allY)]).nice()
+    .range([innerHeight, 0]);
+
+  const svg = d3.select(el).append('svg')
+    .attr('viewBox', `0 0 ${width} ${totalHeight}`)
+    .attr('width', '75%')
+    .style('overflow', 'visible');
+
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  // Grid lines
+  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+  g.append('g')
+    .call(d3.axisLeft(yScale).tickSize(-innerWidth).tickFormat(''))
+    .call(ax => ax.select('.domain').remove())
+    .call(ax => ax.selectAll('line').attr('stroke', gridColor));
+
+  // Axes
+  const axisColor = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)';
+  const textColor = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)';
+
+  g.append('g')
+    .attr('transform', `translate(0,${innerHeight})`)
+    .call(d3.axisBottom(xScale).ticks(new Set(data.map(d => d.week)).size))
+    .call(ax => ax.select('.domain').attr('stroke', axisColor))
+    .call(ax => ax.selectAll('text').attr('fill', textColor).attr('font-size', 12));
+
+  g.append('g')
+    .call(d3.axisLeft(yScale).ticks(5))
+    .call(ax => ax.select('.domain').attr('stroke', axisColor))
+    .call(ax => ax.selectAll('text').attr('fill', textColor).attr('font-size', 12));
+
+  // Title
+  svg.append('text')
+  .attr('x', margin.left + innerWidth / 2)
+  .attr('y', margin.top / 2)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 32)
+  .attr('font-weight', 500)
+  .attr('fill', isDark ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.7)')
+  .text('Weekly Power Scores');
+
+  // X label
+  svg.append('text')
+  .attr('x', margin.left + innerWidth / 2)
+  .attr('y', margin.top + innerHeight + margin.bottom - 15)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 16)
+  .attr('fill', 'rgba(0,0,0,0.5)')
+  .text('Week');
+
+  // Y label
+  svg.append('text')
+  .attr('transform', `rotate(-90)`)
+  .attr('x', -(margin.top + innerHeight / 2))
+  .attr('y', 9)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 16)
+  .attr('fill', 'rgba(0,0,0,0.5)')
+  .text('Power Score');
+
+  // Line generator
+  const line = d3.line().x(d => xScale(d.week)).y(d => yScale(d.y)).curve(d3.curveMonotoneX);
+
+  const lineGroups = {};
+  teamsOrderedByLastY.forEach(team => {
+    const pts = [...grouped.get(team)].sort((a, b) => a.week - b.week);
+    const grp = g.append('g');
+
+    const path = grp.append('path')
+      .datum(pts)
+      .attr('fill', 'none')
+      .attr('stroke', colorMap[team])
+      .attr('stroke-width', 2.5)
+      .attr('d', line)
+      .style('transition', 'stroke-width 0.15s ease, opacity 0.15s ease')
+      .style('cursor', 'pointer');
+
+    lineGroups[team] = path;
+
+    // Dots at each data point
+    grp.selectAll('circle')
+      .data(pts)
+      .join('circle')
+      .attr('cx', d => xScale(d.week))
+      .attr('cy', d => yScale(d.y))
+      .attr('r', 3.5)
+      .attr('fill', colorMap[team])
+      .attr('stroke', isDark ? '#1a1a1a' : '#fff')
+      .attr('stroke-width', 1.5)
+      .style('pointer-events', 'none');
+  });
+
+  // Hover helpers
+  function boldLine(team) {
+    Object.entries(lineGroups).forEach(([t, path]) => {
+      path.attr('stroke-width', t === team ? 4.5 : 2)
+          .style('opacity', t === team ? 1 : 0.2);
+    });
+  }
+
+  function resetLines() {
+    Object.values(lineGroups).forEach(path =>
+      path.attr('stroke-width', 2.5).style('opacity', 1)
+    );
+  }
+
+  // Line hover
+  const legendItems = {};
+
+  Object.entries(lineGroups).forEach(([team, path]) => {
+    path
+      .on('mouseenter', () => {
+        boldLine(team);
+        legendItems[team]?.style('font-weight', '500');
+      })
+      .on('mouseleave', () => {
+        resetLines();
+        Object.values(legendItems).forEach(el => el.style('font-weight', '400'));
+      });
+  });
+
+  // Legend
+  const legendHeight = teamsOrderedByLastY.length * 26;
+  const legend = svg.append('g')
+    .attr('transform', `translate(${margin.left + innerWidth + 16}, ${margin.top + (innerHeight / 2) - (legendHeight / 2)})`);
+
+  teamsOrderedByLastY.forEach((team, i) => {
+    const row = legend.append('g')
+      .attr('transform', `translate(0, ${i * 26})`)
+      .style('cursor', 'pointer');
+
+    row.append('line')
+      .attr('x1', 0).attr('y1', 5)
+      .attr('x2', 12).attr('y2', 5)
+      .attr('stroke', colorMap[team])
+      .attr('stroke-width', 2.5);
+
+    const label = row.append('text')
+      .attr('x', 15).attr('y', 10)
+      .attr('font-size', 13)
+      .attr('fill', colorMap[team])
+      .text(team)
+      .style('transition', 'font-weight 0.1s ease, fill 0.1s ease');
+
+    legendItems[team] = label;
+
+    // Legend hover — mirrors line hover
+    row
+      .on('mouseenter', () => {
+        boldLine(team);
+      })
+      .on('mouseleave', () => {
+        resetLines();
+      });
+  });
+  return svg.node();
+}
+</script>
+<div id="rank-chart" style="text-align:center; overflow-x:auto;">
+    <script>
+        createRankChart('#rank-chart', {{ rank_data.rank_data | safe }});
+    </script>
+</div>
 <br>
-<script>
-// Power Score chart (same as power rank chart, but with a few tweaks)
-  const data2 = {{ rank_data.rank_data | safe }}
-  const svg2 = d3.select("svg").attr("viewBox", "0 0 800 400").attr("preserveAspectRatio", "xMinYMin meet");
-  const width2 = +svg2.attr("width");
-  const height2 = +svg2.attr("height")/2.5;
-
-  const render2 = (data, yvar) =>{
-    const xValue = d => +d.week;
-    const yValue = d => +d[yvar];
-    const margin = {top:50, right:70, bottom:60, left:20};
-    const innerWidth = width2 - margin.left - margin.right;
-    const innerHeight = height2 - margin.top - margin.bottom;
-
-    const colorValue = d => d.team;
-
-    // for interactive legend:
-    let selectedTeam;
-
-    const onClick = d => {
-      selectedTeam = d;
-      console.log({selectedTeam});
-    };
-
-    // define scales
-    const xScale = d3.scaleLinear()
-  	  .domain([0, 14])
-  	  .range([0, innerWidth-250])
-      .nice();
-
-    const yScale = d3.scaleLinear()
-  	  .domain([d3.min(data, yValue), d3.max(data, yValue)])
-  	  .range([innerHeight, 0])
-      .nice();
-
-    const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-
-    const g = svg2.append("g")
-  	  .attr('transform', `translate(75, ${450})`);
-
-    const xAxis = d3.axisBottom(xScale)
-      .ticks(d3.max(data, xValue))
-  	  .tickSize(-innerHeight-10);
-
-    const xAxisG = g.append("g").call(xAxis)
-  	  .attr("transform", "translate(0, 300)");
-
-    xAxisG.select(".domain")
-  		  .remove();
-
-    xAxisG.append("text")
-  	  .attr("class", "axis-label")
-  	  .attr("y", 40)
-  	  .attr("x", (innerWidth-250)/2)
-  	  .attr("fill", "black")
-  	  .text("Week");
-
-    const yAxis = d3.axisLeft(yScale)
-  	  .tickSize(-innerWidth+240);
-
-    const yAxisG = g.append("g").call(yAxis)
-  	  .attr("transform", "translate(-10, 0)");
-
-    yAxisG.select(".domain")
-    		.remove();
-
-    yAxisG.append("text")
-  	  .attr("class", "axis-label")
-      .attr("transform", "rotate(-90)")
-  	  .attr("y", -35)
-  	  .attr("x", -innerHeight/4)
-  	  .attr("fill", "black")
-  	  .text("Power Score");
-
-    const lineGenerator = d3.line()
-      .x(d => xScale(xValue(d)))
-      .y(d => yScale(yValue(d)));
-
-    const lastYValue = d =>
-      yValue(d.values[d.values.length - 1]);
-
-    const nested = d3.nest()
-      .key(colorValue)
-      .entries(data)
-      .sort((a, b) =>
-          d3.descending(lastYValue(a), lastYValue(b)));
-
-    colorScale.domain(nested.map(d => d.key));
-
-    g.selectAll(".line-path").data(nested)
-      .enter().append("path")
-      .attr("class", "line-path")
-      .attr("d", d => lineGenerator(d.values))
-      .attr("stroke", d => colorScale(d.key))
-      .attr("stroke-width", "3")
-      .attr("opacity", "0.5")
-      .on("mouseover", function(d, i) {
-        d3.select(this).transition()
-          .duration("50")
-          .attr("stroke-width", "5")
-          .attr("opacity", "1")})
-      .on("mouseout", function(d, i) {
-        d3.select(this).transition()
-          .duration("50")
-          .attr("stroke-width", "3")
-          .attr("opacity", "0.5")});
-
-    // draw legend
-    const colorLegend = (selection, props) => {
-      const {
-        colorScale,
-        circleRadius,
-        spacing,
-        textOffset
-      } = props;
-
-    const groups = selection.selectAll('g')
-      .data(colorScale.domain());
-
-    const groupsEnter = groups
-      .enter().append('g')
-        .attr('class', 'tick');
-
-    groupsEnter
-      .merge(groups)
-        .attr('transform', (d, i) =>
-          `translate(0, ${i * spacing})`
-        )
-        .on("click", onClick);
-    groups.exit().remove();
-
-    groupsEnter.append('circle')
-      .merge(groups.select('circle'))
-        .attr('r', circleRadius)
-        .attr('fill', colorScale);
-
-    groupsEnter.append('text')
-      .merge(groups.select('text'))
-        .text(d => d)
-        .attr('dy', '0.32em')
-        .attr('x', textOffset);
-    }
-
-    svg.append("g")
-      .attr("transform", "translate(710,460)")
-      .call(colorLegend, {
-        colorScale,
-        circleRadius: 4,
-        spacing: 15,
-        textOffset: 8,
-        onClick
-    });
-
-    g.append("text")
-  	  .attr("class", "title")
-      .attr("x", (innerWidth-250)/4)
-  	  .attr("y", -10)
-  	  .style("font-size", "32px")
-  	  .text("Weekly Power Scores");
-};
-
-render2(data, 'power_score_norm');
-</script>
+<div id="score-chart" style="text-align:center; overflow-x:auto;">
+    <script>
+        createScoreChart('#score-chart', {{ score_data.score_data | safe }});
+    </script>
 </div>
 {% endblock %}

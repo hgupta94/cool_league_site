@@ -98,15 +98,29 @@ if week > 1:
 
 
 pr_data = db_pr.retrieve_data(how='season')
-pr_data[['power_score_norm', 'score_norm_change']] = round(pr_data[['power_score_norm', 'score_norm_change']] * 100).astype('Int32')
+pr_data[['power_score_norm', 'score_norm_change']] = pr_data[['power_score_norm', 'score_norm_change']] * 100
 pr_table = pr_data[pr_data.week == week-1]
 pr_table = pr_table.sort_values('power_score_raw', ascending=False)
+pr_table[['power_score_norm', 'score_norm_change']] = round(pr_table[['power_score_norm', 'score_norm_change']]).astype('Int32')
 pr_table['rank_change'] = -pr_table.rank_change
 pr_table[['total_points', 'weekly_points', 'consistency', 'manager', 'luck']] = pr_table[['season_idx', 'week_idx', 'consistency_idx', 'manager_idx', 'luck_idx']].rank(ascending=False, method='min').astype('Int32')
 pr_cols = ['team', 'total_points', 'weekly_points', 'consistency', 'manager', 'luck', 'power_rank', 'rank_change', 'power_score_norm', 'score_norm_change']
-rank_data = pr_data[['team', 'week', 'power_rank', 'power_score_norm']].sort_values(['week', 'power_score_norm'], ascending=[True, False]).to_dict(orient='records')
+rank_data = (
+    pr_data[['team', 'week', 'power_rank']]
+    .sort_values(['week', 'power_rank'], ascending=[True, False])
+    .rename(columns={'power_rank': 'y'})
+    .to_dict(orient='records')
+)
 rank_data = json.dumps(rank_data, indent=2)
 rank_data = {'rank_data': rank_data}
+score_data = (
+    pr_data[['team', 'week', 'power_score_norm']]
+    .sort_values(['week', 'power_score_norm'], ascending=[True, False])
+    .rename(columns={'power_score_norm': 'y'})
+    .to_dict(orient='records')
+)
+score_data = json.dumps(score_data, indent=2)
+score_data = {'score_data': score_data}
 
 
 # SIMULATIONS PAGE

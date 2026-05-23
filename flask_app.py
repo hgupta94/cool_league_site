@@ -37,7 +37,7 @@ def home():
         headings_cl=headings_cl, data_cl=data_cl,
         headings_el=headings_el, data_el=data_el,
         headings_pr=headings_pr, data_pr=data_pr,
-        rank_data=rank_data
+        rank_data=rank_data, score_data=score_data,
     )
 
 @app.route("/simulations/")

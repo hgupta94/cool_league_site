@@ -185,7 +185,8 @@ function createRankChart(container, data, options = {}) {
 
   const svg = d3.select(el).append('svg')
     .attr('viewBox', `0 0 ${width} ${totalHeight}`)
-    .attr('width', '75%')
+    .attr('width', width)
+    .attr('height', totalHeight)
     .style('overflow', 'visible');
 
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
@@ -280,14 +281,23 @@ function createRankChart(container, data, options = {}) {
   // Hover helpers
   function boldLine(team) {
     Object.entries(lineGroups).forEach(([t, path]) => {
-      path.attr('stroke-width', t === team ? 4.5 : 2)
-          .style('opacity', t === team ? 1 : 0.2);
+      if (t === team) {
+        path.attr('stroke-width', 4.5).style('opacity', 1);
+      } else {
+        path.attr('stroke-width', 2).style('opacity', 0.2);
+      }
+    });
+    Object.entries(legendItems).forEach(([t, label]) => {
+      label.style('opacity', t === team ? 1 : 0.2);
     });
   }
 
   function resetLines() {
     Object.values(lineGroups).forEach(path =>
       path.attr('stroke-width', 2.5).style('opacity', 1)
+    );
+    Object.values(legendItems).forEach(label =>
+      label.style('opacity', 1)
     );
   }
 
@@ -298,11 +308,11 @@ function createRankChart(container, data, options = {}) {
     path
       .on('mouseenter', () => {
         boldLine(team);
-        legendItems[team]?.style('font-weight', '500');
+        legendItems[team]?.attr('font-weight', '800').attr('font-size', 15);
       })
       .on('mouseleave', () => {
         resetLines();
-        Object.values(legendItems).forEach(el => el.style('font-weight', '400'));
+        Object.values(legendItems).forEach(el => el.attr('font-weight', '400').attr('font-size', 14));
       });
   });
 
@@ -315,7 +325,7 @@ function createRankChart(container, data, options = {}) {
       .attr('x', xScale(lastPt.week) + 8)
       .attr('y', yScale(lastPt.y))
       .attr('dy', '0.35em')
-      .attr('font-size', 13)
+      .attr('font-size', 14)
       .attr('fill', colorMap[team])
       .text(team);
 
@@ -324,11 +334,11 @@ function createRankChart(container, data, options = {}) {
     label
       .on('mouseenter', () => {
         boldLine(team);
-        label.style('font-weight', '500');
+        label.attr('font-weight', '800').attr('font-size', 15);
       })
       .on('mouseleave', () => {
         resetLines();
-        label.style('font-weight', '400');
+        label.attr('font-weight', '400').attr('font-size', 14);
       });
   });
   return svg.node();
@@ -396,7 +406,8 @@ function createScoreChart(container, data, options = {}) {
 
   const svg = d3.select(el).append('svg')
     .attr('viewBox', `0 0 ${width} ${totalHeight}`)
-    .attr('width', '75%')
+    .attr('width', width)
+    .attr('height', totalHeight)
     .style('overflow', 'visible');
 
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
@@ -485,10 +496,20 @@ function createScoreChart(container, data, options = {}) {
   });
 
   // Hover helpers
+
   function boldLine(team) {
     Object.entries(lineGroups).forEach(([t, path]) => {
-      path.attr('stroke-width', t === team ? 4.5 : 2)
-          .style('opacity', t === team ? 1 : 0.2);
+      if (t === team) {
+        path.attr('stroke-width', 4.5).style('opacity', 1);
+      } else {
+        path.attr('stroke-width', 2).style('opacity', 0.2);
+      }
+    });
+    Object.entries(legendItems).forEach(([t, label]) => {
+      label.style('opacity', t === team ? 1 : 0.2);
+    });
+    Object.entries(legendLines).forEach(([t, line]) => {
+      line.style('opacity', t === team ? 1 : 0.2);
     });
   }
 
@@ -496,20 +517,27 @@ function createScoreChart(container, data, options = {}) {
     Object.values(lineGroups).forEach(path =>
       path.attr('stroke-width', 2.5).style('opacity', 1)
     );
+    Object.values(legendItems).forEach(label =>
+      label.style('opacity', 1)
+    );
+    Object.values(legendLines).forEach(line =>
+      line.style('opacity', 1)
+    );
   }
 
   // Line hover
   const legendItems = {};
+  const legendLines = {};
 
   Object.entries(lineGroups).forEach(([team, path]) => {
     path
       .on('mouseenter', () => {
         boldLine(team);
-        legendItems[team]?.style('font-weight', '500');
+        legendItems[team]?.attr('font-weight', '800').attr('font-size', 15);
       })
       .on('mouseleave', () => {
         resetLines();
-        Object.values(legendItems).forEach(el => el.style('font-weight', '400'));
+        Object.values(legendItems).forEach(el => el.attr('font-weight', '400').attr('font-size', 14));
       });
   });
 
@@ -523,7 +551,7 @@ function createScoreChart(container, data, options = {}) {
       .attr('transform', `translate(0, ${i * 26})`)
       .style('cursor', 'pointer');
 
-    row.append('line')
+    const line = row.append('line')
       .attr('x1', 0).attr('y1', 5)
       .attr('x2', 12).attr('y2', 5)
       .attr('stroke', colorMap[team])
@@ -531,20 +559,23 @@ function createScoreChart(container, data, options = {}) {
 
     const label = row.append('text')
       .attr('x', 15).attr('y', 10)
-      .attr('font-size', 13)
+      .attr('font-size', 14)
       .attr('fill', colorMap[team])
       .text(team)
       .style('transition', 'font-weight 0.1s ease, fill 0.1s ease');
 
     legendItems[team] = label;
+    legendLines[team] = line;
 
     // Legend hover — mirrors line hover
     row
       .on('mouseenter', () => {
         boldLine(team);
+        label.attr('font-weight', '800').attr('font-size', 15);
       })
       .on('mouseleave', () => {
         resetLines();
+        label.attr('font-weight', '400').attr('font-size', 14);
       });
   });
   return svg.node();

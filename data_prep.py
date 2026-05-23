@@ -35,7 +35,6 @@ season_sim_table = (
     Database(table='season_sim', season=season, week=week).
     retrieve_data(how='season')
     .sort_values('created')
-    .tail(n_teams)  # most recent db updates
 )
 season_sim_wins_table = Database(table='season_sim_wins', season=season, week=the_week).retrieve_data(how='week')
 season_sim_ranks_table = Database(table='season_sim_ranks', season=season, week=the_week).retrieve_data(how='week')
@@ -132,6 +131,11 @@ betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: simulations
 betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: simulations.calculate_odds(init_prob=x))
 
+playoff_probs_data = season_sim_table[['week', 'team', 'playoffs', 'finals', 'champion']].to_dict(orient='records')
+playoff_probs_data = json.dumps(playoff_probs_data, indent=2)
+playoff_probs_data = {'probs': playoff_probs_data}
+
+season_sim_table = season_sim_table.tail(n_teams)  # most recent db updates
 timestamp_season_sim = pd.to_datetime(season_sim_table.created.values[0]).strftime("%A, %b %d %Y")
 keep_cols = ['team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion']
 season_sim_table[['playoffs', 'finals', 'champion']] = (season_sim_table[['playoffs', 'finals', 'champion']]*100).round(0).astype(int).astype(str) + '%'

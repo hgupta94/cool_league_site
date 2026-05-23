@@ -61,6 +61,189 @@ table.center {
     </table>
 </div>
 <br>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+function drawTeamProbChart(selector, data) {
+  const el = typeof selector === "string" ? document.querySelector(selector) : selector;
+  if (!el) return;
+
+  const METRIC_STYLES = {
+    playoffs: { dash: "none", label: "Playoffs" },
+    finals:   { dash: "6,4", label: "Finals"   },
+    champion: { dash: "2,4", label: "Champion" },
+  };
+
+  const teams = [...new Set(data.map(d => d.team))];
+
+  const addlColors = ['#20B2C8', '#9B59B6'];
+  const colorMap = {
+    'Aaro': '#378ADD',
+    'Adit': '#1D9E75',
+    'Aide': '#D85A30',
+    'Aksh': '#7F77DD',
+    'Arju': '#D4537E',
+    'Char': '#BA7517',
+    'Ayaz': '#639922',
+    'Hirs': '#888780',
+    'Nick': '#E07B39',
+    'Varu': '#C0392B',
+  };
+
+
+  const margin = { top: 20, right: 20, bottom: 50, left: 50 };
+  const totalW = el.clientWidth || 680;
+  const totalH = 340;
+  const W = totalW - margin.left - margin.right;
+  const H = totalH - margin.top - margin.bottom;
+
+  el.innerHTML = "";
+
+  const legendH = 56;
+  const svg = d3.select(el).append("svg")
+    .attr("width", totalW)
+    .attr("height", totalH + legendH)
+    .attr("role", "img")
+    .attr("aria-label", "Line chart of team probabilities by week");
+
+  const g = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const weeks = [...new Set(data.map(d => d.week))].sort((a, b) => a - b);
+  const xScale = d3.scalePoint().domain(weeks).range([0, W]).padding(0.2);
+  const yScale = d3.scaleLinear().domain([0, 1]).range([H, 0]);
+
+  const textCol = "rgba(0,0,0,0.4)";
+  const gridCol = "rgba(0,0,0,0.06)";
+
+  // Grid lines
+  g.selectAll(".grid-h").data(yScale.ticks(5)).join("line")
+    .attr("x1", 0).attr("x2", W)
+    .attr("y1", d => yScale(d)).attr("y2", d => yScale(d))
+    .attr("stroke", gridCol).attr("stroke-width", 0.5);
+
+  // Axes
+  g.append("g").call(
+    d3.axisLeft(yScale).ticks(5).tickFormat(d => Math.round(d * 100) + "%")
+  ).call(ax => {
+    ax.select(".domain").remove();
+    ax.selectAll(".tick line").remove();
+    ax.selectAll("text").attr("fill", textCol).attr("font-size", 11);
+  });
+
+  g.append("g").attr("transform", `translate(0,${H})`).call(
+    d3.axisBottom(xScale).tickFormat(d => d)
+  ).call(ax => {
+    ax.select(".domain").attr("stroke", gridCol);
+    ax.selectAll(".tick line").remove();
+    ax.selectAll("text").attr("fill", textCol).attr("font-size", 11);
+  });
+
+  const metrics = ["playoffs", "finals", "champion"];
+  const teamData = d3.group(data, d => d.team);
+
+  // Lines + dots
+  teamData.forEach((rows, team) => {
+    const color = colorMap[team];
+    const sorted = rows.sort((a, b) => a.week - b.week);
+
+    metrics.forEach(metric => {
+      const style = METRIC_STYLES[metric];
+      const lineGen = d3.line()
+        .x(d => xScale(d.week))
+        .y(d => yScale(d[metric]))
+        .defined(d => d[metric] != null);
+
+      g.append("path")
+        .datum(sorted)
+        .attr("fill", "none")
+        .attr("stroke", color)
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", style.dash)
+        .attr("opacity", 0.85)
+        .attr("d", lineGen);
+
+      g.selectAll(null).data(sorted).join("circle")
+        .attr("cx", d => xScale(d.week))
+        .attr("cy", d => yScale(d[metric]))
+        .attr("r", 3.5)
+        .attr("fill", color)
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 1.5);
+    });
+  });
+
+  // Legend
+  const legend = svg.append("g")
+    .attr("transform", `translate(${margin.left},${totalH + 8})`);
+
+  const metricKeys = Object.entries(METRIC_STYLES);
+  const metricSpacing = 88;
+  metricKeys.forEach(([key, style], i) => {
+    const gItem = legend.append("g").attr("transform", `translate(${i * metricSpacing},0)`);
+    gItem.append("line")
+      .attr("x1", 0).attr("y1", 6).attr("x2", 26).attr("y2", 6)
+      .attr("stroke", "rgba(0,0,0,0.45)")
+      .attr("stroke-width", 2)
+      .attr("stroke-dasharray", style.dash);
+    gItem.append("text")
+      .attr("x", 31).attr("y", 10)
+      .attr("font-size", 11).attr("fill", textCol)
+      .text(style.label);
+  });
+
+  // Divider between legend sections
+  const teamStartX = metricSpacing * metricKeys.length + 24;
+  legend.append("line")
+    .attr("x1", teamStartX - 12).attr("y1", -2)
+    .attr("x2", teamStartX - 12).attr("y2", 16)
+    .attr("stroke", gridCol).attr("stroke-width", 1);
+
+  teams.forEach((team, i) => {
+    const gItem = legend.append("g")
+      .attr("transform", `translate(${teamStartX + i * 72},0)`);
+    gItem.append("rect")
+      .attr("width", 12).attr("height", 12).attr("rx", 2)
+      .attr("fill", colorMap[team]);
+    gItem.append("text")
+      .attr("x", 17).attr("y", 10)
+      .attr("font-size", 11).attr("fill", textCol)
+      .text(team);
+  });
+}
+</script>
+<div id="sim-chart">
+    <label for="team-select">
+        <select id="team-select">
+            <option value="__all__">All teams</option>
+        </select>
+    </label>
+    <div id="sim-chart-inner">
+        <script>
+        // Populate dropdown from data
+        const data = {{ probs.probs | safe }}
+        const teams = [...new Set(data.map(d => d.team))];
+        const select = document.getElementById("team-select");
+
+        teams.forEach(t => {
+          const opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          select.appendChild(opt);
+        });
+
+        // Filter + redraw on change
+        function getFilteredData() {
+          const val = select.value;
+          return val === "__all__" ? data : data.filter(d => d.team === val);
+        }
+
+        select.addEventListener("change", () =>
+          drawTeamProbChart("#sim-chart-inner", getFilteredData())
+        );
+        drawTeamProbChart("#sim-chart-inner", data)
+    </script>
+    </div>
+</div>
 <h3>Rank Distribution</h3>
 <p>Percentage of simulations where team finished in <i>nth</i> place</p>
 <div class="tscroll" style="overflow-x:auto;">

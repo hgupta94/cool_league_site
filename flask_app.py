@@ -74,6 +74,7 @@ def sims():
         headings_s=headings_season_sim, data_s=data_season_sim,
         headings_w=headings_w, data_w=data_w,
         headings_r=headings_r, data_r=data_r,
+        probs=playoff_probs_data,
         # headings_p=headings_p, data_p=data_p,
         tstamp_bets=timestamp_betting, tstamp_s=timestamp_season_sim
     )

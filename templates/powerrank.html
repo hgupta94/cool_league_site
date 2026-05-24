@@ -178,7 +178,10 @@ function createRankChart(container, data, options = {}) {
 
   const allX = data.map(d => d.week);
   const allY = data.map(d => d.y);
-  const xScale = d3.scaleLinear().domain(d3.extent(allX)).nice().range([0, innerWidth]);
+  const xScale = d3.scaleLinear()
+    .domain(d3.extent(allX))
+    .nice()
+    .range([0, innerWidth]);
   const yScale = d3.scaleLinear()
     .domain([1, d3.max(allY)])
     .range([0, innerHeight]);

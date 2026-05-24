@@ -63,14 +63,14 @@ table.center {
 <br>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
-function drawTeamProbChart(selector, data) {
+function drawTeamProbChart(selector, data, activeMetrics = ["playoffs", "finals", "champion"]) {
   const el = typeof selector === "string" ? document.querySelector(selector) : selector;
   if (!el) return;
 
   const METRIC_STYLES = {
-    playoffs: { dash: "none", label: "Playoffs" },
-    finals:   { dash: "6,4", label: "Finals"   },
-    champion: { dash: "2,4", label: "Champion" },
+    playoffs: { dash: "none", label: "Playoffs" },  // solid line
+    finals:   { dash: "16,4", label: "Finals"   },  // long dash
+    champion: { dash: "8,3,2,3,2,3", label: "Champion" },  // dash dot dot
   };
 
   const teams = [...new Set(data.map(d => d.team))];
@@ -89,8 +89,7 @@ function drawTeamProbChart(selector, data) {
     'Varu': '#C0392B',
   };
 
-
-  const margin = { top: 20, right: 20, bottom: 50, left: 50 };
+  const margin = { top: 20, right: 90, bottom: 50, left: 50 };
   const totalW = el.clientWidth || 680;
   const totalH = 340;
   const W = totalW - margin.left - margin.right;
@@ -98,7 +97,7 @@ function drawTeamProbChart(selector, data) {
 
   el.innerHTML = "";
 
-  const legendH = 56;
+  const legendH = 0;
   const svg = d3.select(el).append("svg")
     .attr("width", totalW)
     .attr("height", totalH + legendH)
@@ -109,7 +108,7 @@ function drawTeamProbChart(selector, data) {
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   const weeks = [...new Set(data.map(d => d.week))].sort((a, b) => a - b);
-  const xScale = d3.scalePoint().domain(weeks).range([0, W]).padding(0.2);
+  const xScale = d3.scalePoint().domain(weeks).range([0, W]).padding(0.05);
   const yScale = d3.scaleLinear().domain([0, 1]).range([H, 0]);
 
   const textCol = "rgba(0,0,0,0.4)";
@@ -138,7 +137,7 @@ function drawTeamProbChart(selector, data) {
     ax.selectAll("text").attr("fill", textCol).attr("font-size", 11);
   });
 
-  const metrics = ["playoffs", "finals", "champion"];
+  const metrics = ["playoffs", "finals", "champion"].filter(m => activeMetrics.includes(m));
   const teamData = d3.group(data, d => d.team);
 
   // Lines + dots
@@ -151,18 +150,23 @@ function drawTeamProbChart(selector, data) {
       const lineGen = d3.line()
         .x(d => xScale(d.week))
         .y(d => yScale(d[metric]))
+        .curve(d3.curveMonotoneX)
         .defined(d => d[metric] != null);
 
       g.append("path")
         .datum(sorted)
+        .attr("data-team", team)
         .attr("fill", "none")
         .attr("stroke", color)
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", style.dash)
         .attr("opacity", 0.85)
-        .attr("d", lineGen);
+        .attr("d", lineGen)
+        .on("mouseenter", () => setHighlight(team))
+        .on("mouseleave", () => setHighlight(null));
 
       g.selectAll(null).data(sorted).join("circle")
+        .attr("data-team", team)
         .attr("cx", d => xScale(d.week))
         .attr("cy", d => yScale(d[metric]))
         .attr("r", 3.5)
@@ -172,41 +176,96 @@ function drawTeamProbChart(selector, data) {
     });
   });
 
-  // Legend
-  const legend = svg.append("g")
-    .attr("transform", `translate(${margin.left},${totalH + 8})`);
+  function setHighlight(hoveredTeam) {
+  svg.selectAll("[data-team]").each(function() {
+    const el = d3.select(this);
+    const isMatch = this.dataset.team === hoveredTeam;
+    const isPath = this.tagName === "path";
+    const isCircle = this.tagName === "circle";
+    const isG = this.tagName === "g";
 
-  const metricKeys = Object.entries(METRIC_STYLES);
-  const metricSpacing = 88;
+    if (hoveredTeam === null) {
+      // reset everything
+      if (isPath)   el.attr("opacity", 0.85).attr("stroke-width", 2);
+      if (isCircle) el.attr("opacity", 1).attr("r", 3.5).style("display", null);
+      if (isG)      el.attr("opacity", 1).attr("font-size", 15);
+    } else {
+      if (isPath)   el.attr("opacity", isMatch ? 1 : 0.1).attr("stroke-width", isMatch ? 3 : 2);
+      if (isCircle) el.attr("opacity", isMatch ? 1 : 0.1).attr("r", isMatch ? 5 : 3.5).style("display", isMatch ? null : "none");
+      if (isG)      el.attr("opacity", isMatch ? 1 : 0.3).attr("font-size", 14);
+    }
+  });
+}
+
+  // Invisible wide hit-area paths for easier hover targeting
+  teamData.forEach((rows, team) => {
+    const sorted = rows.sort((a, b) => a.week - b.week);
+    const firstMetric = metrics[0];
+    const lineGen = d3.line()
+      .x(d => xScale(d.week))
+      .y(d => yScale(d[firstMetric]))
+      .curve(d3.curveMonotoneX)
+      .defined(d => d.playoffs != null);
+
+    g.append("path")
+      .datum(sorted)
+      .attr("fill", "none")
+      .attr("stroke", "transparent")
+      .attr("stroke-width", 20)
+      .attr("d", lineGen)
+      .on("mouseenter", () => setHighlight(team))
+      .on("mouseleave", () => setHighlight(null));
+  });
+
+  // Legend
+  const numMetrics = activeMetrics.length;
+  const numTeams = teams.length;
+  const metricSpacing = 20;
+  const totalLegendHeight = (numMetrics + numTeams) * metricSpacing + 10;
+
+  const legend = svg.append("g")
+    .attr("transform", `translate(${margin.left + W}, ${margin.top + (H - totalLegendHeight) / 2})`);
+
+  const metricKeys = Object.entries(METRIC_STYLES).filter(([key]) => activeMetrics.includes(key));
   metricKeys.forEach(([key, style], i) => {
-    const gItem = legend.append("g").attr("transform", `translate(${i * metricSpacing},0)`);
+    const gItem = legend.append("g").attr("transform", `translate(0, ${i * metricSpacing})`);
     gItem.append("line")
-      .attr("x1", 0).attr("y1", 6).attr("x2", 26).attr("y2", 6)
+      .attr("x1", 0).attr("y1", 6)
+      .attr("x2", 12).attr("y2", 6)
       .attr("stroke", "rgba(0,0,0,0.45)")
       .attr("stroke-width", 2)
       .attr("stroke-dasharray", style.dash);
+
     gItem.append("text")
-      .attr("x", 31).attr("y", 10)
-      .attr("font-size", 11).attr("fill", textCol)
+      .attr("x", 20).attr("y", 10)
+      .attr("font-size", 14).attr("fill", textCol)
       .text(style.label);
   });
 
-  // Divider between legend sections
-  const teamStartX = metricSpacing * metricKeys.length + 24;
+  // Divider — horizontal rule between sections
+  const teamStartY = metricKeys.length * metricSpacing + 10;
   legend.append("line")
-    .attr("x1", teamStartX - 12).attr("y1", -2)
-    .attr("x2", teamStartX - 12).attr("y2", 16)
+    .attr("x1", 0).attr("y1", teamStartY - 10)
+    .attr("x2", 60).attr("y2", teamStartY - 10)
     .attr("stroke", gridCol).attr("stroke-width", 1);
 
   teams.forEach((team, i) => {
     const gItem = legend.append("g")
-      .attr("transform", `translate(${teamStartX + i * 72},0)`);
+      .attr("data-team", team)
+      .attr("transform", `translate(0, ${teamStartY + i * metricSpacing})`)
+      .style("cursor", "pointer")
+      .style("pointer-events", "all")
+      .on("mouseenter", () => setHighlight(team))
+      .on("mouseleave", () => setHighlight(null));
+
     gItem.append("rect")
       .attr("width", 12).attr("height", 12).attr("rx", 2)
       .attr("fill", colorMap[team]);
+
     gItem.append("text")
       .attr("x", 17).attr("y", 10)
-      .attr("font-size", 11).attr("fill", textCol)
+      .attr("font-size", 14)
+      .attr("fill", colorMap[team])
       .text(team);
   });
 }
@@ -217,12 +276,21 @@ function drawTeamProbChart(selector, data) {
             <option value="__all__">All teams</option>
         </select>
     </label>
+    <label for="metric-select">
+        <select id="metric-select">
+            <option value="__all__">All scenarios</option>
+            <option value="playoffs">Make Playoffs</option>
+            <option value="finals">Make Finals</option>
+            <option value="champion">Win Championship</option>
+        </select>
+    </label>
     <div id="sim-chart-inner">
         <script>
         // Populate dropdown from data
         const data = {{ probs.probs | safe }}
-        const teams = [...new Set(data.map(d => d.team))];
+        const teams = [...new Set(data.map(d => d.team))].sort();
         const select = document.getElementById("team-select");
+        const metricSelect = document.getElementById("metric-select");
 
         teams.forEach(t => {
           const opt = document.createElement("option");
@@ -234,18 +302,28 @@ function drawTeamProbChart(selector, data) {
         // Filter + redraw on change
         function getFilteredData() {
           const val = select.value;
+          const metricSelect = document.getElementById("metric-select");
           return val === "__all__" ? data : data.filter(d => d.team === val);
         }
 
         select.addEventListener("change", () =>
-          drawTeamProbChart("#sim-chart-inner", getFilteredData())
+          drawTeamProbChart("#sim-chart-inner", getFilteredData(), getSelectedMetrics())
         );
-        drawTeamProbChart("#sim-chart-inner", data)
+
+        metricSelect.addEventListener("change", () =>
+          drawTeamProbChart("#sim-chart-inner", getFilteredData(), getSelectedMetrics())
+        );
+
+        function getSelectedMetrics() {
+          const val = metricSelect.value;
+          return val === "__all__" ? ["playoffs", "finals", "champion"] : [val];
+        }
+        drawTeamProbChart("#sim-chart-inner", data, ["playoffs", "finals", "champion"])
     </script>
     </div>
 </div>
 <h3>Rank Distribution</h3>
-<p>Percentage of simulations where team finished in <i>nth</i> place</p>
+<p>Percentage of simulations where team finished in <i>n<sup>th</sup></i> place</p>
 <div class="tscroll" style="overflow-x:auto;">
     <table class="table table-hover center content-table vert" style="table-layout:auto; width:60%">
         <thead>

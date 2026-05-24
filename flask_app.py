@@ -45,7 +45,7 @@ def sims():
     headings_bets = tuple(['Team', 'Points', 'Matchup', 'TopHalf', 'Highest', 'Lowest'])
     data_bets = ut.flask_get_data(betting_table[['team', 'avg_score', 'p_win', 'p_tophalf', 'p_highest', 'p_lowest']])
 
-    headings_season_sim = tuple(['Team', 'Matchup', 'TopHalf', 'Total', 'Points', 'Playoff%', 'Finals%', 'Champion%'])
+    headings_season_sim = tuple(['Team', 'Matchup', 'TopHalf', 'Total', 'Points', 'Playoff%', 'Finals%', 'Champion%', 'xPay Out'])
     data_season_sim = ut.flask_get_data(season_sim_table)
 
     headings_w = tuple(season_sim_wins_table.columns)

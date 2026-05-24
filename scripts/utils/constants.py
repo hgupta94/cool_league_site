@@ -17,6 +17,17 @@ DB_NAME_SSH = os.getenv('DB_NAME_SSH')
 # MySQL host for SSH tunnel (e.g., hgupta.mysql.pythonanywhere-services.com)
 DB_MYSQL_HOST_SSH = os.getenv('DB_MYSQL_HOST_SSH')
 
+BUYIN = 150
+TOTAL_PAYOUT = BUYIN * 10
+PAYOUTS = {
+    'weekly_top_score': 5,
+    'first'      : (TOTAL_PAYOUT - 70) * 0.500,
+    'second'     : (TOTAL_PAYOUT - 70) * 0.250,
+    'third'      : (TOTAL_PAYOUT - 70) * 0.100,
+    'most_points': (TOTAL_PAYOUT - 70) * 0.075,
+    'most_wins'  : (TOTAL_PAYOUT - 70) * 0.075,
+}
+
 CLINCHED = -99
 ELIMINATED = 99
 CLINCHED_DISP = 'c'

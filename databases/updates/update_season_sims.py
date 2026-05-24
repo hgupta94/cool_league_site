@@ -140,7 +140,6 @@ for sim in range(n_sims):
         playoff_teams = [d['team'] for d in sorted(playoff_teams, key=lambda x: x['rank'])]
 
     # sim playoffs
-    # TODO: get third place winner - losers of semis
     qf_teams = set(playoff_teams.copy())
     sf_teams = None
     third_place_teams = None

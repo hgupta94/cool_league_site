@@ -89,9 +89,9 @@ function drawTeamProbChart(selector, data, activeMetrics = ["playoffs", "finals"
     'Varu': '#C0392B',
   };
 
-  const margin = { top: 20, right: 90, bottom: 50, left: 50 };
-  const totalW = el.clientWidth || 680;
-  const totalH = 340;
+  const margin = { top: 60, right: 100, bottom: 60, left: 60 };
+  const totalW = 960;
+  const totalH = 400;
   const W = totalW - margin.left - margin.right;
   const H = totalH - margin.top - margin.bottom;
 
@@ -217,6 +217,35 @@ function drawTeamProbChart(selector, data, activeMetrics = ["playoffs", "finals"
       .on("mouseleave", () => setHighlight(null));
   });
 
+  // Title
+  svg.append('text')
+  .attr('x', margin.left + W / 2)
+  .attr('y', margin.top / 2)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 32)
+  .attr('font-weight', 500)
+  .attr('fill', 'rgba(0,0,0,0.7)')
+  .text('Playoff Probabilities');
+
+  // X label
+  svg.append('text')
+  .attr('x', margin.left + W / 2)
+  .attr('y', margin.top + H + margin.bottom - 15)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 16)
+  .attr('fill', 'rgba(0,0,0,0.5)')
+  .text('Week');
+
+  // Y label
+  svg.append('text')
+  .attr('transform', `rotate(-90)`)
+  .attr('x', -(margin.top + H / 2))
+  .attr('y', 9)
+  .attr('text-anchor', 'middle')
+  .attr('font-size', 16)
+  .attr('fill', 'rgba(0,0,0,0.5)')
+  .text('Probability');
+
   // Legend
   const numMetrics = activeMetrics.length;
   const numTeams = teams.length;
@@ -224,7 +253,7 @@ function drawTeamProbChart(selector, data, activeMetrics = ["playoffs", "finals"
   const totalLegendHeight = (numMetrics + numTeams) * metricSpacing + 10;
 
   const legend = svg.append("g")
-    .attr("transform", `translate(${margin.left + W}, ${margin.top + (H - totalLegendHeight) / 2})`);
+    .attr("transform", `translate(${margin.left + W + 5}, ${margin.top + (H - totalLegendHeight) / 2})`);
 
   const metricKeys = Object.entries(METRIC_STYLES).filter(([key]) => activeMetrics.includes(key));
   metricKeys.forEach(([key, style], i) => {
@@ -270,22 +299,24 @@ function drawTeamProbChart(selector, data, activeMetrics = ["playoffs", "finals"
   });
 }
 </script>
-<div id="sim-chart">
-    <label for="team-select">
-        <select id="team-select">
-            <option value="__all__">All teams</option>
-        </select>
-    </label>
-    <label for="metric-select">
-        <select id="metric-select">
-            <option value="__all__">All scenarios</option>
-            <option value="playoffs">Make Playoffs</option>
-            <option value="finals">Make Finals</option>
-            <option value="champion">Win Championship</option>
-        </select>
-    </label>
-    <div id="sim-chart-inner">
-        <script>
+<div id="sim-chart" style="overflow-x:auto;">
+    <div id="sim-chart-inner" style="margin: 0 auto;"></div>
+    <div>
+        <label for="team-select">
+            <select id="team-select">
+                <option value="__all__">All teams</option>
+            </select>
+        </label>
+        <label for="metric-select">
+            <select id="metric-select">
+                <option value="__all__">All scenarios</option>
+                <option value="playoffs">Make Playoffs</option>
+                <option value="finals">Make Finals</option>
+                <option value="champion">Win Championship</option>
+            </select>
+        </label>
+    </div>
+    <script>
         // Populate dropdown from data
         const data = {{ probs.probs | safe }}
         const teams = [...new Set(data.map(d => d.team))].sort();
@@ -320,7 +351,6 @@ function drawTeamProbChart(selector, data, activeMetrics = ["playoffs", "finals"
         }
         drawTeamProbChart("#sim-chart-inner", data, ["playoffs", "finals", "champion"])
     </script>
-    </div>
 </div>
 <h3>Rank Distribution</h3>
 <p>Percentage of simulations where team finished in <i>n<sup>th</sup></i> place</p>

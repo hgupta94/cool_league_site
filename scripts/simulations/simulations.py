@@ -6,7 +6,6 @@ from scripts.utils import constants
 
 import scipy.stats as st
 import pandas as pd
-import numpy as np
 import difflib
 pd.options.mode.chained_assignment = None
 
@@ -433,47 +432,6 @@ def get_matchup_id(teams: TeamSettings,
     return None
 
 
-def get_replacement_players(data: DataLoader,
-                            n: int = 3):
-    players_data = data.players_info()
-
-    # first get all free agents
-    free_agents = []
-    position = ''
-    for player in players_data['players']:
-        if player['onTeamId'] == 0:
-            player_id = player['id']
-            player_name = player['player']['fullName']
-            for pos in player['player']['eligibleSlots']:
-                if pos in constants.POSITION_MAP:
-                    position = constants.POSITION_MAP[pos]
-
-            projection = 0
-            if 'stat' in player['player']:
-                for stat in player['player']['stats']:
-                    if stat['seasonId'] == constants.SEASON and stat['scoringPeriodId'] == 0 and stat['statSourceId'] == 1:
-                        projection = stat['appliedAverage']
-
-            try:
-                free_agents.append({
-                    'id': player_id,
-                    'name': player_name,
-                    'position': position,
-                    'projection': projection
-                })
-            except NameError:
-                pass
-
-    # get replacement player score - average of top 3
-    pos_dict = {}
-    for position in ['QB', 'RB', 'WR', 'TE', 'DST']:
-        pos_fa = [fa for fa in free_agents if fa['position'] == position]
-        top_n = sorted(pos_fa, key=lambda x: x['projection'], reverse=True)[:n]
-        pos_dict[position] = sum(p['projection'] for p in top_n) / n
-
-    return pos_dict
-
-
 def get_ros_projections(data: DataLoader,
                         params: LeagueSettings,
                         teams: TeamSettings,
@@ -575,7 +533,7 @@ def simulate_season(params: LeagueSettings,
             matchups = [m for m in teams.matchups if m['week'] == week]
             matchup_sim = []
             all_scores = []  # for tophalf results
-            for _, m in enumerate(matchups):  # entering a matchup
+            for _, m in enumerate(matchups):  # entering a matchupb=
                 sim_scores = {}  # for matchup result
                 matchup = {}
                 for team_sim in m['teams']:  # entering a team in a matchup
@@ -603,7 +561,8 @@ def simulate_season(params: LeagueSettings,
                     matchup[m_teams[0]]['matchup'], matchup[m_teams[1]]['matchup'] = 0.5, 0.5
                 matchup_sim.append(matchup)
 
-            # get tophalf result
+            # get tophalf and top score results
+            top_score = max(all_scores)
             median = sum(sorted(all_scores)[(len(all_scores) // 2) - 1:(len(all_scores) // 2) + 1]) / 2
             for matchup in matchup_sim:
                 for team, result in matchup.items():
@@ -611,13 +570,20 @@ def simulate_season(params: LeagueSettings,
                         matchup[team]['tophalf'] = 1
                     else:
                         matchup[team]['tophalf'] = 0
+
+                    if result['score'] == top_score:
+                        matchup[team]['top_score'] = 1
+                    else:
+                        matchup[team]['top_score'] = 0
             all_weeks.append(matchup_sim)
 
+    # summarize results
     season_sim_dict = {}
     for team in team_names:
         team_points = 0
         team_m_wins = 0
         team_th_wins = 0
+        team_top_score = 0
         for week in all_weeks:
             for matchup in week:
                 for t, result in matchup.items():
@@ -625,11 +591,13 @@ def simulate_season(params: LeagueSettings,
                         team_points += result['score']
                         team_m_wins += result['matchup']
                         team_th_wins += result['tophalf']
+                        team_top_score += result['top_score']
         season_sim_dict[team] = {
             'matchup_wins': team_m_wins,
             'tophalf_wins': team_th_wins,
             'total_wins': team_m_wins + team_th_wins,
-            'total_points': team_points
+            'total_points': team_points,
+            'top_score': team_top_score
         }
     return season_sim_dict
 
@@ -671,8 +639,7 @@ def sim_playoff_round(week: int,
 
     returns: list of teams advancing to the next round
     """
-    this_week_all_lineups = {w: l for w, l in lineups.items() if w == week}[week]
-    this_round_lineups = {t: l for t, l in this_week_all_lineups.items() if t in round_teams}
+    this_round_lineups = {t: l for t, l in lineups.items() if t in round_teams}
     next_round_teams = []
     if n_bye:
         # add teams on bye to next round

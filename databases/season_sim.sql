@@ -7,7 +7,11 @@ CREATE TABLE season_sim (
     tophalf_wins DECIMAL(4, 2),
     total_wins DECIMAL(4, 2),
     total_points DECIMAL(6, 2),
+    most_wins DECIMAL(4, 4),
+    most_points DECIMAL(4, 4),
+    top_scores DECIMAL(4, 2),
     playoffs DECIMAL(4, 4),
+    third DECIMAL(4, 4),
     finals DECIMAL(4, 4),
     champion DECIMAL(4, 4),
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

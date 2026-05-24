@@ -154,7 +154,7 @@ def get_schedule_switcher_display(ss_data: pd.DataFrame,
 
     ss_data = ss_data.groupby(['team', 'schedule_of']).result.sum().reset_index()
     ss_data['losses'] = end - ss_data.result
-    ss_data['record'] = ss_data.result.astype('Int32').astype(str) + '-' + ss_data.losses.astype('Int32').astype(str)
+    ss_data['record'] = ss_data.result.astype(str).str[0] + '-' + ss_data.losses.astype(str).str[0]
     ss_data_p = ss_data.pivot(index='team', columns='schedule_of', values='record')
     ss_data_final = pd.merge(ss_data_p, total_wins, on='team').sort_values('win_perc', ascending=False)
     col_order = ut.flatten_list([['team'], ss_data_final.team.to_list()])

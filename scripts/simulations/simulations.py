@@ -5,6 +5,7 @@ from scripts.api.settings import LeagueSettings, RosterSettings, TeamSettings
 from scripts.utils import constants
 
 import scipy.stats as st
+import numpy as np
 import pandas as pd
 import difflib
 pd.options.mode.chained_assignment = None
@@ -272,9 +273,25 @@ def simulate_lineup(lineup: dict) -> float:
             projected_points += sim
         else:
             # add players yet to play
+            proj = player['projection']
             gamma_values = gamma_map[player['position']]
-            loc = gamma_values['loc'] + (player['projection'] - gamma_values['mean'])
-            sim = st.gamma.rvs(a=gamma_values['a'], loc=loc, scale=gamma_values['scale'], size=1).item()
+            a = gamma_values['a']
+            base_scale = gamma_values['scale']
+            base_mean = gamma_values['mean']
+
+            # no loc for simplicity/stability; set scale so raw mean ~= proj
+            # Gamma mean = a*scale
+            scale = base_scale * np.clip((proj / base_mean) ** 0.5, 0.7, 1.5)
+
+            # projection-aware cap: baseline + multiple std devs
+            # Gamma std = sqrt(a)*scale
+            sd = (a**0.5) * scale
+            cap = max(55, proj + 2 * sd)
+
+            # truncated draw via inverse CDF
+            fc = st.gamma.cdf(cap, a=a, loc=0.0, scale=scale)
+            u = np.random.uniform(0.0, fc)
+            sim = st.gamma.ppf(u, a=a, loc=0.0, scale=scale)
             # TODO: figure out a way to use a player's variance to adjust scale
             projected_points += sim
     return projected_points
@@ -359,9 +376,10 @@ def simulate_week(week_data: DataLoader,
     n_tophalf = {key: 0 for key in teams.teams}
     n_highest = {key: 0 for key in teams.teams}
     n_lowest  = {key: 0 for key in teams.teams}
+    mid = len(teams.teams) // 2
 
     # run simulation
-    for i, sim in enumerate(range(n_sims)):
+    for i in range(n_sims):
         print(f'{i}/{n_sims}', end='\r')
         matchup_sim = simulate_matchup(week_data=week_data,
                                        rosters=rosters,
@@ -384,7 +402,7 @@ def simulate_week(week_data: DataLoader,
         # get tophalf winners, highest and lowest scores
         max_score = max(scores)
         min_score = min(scores)
-        median_score = sum(sorted(scores)[(len(teams.teams) // 2) - 1:(len(teams.teams) // 2) + 1]) / 2
+        median_score = sum(sorted(scores)[(mid) - 1:(mid) + 1]) / 2
         for matchup in matchup_sim:
             for team, result in matchup.items():
                 if result['score'] > median_score:
@@ -526,14 +544,14 @@ def simulate_season(params: LeagueSettings,
                     teams: TeamSettings,
                     lineups: dict,
                     team_names: list[str] = None):
-    """Simulate a full regular season"""
+    """Simulate the remaining regular season weeks"""
     all_weeks = []
     for week, team_lineups in lineups.items():
         if week <= params.regular_season_end:
             matchups = [m for m in teams.matchups if m['week'] == week]
             matchup_sim = []
             all_scores = []  # for tophalf results
-            for _, m in enumerate(matchups):  # entering a matchupb=
+            for m in matchups:  # entering a matchup
                 sim_scores = {}  # for matchup result
                 matchup = {}
                 for team_sim in m['teams']:  # entering a team in a matchup
@@ -578,27 +596,24 @@ def simulate_season(params: LeagueSettings,
             all_weeks.append(matchup_sim)
 
     # summarize results
-    season_sim_dict = {}
-    for team in team_names:
-        team_points = 0
-        team_m_wins = 0
-        team_th_wins = 0
-        team_top_score = 0
-        for week in all_weeks:
-            for matchup in week:
-                for t, result in matchup.items():
-                    if t == team:
-                        team_points += result['score']
-                        team_m_wins += result['matchup']
-                        team_th_wins += result['tophalf']
-                        team_top_score += result['top_score']
-        season_sim_dict[team] = {
-            'matchup_wins': team_m_wins,
-            'tophalf_wins': team_th_wins,
-            'total_wins': team_m_wins + team_th_wins,
-            'total_points': team_points,
-            'top_score': team_top_score
-        }
+    season_sim_dict = {
+        t: {
+            'matchup_wins': 0,
+            'tophalf_wins': 0,
+            'total_wins': 0,
+            'total_points': 0,
+            'top_score': 0
+        } for t in team_names
+    }
+    for week in all_weeks:
+        for matchup in week:
+            for t, result in matchup.items():
+                season_sim_dict[t]['matchup_wins'] += result['matchup']
+                season_sim_dict[t]['tophalf_wins'] += result['tophalf']
+                season_sim_dict[t]['total_wins'] += result['matchup'] + result['tophalf']
+                season_sim_dict[t]['total_points'] += result['score']
+                season_sim_dict[t]['top_score'] += result['top_score']
+
     return season_sim_dict
 
 
@@ -658,9 +673,6 @@ def sim_playoff_round(week: int,
     else:
         this_round_scores = {}
         for team, lineup in {k: v for k, v in this_round_lineups.items() if k in this_round_teams}.items():
-            for id, player in lineup.items():
-                # get standard deviation for each player
-                player['sd'] = player['projection'] * (0.2 if player['position'] == 'QB' else player['projection'] * 0.4)
             this_round_scores[team] = simulate_lineup(lineup=lineup)
 
         # top scoring teams advance to next round

@@ -53,10 +53,10 @@ def power_rank(params: LeagueSettings,
     # scoring weights
     if week < 2:
         ts_idx_wt = 0.45  # total score (actual & projected points)
-        ws_idx_wt = 0.45  # week score
-        c_idx_wt  = 0.00  # consistency
+        ws_idx_wt = 0.45  # weekly score (weighted higher for recent weeks)
+        c_idx_wt  = 0.00  # consistency (points variation)
         l_idx_wt  = 0.05  # luck
-        m_idx_wt  = 0.05  # manager
+        m_idx_wt  = 0.05  # manager efficiency
     else:
         ts_idx_wt = 0.40
         ws_idx_wt = 0.30
@@ -66,17 +66,17 @@ def power_rank(params: LeagueSettings,
     consistency_factor = 1 if week >= 5 else week / 5  # increase by 20% each week
 
     # load data from db
-    season_sim = Database(table='season_sim', season=season, week=week+1).retrieve_data(how='week')
-    eff = Database(table='efficiency', season=season, week=week).retrieve_data(how='season')
-    h2h = Database(table='h2h', season=season, week=week).retrieve_data(how='season')
-    ss = Database(table='schedule_switcher', season=season, week=week).retrieve_data(how='season')
-    matchups = Database(table='matchups', season=season, week=week).retrieve_data(how='season')
+    season_sim = Database().retrieve_data(how='week', table='season_sim', season=season, week=week+1)
+    eff = Database().retrieve_data(how='season', table='efficiency', season=season, week=week)
+    h2h = Database().retrieve_data(how='season', table='h2h', season=season, week=week)
+    ss = Database().retrieve_data(how='season', table='schedule_switcher', season=season, week=week)
+    matchups = Database().retrieve_data(how='season', table='matchups', season=season, week=week)
     matchups = matchups[matchups.week <= params.regular_season_end]
     matchups['median'] = matchups.groupby('week')['score'].transform('median')
 
     sim_ppg_med = (season_sim.total_points.median() / params.regular_season_end) * wks_rem_factor
     ppg_med = (0 if week == 0 else matchups.groupby('team').score.mean().median()) * wks_played_factor
-    eff_med = eff.groupby('team').actual_lineup_score.mean().median() / eff.groupby('team').optimal_lineup_score.mean().median()
+    eff_med = eff.groupby('team').actual_lineup_score.mean().median() / eff.groupby('team').best_projected_lineup_score.mean().median()
     wts = [1] if week == 0 else exp_decay(week=week, reverse=False)
     pr_dict = {}
     c_scores = {}
@@ -104,12 +104,12 @@ def power_rank(params: LeagueSettings,
             pr_dict[t].update({'week_idx': sum(scores)})
 
             # Luck Index
-            # compare matchup record to schedule switcher
+            # compare matchup win percentage to schedule switcher
             tm_m_wp = matchups[matchups.team==t].matchup_result.sum() / week
             ss_wp = ss[(ss.team==t) & (ss.schedule_of!=t)].result.sum() / ((len(set(matchups.team))-1) * week)
             tm_m_luck = scale_luck(tm_m_wp - ss_wp)
 
-            # compare tophalf record to h2h data
+            # compare tophalf win percentage to h2h data
             tm_th_wp = matchups[matchups.team==t].tophalf_result.sum() / week
             th_wp = h2h[h2h.team==t].result.sum() / ((len(set(matchups.team))-1) * week)
             tm_th_luck = scale_luck(tm_th_wp - th_wp)
@@ -124,7 +124,7 @@ def power_rank(params: LeagueSettings,
 
             # Manager Index
             tm_eff = eff[eff.team==t]
-            lineup_eff = tm_eff.actual_lineup_score.sum() / tm_eff.optimal_lineup_score.sum()
+            lineup_eff = tm_eff.actual_lineup_score.sum() / tm_eff.best_projected_lineup_score.sum()
             m_idx = scoring_index(score=lineup_eff, median=eff_med, weight=1)
             pr_dict[t].update({'manager_idx': m_idx})
         else:
@@ -153,7 +153,7 @@ def power_rank(params: LeagueSettings,
                 meds.append(value)
     med = np.median(meds).item()
     for k, v in pr_dict.items():
-        pr_dict[k].update({'power_score_norm': v['power_score_raw']/med})
+        pr_dict[k].update({'power_score_norm': v['power_score_raw']/med})  # maybe try zscore or robust zscore
     sorted_pr_norm = dict(sorted(pr_dict.items(), key=lambda item: item[1]['power_score_norm']))
 
     return sorted_pr_norm

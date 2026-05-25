@@ -105,6 +105,12 @@ body {
   border-top: 2px dashed #909090;
   border-bottom: 2px solid #909090;
 }
+.standings td:nth-child(8){
+  border-left: 1px solid #dddddd;
+}
+.standings td:nth-child(11){
+  border-left: 1px solid #dddddd;
+}
 /* end format standings */
 
 

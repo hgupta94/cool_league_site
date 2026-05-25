@@ -24,24 +24,23 @@ n_teams = len(teams.team_ids)
 # load db tables
 day = dt.now().strftime('%a')
 the_week = params.as_of_week if day == 'Tue' else params.current_week  # Wed is start of new week, and season_sim runs on Tue
-db_pr = Database(table='power_ranks', season=season, week=week)
 betting_table = (
-    Database(table='betting_table', season=season, week=params.current_week)
-    .retrieve_data(how='season')  # show previous week on Tues
+    Database()
+    .retrieve_data(how='season', table='betting_table', season=season, week=params.current_week)  # show previous week on Tues
     .sort_values('created')
     .tail(n_teams)  # most recent db updates
 )
 season_sim_table = (
-    Database(table='season_sim', season=season, week=week).
-    retrieve_data(how='season')
+    Database().
+    retrieve_data(how='season', table='season_sim', season=season, week=week)
     .sort_values('created')
 )
-season_sim_wins_table = Database(table='season_sim_wins', season=season, week=the_week).retrieve_data(how='week')
-season_sim_ranks_table = Database(table='season_sim_ranks', season=season, week=the_week).retrieve_data(how='week')
-h2h_data = Database(table='h2h', season=season, week=params.as_of_week).retrieve_data(how='season')
-ss_data = Database(table='schedule_switcher', season=season, week=week).retrieve_data(how='season')
-alltime_df = Database(table='alltime_standings').retrieve_data(how='all')
-records_df = Database(table='records').retrieve_data(how='all')
+season_sim_wins_table = Database().retrieve_data(how='week', table='season_sim_wins', season=season, week=the_week)
+season_sim_ranks_table = Database().retrieve_data(how='week', table='season_sim_ranks', season=season, week=the_week)
+h2h_data = Database().retrieve_data(how='season', table='h2h', season=season, week=params.as_of_week)
+ss_data = Database().retrieve_data(how='season', table='schedule_switcher', season=season, week=week)
+alltime_df = Database().retrieve_data(how='all', table='alltime_standings')
+records_df = Database().retrieve_data(how='all', table='records')
 
 
 # HOME PAGE
@@ -96,7 +95,7 @@ if week > 1:
     # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
 
 
-pr_data = db_pr.retrieve_data(how='season')
+pr_data = Database().retrieve_data(how='season', table='power_ranks', season=season, week=week)
 pr_data[['power_score_norm', 'score_norm_change']] = pr_data[['power_score_norm', 'score_norm_change']] * 100
 pr_table = pr_data[pr_data.week == week-1]
 pr_table = pr_table.sort_values('power_score_raw', ascending=False)

@@ -32,7 +32,7 @@ class PlayoffScenarios:
 
     def _load_standings(self) -> list[dict]:
         """Load standings from database"""
-        df = Database(table='matchups', season=self.season, week=self.params.as_of_week).retrieve_data(how='season')
+        df = Database().retrieve_data(how='season', table='matchups', season=self.season, week=self.params.as_of_week)
         df['wins'] = df.matchup_result + df.tophalf_result
         standings = df[['team', 'score', 'wins']].groupby('team').sum().reset_index()
         standings['losses'] = (df.week.max() * 2) - standings.wins
@@ -42,8 +42,8 @@ class PlayoffScenarios:
     def _load_betting_table(self) -> list[dict]:
         """Load betting table from database for scenario probabilities"""
         df = (
-            Database(table='betting_table', season=self.season, week=self.params.current_week)
-            .retrieve_data(how='season')
+            Database()
+            .retrieve_data(how='season', table='betting_table', season=self.season, week=self.params.current_week)
             .sort_values('created').head(len(self.team_names))
         )
         return df[['team', 'matchup_id', 'p_win', 'p_tophalf']].to_dict(orient='records')

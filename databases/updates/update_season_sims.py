@@ -24,11 +24,11 @@ replacement_players = rosters.get_replacements()
 lineups = simulations.get_ros_projections(data=data, params=params, teams=teams, rosters=rosters, replacement_players=replacement_players)
 
 # get top scorers so far
-top_scores = Database(table='h2h', season=constants.SEASON, week=params.as_of_week).retrieve_data(how='season')
+top_scores = Database().retrieve_data(how='season', table='h2h', season=constants.SEASON, week=params.as_of_week)
 top_scores = top_scores.groupby(['team', 'week']).result.sum().reset_index()
 
 # get standings
-results = Database(table='matchups', season=constants.SEASON, week=params.as_of_week).retrieve_data(how='season')
+results = Database().retrieve_data(how='season', table='matchups', season=constants.SEASON, week=params.as_of_week)
 results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum()
 results.columns = ['total_points', 'matchup_wins', 'tophalf_wins']
 if params.current_week > 1:
@@ -276,32 +276,24 @@ sim_df['week'] = params.current_week
 sim_df['id'] = sim_df.season.astype(str) + '_' + sim_df.week.astype(str).str.zfill(2) + '_' + sim_df.team
 
 # update db's
-season_sim_table = 'season_sim'
-print(f'writing to {season_sim_table} table')
-season_sim_cols = constants.SEASON_SIM_COLUMNS
-for idx, row in sim_df.iterrows():
-    print(f'commited {idx+1}/{len(sim_df)}', end='\r')
-    sim_vals = (row.id, row.season, row.week, row.team, row.matchup_wins, row.tophalf_wins,
-                row.total_wins, row.total_points, row.most_wins, row.most_points,
-                row.top_scores, row.playoffs, row.third, row.finals, row.champion)
-    db = Database(data=sim_df, table=season_sim_table, columns=season_sim_cols, values=sim_vals)
-    db.commit_row()
+sim_df = sim_df[constants.SEASON_SIM_COLUMNS.split(', ')]
+Database().batch_insert(
+    table='season_sim',
+    columns=constants.SEASON_SIM_COLUMNS,
+    rows=[tuple(row) for _, row in sim_df.iterrows()]
+)
 
 if params.current_week <= params.regular_season_end+1:
-    sim_wins_table = 'season_sim_wins'
-    print(f'writing to {sim_wins_table} table')
-    sim_wins_cols = 'id, season, week, team, wins, p'
-    for idx, row in wins_prob_df.iterrows():
-        print(f'commited {idx+1}/{len(wins_prob_df)}', end='\r')
-        sim_vals = (row.id, row.season, row.week, row.team, row.wins, row.p)
-        db = Database(data=wins_prob_df, table=sim_wins_table, columns=sim_wins_cols, values=sim_vals)
-        # db.commit_row()
+    wins_prob_df = wins_prob_df[['id', 'season', 'week', 'team', 'wins', 'p']]
+    Database().batch_insert(
+        table='season_sim_wins',
+        columns='id, season, week, team, wins, p',
+        rows=[tuple(row) for _, row in wins_prob_df.iterrows()]
+    )
 
-    sim_ranks_table = 'season_sim_ranks'
-    print(f'writing to {sim_ranks_table} table')
-    sim_ranks_cols = 'id, season, week, team, ranks, p'
-    for idx, row in ranks_prob_df.iterrows():
-        print(f'commited {idx+1}/{len(ranks_prob_df)}', end='\r')
-        sim_vals = (row.id, row.season, row.week, row.team, row['rank'], row.p)
-        db = Database(data=ranks_prob_df, table=sim_ranks_table, columns=sim_ranks_cols, values=sim_vals)
-        # db.commit_row()
+    ranks_prob_df = ranks_prob_df[['id', 'season', 'week', 'team', 'rank', 'p']]
+    Database().batch_insert(
+        table='season_sim_ranks',
+        columns='id, season, week, team, ranks, p',
+        rows=[tuple(row) for _, row in wins_prob_df.iterrows()]
+    )

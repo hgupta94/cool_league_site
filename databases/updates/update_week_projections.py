@@ -6,36 +6,50 @@ from scripts.utils import constants
 
 import mysql.connector.errors
 
-wk_proj_table = 'player_projections'
-wk_proj_cols = constants.PROJECTIONS_COLUMNS
-datal = DataLoader(year=constants.SEASON)
-params = LeagueSettings(data=datal)
+
+data = DataLoader(year=constants.SEASON)
+params = LeagueSettings(data=data)
 week = params.current_week
 players = DataLoader().players_info()['players']
 
-data = get_week_projections(week=week)
-data = data[['id', 'season', 'week', 'player', 'espn_id', 'position', 'rec', 'fpts']]
-data['actual'] = None
-data.columns = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receptions', 'projection', 'actual']
-for idx, row in data.iterrows():
-    vals = (row.id, row.season, row.week, row['name'],
-            row.espn_id, row.position, row.receptions, row.projection)
-    try:
-        db = Database(data=data, table=wk_proj_table, columns=wk_proj_cols, values=vals)
-        db.sql_insert_query()
-        db.commit_row()
-    except mysql.connector.errors.IntegrityError:
-        db = Database(table=wk_proj_table)
-        db.sql_update_table(set_column='projection', new_value=row.projection, id_column='id', id_value=row.id, season=constants.SEASON, week=week)
+projections = get_week_projections(week=week)
+projections = projections[['id', 'season', 'week', 'player', 'espn_id', 'position', 'rec', 'fpts']]
+projections['actual'] = None
+projections.columns = ['id', 'season', 'week', 'name', 'espn_id', 'position', 'receptions', 'projection', 'actual']
+
+try:
+    Database().batch_insert(
+        table='player_projections',
+        columns=constants.PROJECTIONS_COLUMNS,
+        rows=[tuple(row) for _, row in projections.iterrows()]
+    )
+except mysql.connector.errors.IntegrityError:
+    # update projections
+    Database().batch_insert(
+        table='player_projections',
+        columns=constants.PROJECTIONS_COLUMNS,
+        rows=[tuple(row) for _, row in projections.iterrows()],
+        upsert=True,
+        update_columns=['projection']
+    )
 
 
 # get actual scores
-# if day == 'Wed':
-players = datal.load_week(week=week)['players']
-for player in players:
-    actual = 0
-    for stat in player['player']['stats']:
-        if stat['seasonId'] == 2025 and stat['scoringPeriodId'] == week and stat['statSourceId'] == 0:
-            actual = stat['appliedTotal']
-    db = Database(table=wk_proj_table)
-    db.sql_update_table(set_column='actual', new_value=actual, id_column='espn_id', id_value=player['id'], season=constants.SEASON, week=week)
+if day == 'Wed':
+    players = data.load_week(week=week)['players']
+    for player in players:
+        actual = 0
+        for stat in player['player']['stats']:
+            if (
+                    stat['seasonId'] == 2025
+                    and stat['scoringPeriodId'] == week
+                    and stat['statSourceId'] == 0
+            ):
+                actual = stat['appliedTotal']
+        Database().batch_insert(
+            table='player_projections',
+            columns=constants.PROJECTIONS_COLUMNS,
+            rows=[tuple(row) for _, row in projections.iterrows()],
+            upsert=True,
+            update_columns=['actual']
+        )

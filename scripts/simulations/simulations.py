@@ -319,7 +319,7 @@ def simulate_matchup(week_data: DataLoader,
                                      week=week,
                                      team_id=team_id)
             score = simulate_lineup(lineup)
-            sim_scores[team_name] = simulate_lineup(lineup)
+            sim_scores[team_name] = score
 
             matchup[team_name] = {
                 'game_id': game_id,

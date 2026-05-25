@@ -7,15 +7,13 @@ from scripts.home.power_ranks import power_rank
 import pandas as pd
 
 
-pr_table = 'power_ranks'
-pr_cols = constants.POWER_RANK_COLUMNS
 data = DataLoader(year=constants.SEASON)
 params = LeagueSettings(data=data)
 teams = TeamSettings(data=data)
 week = params.as_of_week
 
 # get previous week data
-prev_wk = Database(season=constants.SEASON, week=week-1, table='power_ranks').retrieve_data(how='week')
+prev_wk = Database().retrieve_data(how='week', season=constants.SEASON, week=week-1, table='power_ranks')
 
 df = pd.DataFrame(power_rank(params=params, teams=teams, season=constants.SEASON, week=week)).transpose()
 df['season'] = constants.SEASON
@@ -27,10 +25,11 @@ df_final = pd.concat([prev_wk, df])
 df_final['score_raw_change'] = df_final.groupby(['team'])['power_score_raw'].diff()
 df_final['score_norm_change'] = df_final.groupby(['team'])['power_score_norm'].diff()
 df_final['rank_change'] = df_final.groupby(['team'])['power_rank'].diff()
-df_final = df_final[pr_cols.split(', ')].fillna(0)
+df_final = df_final[constants.POWER_RANK_COLUMNS.split(', ')].fillna(0)
 df_final = df_final[df_final.week==week]
-for _, row in df_final.iterrows():
-    pr_vals = tuple(row)
-    db = Database(data=df_final, table=pr_table, columns=pr_cols, values=pr_vals)
-    db.commit_row()
-print(f'Commited week {week}')
+
+Database().batch_insert(
+    table='power_ranks',
+    columns=constants.POWER_RANK_COLUMNS,
+    rows=[tuple(row) for _, row in df_final.iterrows()]
+)

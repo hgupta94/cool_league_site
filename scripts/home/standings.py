@@ -306,7 +306,7 @@ class Standings:
         """
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
-        matchups = Database(table='matchups', season=self.season, week=self.week).retrieve_data(how='season').iloc[:, 0:-1]
+        matchups = Database().retrieve_data(how='season', table='matchups', season=self.season, week=self.week).iloc[:, 0:-1]
         matchups = matchups[matchups.week <= self.params.regular_season_end]
         matchups = matchups.to_dict(orient='records')
 

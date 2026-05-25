@@ -13,6 +13,8 @@ class LeagueSettings:
         self.as_of_week = 0 if self.current_week-1 < 0 else self.current_week-1  # just finished
         self.playoff_teams = settings['settings']['scheduleSettings']['playoffTeamCount']
         self.playoff_matchup_length = settings['settings']['scheduleSettings']['playoffMatchupPeriodLength']
+        self.playoff_weeks = [int(w) for w in settings['settings']['scheduleSettings']['matchupPeriods'].keys()][self.regular_season_end:]
+        self.playoff_length = len(self.playoff_weeks)
         self.has_bonus_win = 1 if settings['settings']['scoringSettings'].get('scoringEnhancementType') else 0
         has_ppr = [s['points'] for s in settings['settings']['scoringSettings']['scoringItems'] if s['statId'] == 53]
         self.ppr_type = 0 if not has_ppr else has_ppr[0]
@@ -36,7 +38,7 @@ class RosterSettings:
         self.replacement_players = self.get_replacements()
 
     def get_replacements(self, n: int = 3):
-        players_data = self._data.players_info()
+        players_data = self.data.players_info()
 
         # first get all free agents
         free_agents = []

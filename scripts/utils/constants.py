@@ -34,13 +34,17 @@ ELIMINATED = 99
 CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
-N_SIMS = 100_000
-
 # ESPN API parameters
-_CURRENT_YEAR = dt.datetime.now().year
-_CURRENT_MONTH = dt.datetime.now().month
+_TODAY = dt.datetime.now()
+_CURRENT_YEAR = _TODAY.year
+_CURRENT_MONTH = _TODAY.month
+_SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game
+_SEASON_END = dt.datetime(2026, 1, 5)  # monday after last game
 # SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
+# WEEK = -(-(_TODAY - _SEASON_START).days // 7)
 SEASON = 2025
+WEEK = 7
+
 LEAGUE_ID = os.getenv('LEAGUE_ID')
 SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')

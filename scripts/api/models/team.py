@@ -11,7 +11,6 @@ class Team:
     first_name: str
     last_name: str
     display_name: str
-    display_name: str
     espn_name: str
     abbrev: str
     total_wins: int

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from scripts.utils.constants import SEASON
 from scripts.api.dataloader import DataLoader
 from scripts.api.settings import LeagueSettings
 
@@ -96,6 +97,7 @@ class Matchup:
 
 @dataclass(frozen=True)
 class TeamSchedule:
+    season: int
     week: int
     game_type: GameType
     team_id: int
@@ -132,6 +134,7 @@ class TeamSchedule:
                     matchup_result = Result.WIN if points > opp_points else Result.LOSS
                     tophalf_result = Result.WIN if points > median else Result.LOSS
                     schedule[week] = TeamSchedule(
+                            season=SEASON,
                             week=week,
                             game_type=game_type.value,
                             team_id=tmid,

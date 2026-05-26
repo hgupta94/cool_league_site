@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 
@@ -113,7 +115,7 @@ class TeamSchedule:
             cls,
             obj: list[dict],
             team_id: int,
-            median: float,
+            medians: dict[int, float],
             n_reg_weeks: int
     ) -> TeamSchedule:
         schedule = {}
@@ -132,7 +134,7 @@ class TeamSchedule:
                             opp_tm_id = team_entry['teamId']
                             opp_points = team_entry.get('totalPoints', 0.0)
                     matchup_result = Result.WIN if points > opp_points else Result.LOSS
-                    tophalf_result = Result.WIN if points > median else Result.LOSS
+                    tophalf_result = Result.WIN if points > medians[week] else Result.LOSS
                     schedule[week] = TeamSchedule(
                             season=SEASON,
                             week=week,
@@ -149,19 +151,22 @@ class TeamSchedule:
 
     @classmethod
     def get_all_team_schedules(cls, week: int) -> dict[int, TeamSchedule]:
+        def get_median(scores: list[float]):
+            return sum(scores[(len(scores) // 2) - 1: (len(scores) // 2) + 1]) / 2
+
         dataloader = DataLoader(week=week)
         teams_obj = dataloader.teams()
         params = LeagueSettings(data=dataloader)
         n_weeks = params.regular_season_end
         matchups_obj = dataloader.matchups()['schedule']
-        scores = dataloader.week_scores()
-        median = sum(sorted(scores)[(len(scores) // 2) - 1: (len(scores) // 2) + 1]) / 2
+        all_scores = dataloader.all_scores()
+        medians = {k: round(get_median(v), 2) for k, v in all_scores.items()}
         schedules = {}
         for team in teams_obj['teams']:
             schedules[team['id']] = TeamSchedule.get_team_schedule(
                 obj=matchups_obj,
                 team_id=team['id'],
-                median=median,
+                medians=medians,
                 n_reg_weeks=n_weeks
             )
 

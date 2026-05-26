@@ -100,10 +100,12 @@ class DataLoader:
     def standings(self):
         return self._loader(view='mStandings')
 
-    def week_scores(self):
+    def week_scores(self, week: int = None):
+        if not week:
+            week = self.week
         data = self._loader(view='mMatchup')
-        matchups = [m for m in data['schedule'] if m['matchupPeriodId'] == self.week]
-        if self.week:
+        matchups = [m for m in data['schedule'] if m['matchupPeriodId'] == week]
+        if week:
             scores = []
             for m in matchups:
                 for i, tm in enumerate(['home', 'away']):
@@ -115,6 +117,13 @@ class DataLoader:
             return scores
         else:
             raise ValueError('Must specify week')
+
+    def all_scores(self):
+        scores = {}
+        for i in range(1, self.week+1):
+            week_scores = self.week_scores(week=i)
+            scores[i] = sorted(week_scores)
+        return scores
 
     def matchups(self):
         data = self._loader(view='mMatchup')

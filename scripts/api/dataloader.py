@@ -1,6 +1,7 @@
 from scripts.utils import constants as const
 import requests
 import json
+from cachetools.func import ttl_cache
 
 
 class DataLoader:
@@ -62,6 +63,7 @@ class DataLoader:
 
         return d
 
+    @ttl_cache(maxsize=1, ttl=300)
     def load_week(self):
         url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
               f'{int(self.year)}' \
@@ -85,15 +87,18 @@ class DataLoader:
 
         return r.json()
 
+    @ttl_cache(maxsize=1, ttl=300)
     def settings(self):
         return self._loader(view='mSettings')
 
     def draft(self):
         return self._loader(view='mDraftDetail')
 
+    @ttl_cache(maxsize=1, ttl=300)
     def teams(self):
         return self._loader(view='mTeam')
 
+    @ttl_cache(maxsize=1, ttl=300)
     def rosters(self):
         return self._loader(view='mRoster')
 
@@ -125,6 +130,7 @@ class DataLoader:
             scores[i] = sorted(week_scores)
         return scores
 
+    @ttl_cache(maxsize=1, ttl=300)
     def matchups(self):
         data = self._loader(view='mMatchup')
         if self.week:
@@ -135,6 +141,7 @@ class DataLoader:
     def nav(self):
         return self._loader(view='mNav')
 
+    @ttl_cache(maxsize=1, ttl=300)
     def players_info(self):
         return self._loader(view='kona_player_info')
 

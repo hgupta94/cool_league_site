@@ -3,8 +3,9 @@ from scripts.utils import constants as const
 
 
 class LeagueSettings:
-    def __init__(self, data):
-        settings = data.settings()
+    def __init__(self, season=const.SEASON):
+        dataloader = DataLoader(year=season)
+        settings = dataloader.settings()
 
         self.league_size = settings['settings']['size']
         self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())

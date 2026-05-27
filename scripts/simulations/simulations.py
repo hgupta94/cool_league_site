@@ -441,7 +441,7 @@ def get_ros_projections(data: DataLoader,
 
     projections_dict = {}
     for week in range(params.current_week, 17+1):  # next week (already simmed current week) to end of playoffs+1
-        week_data = data.load_week(week)
+        week_data = data.load_week()
         team_dict = {}
         for team in week_data['teams']:
             roster_dict = {}

@@ -3,8 +3,8 @@ from scripts.utils import constants as const
 
 
 class LeagueSettings:
-    def __init__(self, data):
-        settings = data.settings()
+    def __init__(self, dataloader: DataLoader):
+        settings = dataloader.settings()
 
         self.league_size = settings['settings']['size']
         self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())
@@ -22,9 +22,9 @@ class LeagueSettings:
         self.team_map = const.TEAM_IDS
 
 class RosterSettings:
-    def __init__(self, year=const.SEASON):
-        self.data = DataLoader(year=year)
-        _settings = self.data.settings()
+    def __init__(self, dataloader: DataLoader):
+        self.dataloader = dataloader
+        _settings = self.dataloader.settings()
         _slot_limits = _settings['settings']['rosterSettings']['lineupSlotCounts']
         _roster_limits = _settings['settings']['rosterSettings']['positionLimits']
 
@@ -38,7 +38,7 @@ class RosterSettings:
         self.replacement_players = self.get_replacements()
 
     def get_replacements(self, n: int = 3):
-        players_data = self.data.players_info()
+        players_data = self.dataloader.players_info()
 
         # first get all free agents
         free_agents = []
@@ -78,10 +78,10 @@ class RosterSettings:
         return pos_dict
 
 class TeamSettings:
-    def __init__(self, data):
-        self._data = data
-        self.settings = self._data.settings()
-        self.teams = self._data.teams()
+    def __init__(self, dataloader: DataLoader):
+        self.dataloader = dataloader
+        self.settings = self.dataloader.settings()
+        self.teams = self.dataloader.teams()
 
         self.team_ids = []
         self.owner_ids = []
@@ -112,7 +112,7 @@ class TeamSettings:
         :returns: Dictionary containing matchup data
         """
         matchups = []
-        for m in self._data.matchups()['schedule']:
+        for m in self.dataloader.matchups()['schedule']:
             week = m['matchupPeriodId']
             game_type = 'REG' if week <= self.settings['settings']['scheduleSettings']['matchupPeriodCount'] else 'POST'
             matchup_id = m['id']

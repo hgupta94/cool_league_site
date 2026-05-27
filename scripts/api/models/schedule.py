@@ -156,7 +156,7 @@ class TeamSchedule:
 
         dataloader = DataLoader(week=week)
         teams_obj = dataloader.teams()
-        params = LeagueSettings(data=dataloader)
+        params = LeagueSettings(dataloader=dataloader)
         n_weeks = params.regular_season_end
         matchups_obj = dataloader.matchups()['schedule']
         all_scores = dataloader.all_scores()

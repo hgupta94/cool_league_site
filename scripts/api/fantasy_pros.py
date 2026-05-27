@@ -128,3 +128,11 @@ class FantasyPros:
 
 fp = FantasyPros()
 projections = fp.get_projections(season=2018, week=0)
+
+
+import nfl_data_py as nfl
+players = nfl.import_players()
+ids = nfl.import_ids()
+ids = ids[~ids.fantasypros_id.isnull() & ~ ids.espn_id.isnull()][['fantasypros_id', 'espn_id', 'name', 'position']]
+ids[['fantasypros_id', 'espn_id']] = ids[['fantasypros_id', 'espn_id']].astype('int32')
+ids = ids.drop_duplicates()

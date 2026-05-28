@@ -1,6 +1,7 @@
 import io
 import base64
 
+from scripts.api.dataloader import DataLoader
 from scripts.api.settings import LeagueSettings, RosterSettings, TeamSettings
 from scripts.utils.database import Database
 from scripts.utils import utils
@@ -22,6 +23,12 @@ def get_optimal_points(params: LeagueSettings,
     """
     Calculate each team's best possible scoring lineup each week
     """
+    week = 6
+    dl = DataLoader(week=6)
+    params = LeagueSettings(dl)
+    rosters = RosterSettings(dl)
+    week_data = dl.load_week()
+
     slots = rosters.slotcodes
     starters = {k: v for k, v in rosters.slot_limits.items() if k not in [20, 21, 23]}
     positions = {k: v for k, v in slots.items() if k in starters.keys()}

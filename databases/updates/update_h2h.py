@@ -8,11 +8,11 @@ from scripts.utils import constants
 def load_h2h(
         dataloader: DataLoader,
         season: int = constants.SEASON,
-        week: int = constants.WEEK,
+        week: int = constants.WEEK-1,
         upsert: bool = False,
         upsert_cols: list[str] | None = None
 ) -> None:
-    """Batch load rows to the h2h table for the current week"""
+    """Batch load rows to the h2h table for the prior week"""
 
     teams = TeamSettings(dataloader)
     h2h = get_h2h(season=season, week=week)

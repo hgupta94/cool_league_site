@@ -8,11 +8,12 @@ from scripts.utils import constants
 def load_switcher(
         dataloader: DataLoader,
         season: int = constants.SEASON,
-        week: int = constants.WEEK,
+        week: int = constants.WEEK-1,
         upsert: bool = False,
         upsert_cols: list[str] | None = None
 ) -> None:
-    """Batch load rows to the schedule_switcher table for the current week"""
+    """Batch load rows to the schedule_switcher table for the prior week"""
+
     teams = TeamSettings(dataloader)
     switcher = schedule_switcher(season=season, week=week)
     rows = []

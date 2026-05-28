@@ -40,10 +40,8 @@ _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
 _SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game
 _SEASON_END = dt.datetime(2026, 1, 5)  # monday after last game
-# SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
-# WEEK = -(-(_TODAY - _SEASON_START).days // 7)
-SEASON = 2025
-WEEK = 7
+SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
+WEEK = -(-(_TODAY - _SEASON_START).days // 7)
 
 LEAGUE_ID = os.getenv('LEAGUE_ID')
 SWID = os.getenv('SWID')
@@ -157,9 +155,9 @@ SLOTCODES = {
     0:  'QB',
     1:  'TQB',
     2:  'RB',
-    3:  'Flex',  # RB/WR
+    3:  'Flex RB_WR',  # RB/WR
     4:  'WR',
-    5:  'Flex',  # WR/TE
+    5:  'Flex WR_TE',  # WR/TE
     6:  'TE',
     7:  'OP',
     8:  'DT',
@@ -177,7 +175,7 @@ SLOTCODES = {
     20: 'BE',
     21: 'IR',
     22: '',
-    23: 'Flex',  # RB/WR/TE
+    23: 'Flex RB_WR_TE',  # RB/WR/TE
     24: 'ER',
     25: 'Rookie'
 }

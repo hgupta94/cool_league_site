@@ -44,7 +44,7 @@ records_df = Database().retrieve_data(how='all', table='records')
 
 
 # HOME PAGE
-standings = Standings(season=season, week=week)
+standings = Standings(dataloader=dataloader, season=season, week=week)
 standings_df = standings.format_standings()
 standings_df['bye_magic_number'] = '-'
 standings_df['playoff_magic_number'] = '-'

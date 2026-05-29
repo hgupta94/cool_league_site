@@ -45,11 +45,9 @@ class RosterSettings:
 
         self.player_stats_map = const.PLAYER_STATS_MAP
         self.slotcodes = const.SLOTCODES
-        self.nfl_team_map = const.NFL_TEAM_MAP
-        self.espn_tonfl_position_map = const.POSITION_MAP
         self.slot_limits = {int(k): v for k, v in _slot_limits.items() if v > 0}
         self.roster_limits = {int(k): v for k, v in _roster_limits.items() if v > 0}
-        self.positions = [v for v in self.espn_tonfl_position_map.values()] + ['FLEX']
+        self.positions = [const.POSITION_MAP[v] for v in self.slot_limits if v < 20] + ['FLEX']
         self.replacement_players = self.get_replacements()
 
     def get_replacements(self, n: int = 3):

@@ -1,3 +1,4 @@
+from scripts.api.dataloader import DataLoader
 from scripts.utils.database import Database
 from scripts.utils import constants
 
@@ -5,10 +6,10 @@ from itertools import product, combinations
 
 
 class PlayoffScenarios:
-    def __init__(self, data, params, teams):
-        self.data = data
-        self.params = params
-        self.teams = teams
+    def __init__(self, dataloader: DataLoader):
+        self.dataloader = dataloader
+        self.params = self.dataloader.settings()
+        self.teams = self.dataloader.teams()
 
         self.season = constants.SEASON
         self.team_names = [x['name']['display'] for x in self.params.team_map.values() if x['active']]
@@ -22,7 +23,6 @@ class PlayoffScenarios:
 
         self.standings = self._load_standings()
         self.betting_table = self._load_betting_table()
-
         self.scenarios = self._get_scenarios()
 
     @staticmethod

@@ -35,7 +35,8 @@ CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
-_TODAY = dt.datetime.now()
+# _TODAY = dt.datetime.now()
+_TODAY = dt.datetime(2025, 10, 28)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
 _SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game
@@ -222,7 +223,7 @@ PLAYER_STATS_MAP = {
     41: {'name': 'receivingReceptions', 'display': 'Receptions'},  # REC
     42: {'name': 'receivingYards', 'display': 'Receiving Yards'},  # REY
     43: {'name': 'receivingTouchdowns', 'display': 'Receiving TDs'},  # RETD
-    44: 'receiving2PtConversions',  # 2PRE
+    44: {'name': 'receiving2PtConversions', 'display': 'Receiving 2PC'},  # 2PRE
     45: 'receiving40PlusYardTD',  # RETD40
     46: 'receiving50PlusYardTD',  # RETD50
     # 47-52 appear for receiving players
@@ -237,14 +238,14 @@ PLAYER_STATS_MAP = {
     59: 'receivingYardsAfterCatch',
     60: 'receivingYardsPerReception',
     61: 'receivingYardsPerGame',  # REY - avg per game
-    62: '2PtConversions',
-    63: 'fumbleRecoveredForTD',  # FTD
+    62: {'name': '2PtConversions', 'display': 'Two Point Conversions'},
+    63: {'name': 'fumbleRecoveredForTD', 'display': 'Fumble Recovery Touchdown'},  # FTD
     64: 'passingTimesSacked',  # SK
 
     # Turnovers
     68: {'name': 'fumbles', 'display': 'Fumbles'},  # FUM
     72: {'name': 'lostFumbles', 'display': 'Fumbles Lost'},  # FUML
-    73: 'turnovers',
+    73: {'name': 'turnovers', 'display': 'Turnovers'},
 
     # Kicking
     74: 'madeFieldGoalsFrom50Plus',  # FG50 (does not map directly to FG50 as FG50 does not include 60+)

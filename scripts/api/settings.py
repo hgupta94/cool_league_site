@@ -15,11 +15,26 @@ class LeagueSettings:
         self.playoff_matchup_length = settings['settings']['scheduleSettings']['playoffMatchupPeriodLength']
         self.playoff_weeks = [int(w) for w in settings['settings']['scheduleSettings']['matchupPeriods'].keys()][self.regular_season_end:]
         self.playoff_length = len(self.playoff_weeks)
+        self.scoring = self.get_scoring_settings(settings)
         self.has_bonus_win = 1 if settings['settings']['scoringSettings'].get('scoringEnhancementType') else 0
         has_ppr = [s['points'] for s in settings['settings']['scoringSettings']['scoringItems'] if s['statId'] == 53]
         self.ppr_type = 0 if not has_ppr else has_ppr[0]
         self.weeks_left = 0 if self.as_of_week > self.regular_season_end else self.regular_season_end - self.as_of_week
         self.team_map = const.TEAM_IDS
+
+    @staticmethod
+    def get_scoring_settings(settings: dict) -> dict:
+        scoring_entry = settings.get('settings', {}).get('scoringSettings', {}).get('scoringItems', [])
+
+        scoring = []
+        for s in scoring_entry:
+            d = {'stat': s['statId']}
+            if 'pointsOverrides' in s:
+                d['points'] = list(s['pointsOverrides'].values())[0]
+            else:
+                d['points'] = s['points']
+            scoring.append(d)
+        return scoring
 
 class RosterSettings:
     def __init__(self, dataloader: DataLoader):

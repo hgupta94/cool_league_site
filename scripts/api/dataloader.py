@@ -5,45 +5,37 @@ import json
 
 class DataLoader:
     """Load a view from ESPN's API"""
-    def __init__(self,
-                 year: int = const.SEASON,
-                 league_id: int = const.LEAGUE_ID,
-                 swid: str = const.SWID,
-                 espn_s2: str = const.ESPN_S2,
-                 week: int = None,
-                 n: int | None = 500):
+    def __init__(
+            self,
+            year: int = const.SEASON,
+            week: int = None,
+            league_id: int = const.LEAGUE_ID,
+            swid: str = const.SWID,
+            espn_s2: str = const.ESPN_S2
+    ):
         self.year = year
+        self.week = week
         self.league_id = str(league_id)
         self.swid = swid
         self.espn_s2 = espn_s2
-        self.week = week
-        self.n = n
+        self.endpoint = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl'
 
-    def _loader(self, view: str):
-        # construct url, headers, and parameters
-        url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
-              f'{self.year}' \
-              f'/segments/0/leagues/' \
-              f'{self.league_id}' \
-              f'?view={view}'
+    def _loader(
+            self,
+            view: str,
+            filters: dict = None
+    ) -> dict[str, dict]:
+        if self.year >= 2018:
+            url = f'{self.endpoint}/seasons/{self.year}/segments/0/leagues/{self.league_id}?view={view}'
+        else:
+            # data before 2018 stored in this endpoint
+            url = f'{self.endpoint}/leagueHistory/{self.league_id}?seasonId={self.year}&view={view}'
+
         headers = None
-
-        if self.n:
-            if view == 'kona_player_info':
-                filters = {
-                    'players': {
-                        'limit': self.n,
-                        'sortDraftRanks': {
-                            'sortPriority': 100,
-                            'sortAsc': True,
-                            'value': 'PPR'
-                        }
-                    }
-                }
-
-                headers = {
-                    'x-fantasy-filter': json.dumps(filters)
-                }
+        if filters:
+            headers = {
+                'x-fantasy-filter': json.dumps(filters)
+            }
 
         params = {
             'scoringPeriodId': self.week,
@@ -62,29 +54,6 @@ class DataLoader:
 
         return d
 
-    def load_week(self):
-        url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
-              f'{int(self.year)}' \
-              f'/segments/0/leagues/' \
-              f'{int(self.league_id)}'
-        filters = {
-            'players': {
-                'limit': self.n,
-                'sortDraftRanks': {
-                    'sortPriority': 100,
-                    'sortAsc': True,
-                    'value': 'PPR'
-                }
-            }
-        }
-        headers = {'x-fantasy-filter': json.dumps(filters)}
-        r = requests.get(url + '?view=mMatchup&view=mMatchupScore&view=kona_player_info',
-                         params={'scoringPeriodId': self.week, 'matchupPeriodId': self.week},
-                         cookies={'SWID': self.swid, 'espn_s2': self.espn_s2},
-                         headers=headers)
-
-        return r.json()
-
     def settings(self):
         return self._loader(view='mSettings')
 
@@ -100,7 +69,7 @@ class DataLoader:
     def standings(self):
         return self._loader(view='mStandings')
 
-    def week_scores(self, week: int = None):
+    def week_scores(self, week: int):
         if not week:
             week = self.week
         data = self._loader(view='mMatchup')
@@ -135,8 +104,18 @@ class DataLoader:
     def nav(self):
         return self._loader(view='mNav')
 
-    def players_info(self):
-        return self._loader(view='kona_player_info')
+    def players_info(self, n: int = 500):
+        filters = {
+            'players': {
+                'limit': n,
+                'sortDraftRanks': {
+                    'sortPriority': 100,
+                    'sortAsc': True,
+                    'value': 'PPR'
+                }
+            }
+        }
+        return self._loader(view='kona_player_info', filters=filters)
 
     def players_wl(self):
         return self._loader(view='players_wl')

@@ -7,8 +7,6 @@ from scripts.api.models.team import Team
 from scripts.utils import constants
 
 
-
-# TODO: validate this data, compare to previous iteration
 def load_efficiency(
         dataloader: DataLoader,
         season: int = constants.SEASON,

@@ -29,8 +29,10 @@ class Player:
     is_locked: bool
     is_injured: bool
     status: str
-    pts_proj: float
     pts_act: float
+    pts_breakdown_act: dict
+    pts_proj: float
+    pts_breakdown_proj: dict
     percent_owned: float
     percent_start: float
     source_view: PlayerView
@@ -109,19 +111,22 @@ class Player:
                             and stat.get('scoringPeriodId') == ctx.week
                             and stat.get('statSourceId') == stat_source_id
                     ):
-                        return float(stat.get('appliedTotal', None))
+                        return float(stat.get('appliedTotal', None)), stat.get('stats', {})
                 else:
                     if (
                             stat.get('seasonId') == ctx.season
                             and stat.get('statSourceId') == stat_source_id
                             and stat.get('statSplitTypeId') == 0
                     ):
-                        return float(stat.get('appliedTotal', None))
+                        return float(stat.get('appliedTotal', None)), stat.get('stats', {})
                     
-            return None
+            return None, None
 
         eligible_slots = player_data.get('eligibleSlots', [])
         pl_position = get_position(eligible_slots)
+
+        act_points_obj = get_points(stat_source_id=0)
+        proj_points_obj = get_points(stat_source_id=1)
 
         return Player(
             id=player_id,
@@ -134,8 +139,10 @@ class Player:
             is_locked=player_entry.get('lineupLocked', None),
             is_injured=player_data.get('injured', None),
             status=player_data.get('injuryStatus', None),
-            pts_proj=get_points(stat_source_id=1),
-            pts_act=get_points(stat_source_id=0),
+            pts_act=act_points_obj[0] if act_points_obj else None,
+            pts_breakdown_act=act_points_obj[1] if act_points_obj else None,
+            pts_proj=proj_points_obj[0] if act_points_obj else None,
+            pts_breakdown_proj=proj_points_obj[1] if act_points_obj else None,
             percent_owned=round(float(ownership.get('percentOwned', 0.0)) / 100, 4),
             percent_start=round(float(ownership.get('percentStarted', 0.0)) / 100, 4),
             source_view=ctx.view,

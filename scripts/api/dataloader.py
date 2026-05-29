@@ -5,39 +5,34 @@ import json
 
 class DataLoader:
     """Load a view from ESPN's API"""
-    def __init__(self,
-                 year: int = const.SEASON,
-                 league_id: int = const.LEAGUE_ID,
-                 swid: str = const.SWID,
-                 espn_s2: str = const.ESPN_S2,
-                 week: int = None):
+    def __init__(
+            self,
+            year: int = const.SEASON,
+            week: int = None,
+            league_id: int = const.LEAGUE_ID,
+            swid: str = const.SWID,
+            espn_s2: str = const.ESPN_S2
+    ):
         self.year = year
+        self.week = week
         self.league_id = str(league_id)
         self.swid = swid
         self.espn_s2 = espn_s2
-        self.week = week
+        self.endpoint = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl'
 
-    def _loader(self, view: str):
-        # construct url, headers, and parameters
-        url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
-              f'{self.year}' \
-              f'/segments/0/leagues/' \
-              f'{self.league_id}' \
-              f'?view={view}'
+    def _loader(
+            self,
+            view: str,
+            filters: dict = None
+    ) -> dict[str, dict]:
+        if self.year >= 2018:
+            url = f'{self.endpoint}/seasons/{self.year}/segments/0/leagues/{self.league_id}?view={view}'
+        else:
+            # data before 2018 stored in this endpoint
+            url = f'{self.endpoint}/leagueHistory/{self.league_id}?seasonId={self.year}&view={view}'
+
         headers = None
-
-        if view == 'kona_player_info':
-            filters = {
-                'players': {
-                    'limit': 1000,
-                    'sortDraftRanks': {
-                        'sortPriority': 100,
-                        'sortAsc': True,
-                        'value': 'PPR'
-                    }
-                }
-            }
-
+        if filters:
             headers = {
                 'x-fantasy-filter': json.dumps(filters)
             }
@@ -59,29 +54,6 @@ class DataLoader:
 
         return d
 
-    def load_week(self, week):
-        url = f'https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' \
-              f'{int(self.year)}' \
-              f'/segments/0/leagues/' \
-              f'{int(self.league_id)}'
-        filters = {
-            'players': {
-                'limit': 500,
-                'sortDraftRanks': {
-                    'sortPriority': 100,
-                    'sortAsc': True,
-                    'value': 'PPR'
-                }
-            }
-        }
-        headers = {'x-fantasy-filter': json.dumps(filters)}
-        r = requests.get(url + '?view=mMatchup&view=mMatchupScore&view=kona_player_info',
-                         params={'scoringPeriodId': week, 'matchupPeriodId': week},
-                         cookies={'SWID': self.swid, 'espn_s2': self.espn_s2},
-                         headers=headers)
-
-        return r.json()
-
     def settings(self):
         return self._loader(view='mSettings')
 
@@ -91,12 +63,36 @@ class DataLoader:
     def teams(self):
         return self._loader(view='mTeam')
 
-    def scores(self):
-        data = self._loader(view='mMatchupScore')
-        if self.week:
-            return {'schedule': [x for x in data['schedule'] if x["matchupPeriodId"] == self.week]}
+    def rosters(self):
+        return self._loader(view='mRoster')
+
+    def standings(self):
+        return self._loader(view='mStandings')
+
+    def week_scores(self, week: int):
+        if not week:
+            week = self.week
+        data = self._loader(view='mMatchup')
+        matchups = [m for m in data['schedule'] if m['matchupPeriodId'] == week]
+        if week:
+            scores = []
+            for m in matchups:
+                for i, tm in enumerate(['home', 'away']):
+                    try:
+                        team_entry = m[tm]
+                        scores.append(team_entry['totalPoints'])
+                    except KeyError:
+                        continue
+            return scores
         else:
-            return {'schedule': data['schedule']}
+            raise ValueError('Must specify week')
+
+    def all_scores(self):
+        scores = {}
+        for i in range(1, self.week+1):
+            week_scores = self.week_scores(week=i)
+            scores[i] = sorted(week_scores)
+        return scores
 
     def matchups(self):
         data = self._loader(view='mMatchup')
@@ -108,8 +104,18 @@ class DataLoader:
     def nav(self):
         return self._loader(view='mNav')
 
-    def players_info(self):
-        return self._loader(view='kona_player_info')
+    def players_info(self, n: int = 500):
+        filters = {
+            'players': {
+                'limit': n,
+                'sortDraftRanks': {
+                    'sortPriority': 100,
+                    'sortAsc': True,
+                    'value': 'PPR'
+                }
+            }
+        }
+        return self._loader(view='kona_player_info', filters=filters)
 
     def players_wl(self):
         return self._loader(view='players_wl')

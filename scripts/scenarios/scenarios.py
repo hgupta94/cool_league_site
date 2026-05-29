@@ -1,33 +1,52 @@
 from scripts.api.settings import LeagueSettings, TeamSettings
+from scripts.api.models.schedule import TeamSchedule
 from scripts.utils import constants as const
 import scripts.utils.utils as ut
 
 import pandas as pd
 
 
-def get_h2h(teams: TeamSettings, season: int, week: int):
+def get_h2h(
+        season: int = const.SEASON,
+        week: int = const.WEEK-1  # week just finished
+) -> list[dict]:
     """
-    Create the h2h dataframe to use
+    Build pairwise head-to-head results for all teams in a given season/week.
+
+    Args:
+        season (int): NFL season to evaluate. Defaults to const.SEASON
+        week (int): NFL week to evaluate. Defaults to const.WEEK
+
+    Returns:
+        list[dict]: A list of dictionaries with keys:
+            - `team`: Team ID for the row team
+            - `opponent`: Team ID for the compared team
+            - `result`: Head-to-head outcome for `team` vs `opponent`
     """
-    tms = teams.team_ids
-    df = pd.DataFrame(columns=['id', 'season', 'week', 'team', 'opp', 'result'])
-    for tm1 in tms:
-        for tm2 in tms:
-            owner1 = teams.teamid_to_primowner[tm1]
-            owner2 = teams.teamid_to_primowner[tm2]
-            tm1_display = const.TEAM_IDS[owner1]['name']['display']
-            tm2_display = const.TEAM_IDS[owner2]['name']['display']
-            if tm1 == tm2:
+    schedules = TeamSchedule.get_all_team_schedules(week=week)
+
+    team_ids = list(schedules.keys())
+    team_h2h = []
+    for team1 in team_ids:
+        for team2 in team_ids:
+            owner1 = schedules[team1][week]
+            owner2 = schedules[team2][week]
+            if team1 == team2:
                 result = 0.0
             else:
-                score1 = teams.team_scores(team_id=tm1)[week-1]
-                score2 = teams.team_scores(team_id=tm2)[week-1]
+                score1 = owner1.team_score
+                score2 = owner2.team_score
                 result = 1.0 if score1 > score2 else 0.5 if score1 == score2 else 0.0
-
-            tm_id = f'{season}_{str(week).zfill(2)}_{tm1_display}_{tm2_display}'
-            row = [tm_id, season, week, tm1_display, tm2_display, result]
-            df.loc[len(df)] = row
-    return df
+            team_h2h.append(
+                {
+                    'season': season,
+                    'week': week,
+                    'team': team1,
+                    'opponent': team2,
+                    'result': result
+                }
+            )
+    return team_h2h
 
 
 def get_total_wins(h2h_data: pd.DataFrame,
@@ -91,41 +110,39 @@ def get_wins_vs_opp(h2h_data: pd.DataFrame,
     return wins_vs_opp_final.reset_index()
 
 
-def schedule_switcher(teams: TeamSettings,
-                      season: int,
-                      week: int):
+def schedule_switcher(
+        season: int = const.SEASON,
+        week: int = const.WEEK-1  # week just finished
+):
     """
     Create the schedule switcher dataframe
     """
-    tms = teams.team_ids
-    df = pd.DataFrame(columns=['id', 'season', 'week', 'team', 'schedule_of', 'result'])
-    for schedule_of in tms:
-        for team_switch in tms:
-            # if schedule_of != team_switch:
-            owner1 = teams.teamid_to_primowner[schedule_of]
-            owner2 = teams.teamid_to_primowner[team_switch]
-            schedule_of_display = const.TEAM_IDS[owner1]['name']['display']
-            team_switch_display = const.TEAM_IDS[owner2]['name']['display']
+    schedules = TeamSchedule.get_all_team_schedules(week=week)
+    team_ids = list(schedules.keys())
+    switches = []
+    for team in team_ids:
+        for schedule_of in team_ids:
+            switch_with_sched = schedules[team][week]
+            schedule_of_sched = schedules[schedule_of][week]
 
-            # get sched_of team's schedule
-            schedule_of_schedule = teams.team_schedule(schedule_of)[week-1]
-
-            # switch sched_of team with t_switch
-            tm_sched = teams.team_schedule(team_switch)[week-1]
-            score = tm_sched['team_score']
-            new_opp_tm = schedule_of_schedule['opponent_disp']
-            new_opp_score = schedule_of_schedule['opponent_score']
+            # switch sched_of team with switch_with team
+            score = switch_with_sched.team_score
+            new_opp_tm = schedule_of_sched.opponent_id
+            new_opp_score = schedule_of_sched.opponent_score
 
             # if team and new opp are the same, need to use actual schedule results
-            if team_switch != new_opp_tm:
+            if team != new_opp_tm:
                 result = 1.0 if score > new_opp_score else 0.5 if score == new_opp_score else 0.0
             else:
-                result = tm_sched['result']
-
-            tm_id = f'{season}_{str(week).zfill(2)}_{team_switch_display}_{schedule_of_display}'
-            row = [tm_id, season, week, team_switch_display, schedule_of_display, result]
-            df.loc[len(df)] = row
-    return df
+                result = float(switch_with_sched.matchup_result)
+            switches.append({
+                'season': season,
+                'week': week,
+                'team': team,
+                'schedule_of': schedule_of,
+                'result': result,
+            })
+    return switches
 
 
 def calculate_schedule_luck(ss_data: pd.DataFrame):

@@ -11,13 +11,13 @@ from scripts.home.standings import Standings
 from scripts.utils import constants
 import scripts.scenarios.scenarios as scenarios
 from scripts.simulations import simulations
-from scripts.efficiency.efficiencies import plot_efficiency
+from scripts.efficiency.xxefficiencies import plot_efficiency
 
 
 season = constants.SEASON
-data = DataLoader(season)
-params = LeagueSettings(data)
-teams = TeamSettings(data)
+dataloader = DataLoader(season)
+params = LeagueSettings(dataloader=dataloader)
+teams = TeamSettings(dataloader=dataloader)
 week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
 n_teams = len(teams.team_ids)
 
@@ -44,14 +44,14 @@ records_df = Database().retrieve_data(how='all', table='records')
 
 
 # HOME PAGE
-standings = Standings(season=season, week=week)
+standings = Standings(dataloader=dataloader, season=season, week=week)
 standings_df = standings.format_standings()
 standings_df['bye_magic_number'] = '-'
 standings_df['playoff_magic_number'] = '-'
 clinches = {'clinches': [], 'eliminations': []}
 if week > 1:
     clinches = standings.clinching_scenarios()
-    ps = PlayoffScenarios(data=data, params=params, teams=teams)
+    ps = PlayoffScenarios(dataloader=dataloader)
     bye_scens = ps.get_new_clinches(seed=2)
     playoff_scens = ps.get_new_clinches(seed=5)
     magic_numbers = ps.get_magic_numbers()

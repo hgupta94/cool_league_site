@@ -3,42 +3,55 @@ from scripts.utils import constants as const
 
 
 class LeagueSettings:
-    def __init__(self, data):
-        settings = data.settings()
+    def __init__(self, dataloader: DataLoader):
+        settings = dataloader.settings()
 
         self.league_size = settings['settings']['size']
         self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())
         self.regular_season_end = settings['settings']['scheduleSettings']['matchupPeriodCount']
-        self.current_week = settings['scoringPeriodId']
+        self.current_week = const.WEEK
         self.as_of_week = 0 if self.current_week-1 < 0 else self.current_week-1  # just finished
         self.playoff_teams = settings['settings']['scheduleSettings']['playoffTeamCount']
         self.playoff_matchup_length = settings['settings']['scheduleSettings']['playoffMatchupPeriodLength']
         self.playoff_weeks = [int(w) for w in settings['settings']['scheduleSettings']['matchupPeriods'].keys()][self.regular_season_end:]
         self.playoff_length = len(self.playoff_weeks)
+        self.scoring = self.get_scoring_settings(settings)
         self.has_bonus_win = 1 if settings['settings']['scoringSettings'].get('scoringEnhancementType') else 0
         has_ppr = [s['points'] for s in settings['settings']['scoringSettings']['scoringItems'] if s['statId'] == 53]
         self.ppr_type = 0 if not has_ppr else has_ppr[0]
         self.weeks_left = 0 if self.as_of_week > self.regular_season_end else self.regular_season_end - self.as_of_week
         self.team_map = const.TEAM_IDS
 
+    @staticmethod
+    def get_scoring_settings(settings: dict) -> dict:
+        scoring_entry = settings.get('settings', {}).get('scoringSettings', {}).get('scoringItems', [])
+
+        scoring = []
+        for s in scoring_entry:
+            d = {'stat': s['statId']}
+            if 'pointsOverrides' in s:
+                d['points'] = list(s['pointsOverrides'].values())[0]
+            else:
+                d['points'] = s['points']
+            scoring.append(d)
+        return scoring
+
 class RosterSettings:
-    def __init__(self, year=const.SEASON):
-        self.data = DataLoader(year=year)
-        _settings = self.data.settings()
+    def __init__(self, dataloader: DataLoader):
+        self.dataloader = dataloader
+        _settings = self.dataloader.settings()
         _slot_limits = _settings['settings']['rosterSettings']['lineupSlotCounts']
         _roster_limits = _settings['settings']['rosterSettings']['positionLimits']
 
         self.player_stats_map = const.PLAYER_STATS_MAP
         self.slotcodes = const.SLOTCODES
-        self.nfl_team_map = const.NFL_TEAM_MAP
-        self.espn_tonfl_position_map = const.POSITION_MAP
         self.slot_limits = {int(k): v for k, v in _slot_limits.items() if v > 0}
         self.roster_limits = {int(k): v for k, v in _roster_limits.items() if v > 0}
-        self.positions = [v for v in self.espn_tonfl_position_map.values()] + ['FLEX']
+        self.positions = [const.POSITION_MAP[v] for v in self.slot_limits if v < 20] + ['FLEX']
         self.replacement_players = self.get_replacements()
 
     def get_replacements(self, n: int = 3):
-        players_data = self.data.players_info()
+        players_data = self.dataloader.players_info()
 
         # first get all free agents
         free_agents = []
@@ -78,10 +91,10 @@ class RosterSettings:
         return pos_dict
 
 class TeamSettings:
-    def __init__(self, data):
-        self._data = data
-        self.settings = self._data.settings()
-        self.teams = self._data.teams()
+    def __init__(self, dataloader: DataLoader):
+        self.dataloader = dataloader
+        self.settings = self.dataloader.settings()
+        self.teams = self.dataloader.teams()
 
         self.team_ids = []
         self.owner_ids = []
@@ -112,7 +125,7 @@ class TeamSettings:
         :returns: Dictionary containing matchup data
         """
         matchups = []
-        for m in self._data.matchups()['schedule']:
+        for m in self.dataloader.matchups()['schedule']:
             week = m['matchupPeriodId']
             game_type = 'REG' if week <= self.settings['settings']['scheduleSettings']['matchupPeriodCount'] else 'POST'
             matchup_id = m['id']

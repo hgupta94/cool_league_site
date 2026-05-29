@@ -1,3 +1,6 @@
+from scripts.api.dataloader import DataLoader
+from scripts.api.settings import LeagueSettings, TeamSettings
+from scripts.api.models.schedule import Matchup
 from scripts.utils.database import Database
 from scripts.utils import constants
 
@@ -5,24 +8,21 @@ from itertools import product, combinations
 
 
 class PlayoffScenarios:
-    def __init__(self, data, params, teams):
-        self.data = data
-        self.params = params
-        self.teams = teams
+    def __init__(self, dataloader: DataLoader):
+        self.dataloader = dataloader
+        self.params = LeagueSettings(dataloader=dataloader)
+        self.teams = TeamSettings(dataloader=dataloader)
 
         self.season = constants.SEASON
         self.team_names = [x['name']['display'] for x in self.params.team_map.values() if x['active']]
 
         self.matchups = [
-            (
-                self._teamid_to_display(teamid=m['home']['teamId']),
-                self._teamid_to_display(teamid=m['away']['teamId'])
-            ) for m in self.data.matchups()['schedule'] if m['matchupPeriodId'] == self.params.current_week
+            tuple([self._teamid_to_display(t) for t in m.teams.keys()])
+            for m in Matchup.get_week_matchups(params=self.params)
         ]
 
         self.standings = self._load_standings()
         self.betting_table = self._load_betting_table()
-
         self.scenarios = self._get_scenarios()
 
     @staticmethod

@@ -1,23 +1,45 @@
-from scripts.api.dataloader import DataLoader
-from scripts.api.settings import LeagueSettings, TeamSettings
+from scripts.utils import constants
 from scripts.utils.database import Database
-from scripts.home.standings import Standings
+from scripts.api.dataloader import DataLoader
+from scripts.api.models.schedule import TeamSchedule
+from scripts.api.settings import TeamSettings
 from scripts.utils import constants
 
 
-data = DataLoader(year=constants.SEASON)
-params = LeagueSettings(data=data)
-teams = TeamSettings(data=data)
-week = params.as_of_week
-standings = Standings(season=constants.SEASON, week=week)
+def load_matchups(
+        dataloader: DataLoader,
+        week: int = constants.WEEK-1,
+        upsert: bool = False,
+        upsert_cols: list[str] | None = None
+) -> None:
+    """Batch load rows to the matchups table for the prior week"""
 
-rows = []
-for t in teams.team_ids:
-    matchups = standings.get_matchup_results(week=week, team_id=t)
-    rows.append(tuple(matchups.values()))
+    teams = TeamSettings(dataloader=dataloader)
+    schedules = TeamSchedule.get_all_team_schedules(week=week)
 
-Database().batch_insert(
-    table='matchups',
-    columns=constants.MATCHUP_COLUMNS,
-    rows=rows
-)
+    rows = []
+    for t in teams.team_ids:
+        team_matchup = schedules[t][week]
+        team_disp = teams._teamid_to_display(team_matchup.team_id)
+        opp_disp = teams._teamid_to_display(team_matchup.opponent_id)
+        row = (
+            f'{team_matchup.season}_{team_matchup.week:02}_{team_disp}',
+            team_matchup.season,
+            team_matchup.week,
+            team_disp,
+            team_matchup.team_score,
+            opp_disp,
+            team_matchup.opponent_score,
+            team_matchup.matchup_result,
+            team_matchup.tophalf_result,
+            team_matchup.game_type
+        )
+        rows.append(row)
+
+    Database().batch_insert(
+        table='matchups',
+        columns=constants.MATCHUP_COLUMNS,
+        rows=rows,
+        upsert=upsert,
+        update_columns=upsert_cols
+    )

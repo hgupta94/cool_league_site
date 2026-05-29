@@ -34,13 +34,15 @@ ELIMINATED = 99
 CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
-N_SIMS = 100_000
-
 # ESPN API parameters
-_CURRENT_YEAR = dt.datetime.now().year
-_CURRENT_MONTH = dt.datetime.now().month
-# SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
-SEASON = 2025
+_TODAY = dt.datetime.now()
+_CURRENT_YEAR = _TODAY.year
+_CURRENT_MONTH = _TODAY.month
+_SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game
+_SEASON_END = dt.datetime(2026, 1, 5)  # monday after last game
+SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
+WEEK = -(-(_TODAY - _SEASON_START).days // 7)
+
 LEAGUE_ID = os.getenv('LEAGUE_ID')
 SWID = os.getenv('SWID')
 ESPN_S2 = os.getenv('ESPN_S2')
@@ -153,9 +155,9 @@ SLOTCODES = {
     0:  'QB',
     1:  'TQB',
     2:  'RB',
-    3:  'Flex',  # RB/WR
+    3:  'Flex RB_WR',  # RB/WR
     4:  'WR',
-    5:  'Flex',  # WR/TE
+    5:  'Flex WR_TE',  # WR/TE
     6:  'TE',
     7:  'OP',
     8:  'DT',
@@ -173,7 +175,7 @@ SLOTCODES = {
     20: 'BE',
     21: 'IR',
     22: '',
-    23: 'Flex',  # RB/WR/TE
+    23: 'Flex RB_WR_TE',  # RB/WR/TE
     24: 'ER',
     25: 'Rookie'
 }
@@ -220,7 +222,7 @@ PLAYER_STATS_MAP = {
     41: {'name': 'receivingReceptions', 'display': 'Receptions'},  # REC
     42: {'name': 'receivingYards', 'display': 'Receiving Yards'},  # REY
     43: {'name': 'receivingTouchdowns', 'display': 'Receiving TDs'},  # RETD
-    44: 'receiving2PtConversions',  # 2PRE
+    44: {'name': 'receiving2PtConversions', 'display': 'Receiving 2PC'},  # 2PRE
     45: 'receiving40PlusYardTD',  # RETD40
     46: 'receiving50PlusYardTD',  # RETD50
     # 47-52 appear for receiving players
@@ -235,14 +237,14 @@ PLAYER_STATS_MAP = {
     59: 'receivingYardsAfterCatch',
     60: 'receivingYardsPerReception',
     61: 'receivingYardsPerGame',  # REY - avg per game
-    62: '2PtConversions',
-    63: 'fumbleRecoveredForTD',  # FTD
+    62: {'name': '2PtConversions', 'display': 'Two Point Conversions'},
+    63: {'name': 'fumbleRecoveredForTD', 'display': 'Fumble Recovery Touchdown'},  # FTD
     64: 'passingTimesSacked',  # SK
 
     # Turnovers
     68: {'name': 'fumbles', 'display': 'Fumbles'},  # FUM
     72: {'name': 'lostFumbles', 'display': 'Fumbles Lost'},  # FUML
-    73: 'turnovers',
+    73: {'name': 'turnovers', 'display': 'Turnovers'},
 
     # Kicking
     74: 'madeFieldGoalsFrom50Plus',  # FG50 (does not map directly to FG50 as FG50 does not include 60+)

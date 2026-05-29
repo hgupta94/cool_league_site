@@ -1,21 +1,18 @@
-from typing import Any
-
 import pandas as pd
 
-from scripts.api.dataloader import DataLoader
-from scripts.utils.database import Database
-from scripts.api.settings import LeagueSettings, TeamSettings
-from scripts.utils import constants
 from scripts.utils import utils
+from scripts.utils import constants
+from scripts.api.dataloader import DataLoader
+from scripts.api.models.schedule import TeamSchedule
+from scripts.api.settings import LeagueSettings, TeamSettings
 
 
 class Standings:
-    def __init__(self, season, week):
+    def __init__(self, dataloader: DataLoader, season, week):
         self.season = season
         self.week = week
-        self.data = DataLoader(year=self.season, week=self.week)
-        self.params = LeagueSettings(data=self.data)
-        self.teams = TeamSettings(data=self.data)
+        self.params = LeagueSettings(dataloader=dataloader)
+        self.teams = TeamSettings(dataloader=dataloader)
         self.standings_df = pd.DataFrame(columns=['team', 'overall', 'overall_wins', 'win_perc',
                                                   'matchup', 'top_half', 'total_points'])
 
@@ -100,7 +97,7 @@ class Standings:
 
     def _clinch_scenarios(self,
                           team_name: str,
-                          seed: int) -> list[Any]:
+                          seed: int) -> list:
         """
         Calculate clinching scenarios for the current matchup week
         :param team_name: Team display name to calculate clinching scenarios for
@@ -174,7 +171,7 @@ class Standings:
 
     def _elim_scenarios(self,
                         team_name: str,
-                        seed: int) -> list[Any]:
+                        seed: int) -> list:
         """
         Calculate elimination scenarios for the current matchup week
         :param team_name: Team display name to calculate elimination scenarios for
@@ -249,55 +246,6 @@ class Standings:
                                 rows.append(row)
             return rows
 
-    def get_matchup_results(self,
-                            week: int,
-                            team_id: int) -> dict[str, Any]:
-        """
-        A team's matchup results for a given week
-        :param week: The week to get results for
-        :param team_id: Fantasy team to get results for
-        :returns: Dictionaries of matchup results:
-        [
-            team,
-            season,
-            week,
-            opponent,
-            matchup result,
-            top half result,
-            week median score,
-            team's score
-        ]
-        """
-        week_median = self.teams.week_median(week)
-
-        display_name = utils.teamid_to_name(ids=constants.TEAM_IDS, teams=self.teams, teamid=team_id)
-        db_id = f'{self.season}_{str(week).zfill(2)}_{display_name}'
-
-        matchups = self.teams.team_schedule(team_id)
-        matchups_filter = [{k: v for k, v in d.items()} for d in matchups if d.get('week') == week][0]
-        matchup_result = matchups_filter['result']
-        th_result = 1.0 if matchups_filter['team_score'] > week_median else 0.5 if matchups_filter['team_score'] == week_median else 0.0
-        score = matchups_filter['team_score']
-        if matchups_filter.get('opponent_score'):
-            opp_name = matchups_filter['opponent_disp']
-            opp_score = matchups_filter['opponent_score']
-        else:
-            opp_name = None
-            opp_score = None
-
-
-        return {
-            'id': db_id,
-            'season': self.season,
-            'week': week,
-            'team': display_name,
-            'score': score,
-            'opponent': opp_name,
-            'opponent_score': opp_score,
-            'matchup_result': matchup_result,
-            'top_half_result': th_result
-        }
-
     def format_standings(self) -> pd.DataFrame | None:
         """
         Create standings table for Flask UI
@@ -306,20 +254,18 @@ class Standings:
         """
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
-        matchups = Database().retrieve_data(how='season', table='matchups', season=self.season, week=self.week).iloc[:, 0:-1]
-        matchups = matchups[matchups.week <= self.params.regular_season_end]
-        matchups = matchups.to_dict(orient='records')
+        matchups = TeamSchedule.get_all_team_schedules(week=as_of_week)
 
         for team_id in self.teams.team_ids:
             # standings data for each team
-            display_name = utils.teamid_to_name(ids=constants.TEAM_IDS, teams=self.teams, teamid=team_id)
-            team_matchups = [m for m in matchups if m['team'] == display_name and m['week'] <= as_of_week]
+            display_name = self.teams._teamid_to_display(team_id)
+            team_matchups = matchups[team_id]
 
-            m_wins = sum(d['matchup_result'] for d in team_matchups)
+            m_wins = sum(d.matchup_result for d in team_matchups.values())
             m_losses = as_of_week - m_wins
             m_record = f'{int(m_wins)}-{int(m_losses)}'
 
-            th_wins = sum(d['tophalf_result'] for d in team_matchups)
+            th_wins = sum(d.tophalf_result for d in team_matchups.values())
             th_losses = as_of_week - th_wins
             th_record = f'{int(th_wins)}-{int(th_losses)}'
 
@@ -331,7 +277,7 @@ class Standings:
                 win_pct = f'{(ov_wins / (as_of_week*2)):.3f}'
             except ZeroDivisionError:  # NFL preseason/opening week
                 win_pct = '0.000'
-            total_points = round(sum(d['score'] for d in team_matchups), 2)
+            total_points = round(sum(d.team_score for d in team_matchups.values()), 2)
 
             row = [display_name, ov_record, ov_wins, win_pct, m_record, th_record, total_points]
             self.standings_df.loc[len(self.standings_df)] = row

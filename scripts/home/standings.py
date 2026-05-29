@@ -1,5 +1,3 @@
-from typing import Any
-
 import pandas as pd
 
 from scripts.utils import utils
@@ -10,12 +8,11 @@ from scripts.api.settings import LeagueSettings, TeamSettings
 
 
 class Standings:
-    def __init__(self, season, week):
+    def __init__(self, dataloader: DataLoader, season, week):
         self.season = season
         self.week = week
-        self.data = DataLoader(year=self.season, week=self.week)
-        self.params = LeagueSettings(data=self.data)
-        self.teams = TeamSettings(data=self.data)
+        self.params = LeagueSettings(dataloader=dataloader)
+        self.teams = TeamSettings(dataloader=dataloader)
         self.standings_df = pd.DataFrame(columns=['team', 'overall', 'overall_wins', 'win_perc',
                                                   'matchup', 'top_half', 'total_points'])
 
@@ -100,7 +97,7 @@ class Standings:
 
     def _clinch_scenarios(self,
                           team_name: str,
-                          seed: int) -> list[Any]:
+                          seed: int) -> list:
         """
         Calculate clinching scenarios for the current matchup week
         :param team_name: Team display name to calculate clinching scenarios for
@@ -174,7 +171,7 @@ class Standings:
 
     def _elim_scenarios(self,
                         team_name: str,
-                        seed: int) -> list[Any]:
+                        seed: int) -> list:
         """
         Calculate elimination scenarios for the current matchup week
         :param team_name: Team display name to calculate elimination scenarios for

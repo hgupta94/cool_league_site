@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
 from enum import Enum
 
@@ -68,7 +66,7 @@ class Matchup:
         week = params.current_week
         dataloader = DataLoader(week=week)
         n_weeks = params.regular_season_end
-        scores = dataloader.week_scores()
+        scores = dataloader.week_scores(week=week)
         matchups_obj = dataloader.matchups()
         week_matchups = [m for m in matchups_obj['schedule'] if m['matchupPeriodId'] == week]
         matchups = []
@@ -85,7 +83,7 @@ class Matchup:
     ) -> dict[int, Matchup]:
         all_matchups = {}
         for w in range(1, params.regular_season_end + params.playoff_length + 1):
-            scores = DataLoader(week=w).week_scores()
+            scores = DataLoader(week=w).week_scores(week=w)
             matchups_obj = DataLoader(week=w).matchups()
             week_matchups = [m for m in matchups_obj['schedule'] if m['matchupPeriodId'] == w]
             matchups = []

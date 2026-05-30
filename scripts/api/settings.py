@@ -47,7 +47,7 @@ class RosterSettings:
         self.slotcodes = const.SLOTCODES
         self.slot_limits = {int(k): v for k, v in _slot_limits.items() if v > 0}
         self.roster_limits = {int(k): v for k, v in _roster_limits.items() if v > 0}
-        self.positions = [const.POSITION_MAP[v] for v in self.slot_limits if v < 20] + ['FLEX']
+        self.positions = [const.POSITION_MAP[v] for v in self.slot_limits if v < 20]
         self.replacement_players = self.get_replacements()
 
     def get_replacements(self, n: int = 3):

@@ -41,7 +41,11 @@ class Player:
         return f'Player(name={self.name})'
 
     @classmethod
-    def build_lineup_slot_lookup(cls, teams_data: dict) -> dict[int, int]:
+    def build_lineup_slot_lookup(
+            cls,
+            teams_data: dict,
+            rosters_data: dict,
+    ) -> dict[int, int]:
         """
         Returns {(team_id, player_id): lineup_slot_id}
         from week_data -> teams_list -> team -> roster -> player.
@@ -49,14 +53,14 @@ class Player:
         slot_map: dict[int, int] = {}
 
         teams_list = teams_data.get("teams", teams_data)
-
+        rosters = rosters_data.get('teams', [])
         for team_obj in teams_list:
             team_id = team_obj.get("id")
             if team_id is None:
                 continue
 
-            roster = team_obj.get("roster", {})
-            entries = roster.get("entries", [])
+            roster_data = [r for r in rosters if r['id'] == team_id][0].get('roster', {})
+            entries = roster_data.get("entries", [])
 
             for player in entries:
                 # player_obj = (
@@ -80,7 +84,7 @@ class Player:
             obj: dict,
             ctx: ParseContext,
             slot_lookup: dict | None = None,
-    ) -> Player:
+    ) -> 'Player':
         """Create a player object from ESPN"""
         player_entry = obj.get('playerPoolEntry', obj)
         player_data = player_entry.get('player', player_entry)
@@ -150,7 +154,8 @@ class Player:
             position_id=pl_position.get('id', None),
             position=pl_position.get('position', player_data.get('position_id', None)),
             lineup_slot_id=lineup_slot_id,
-            is_locked=player_entry.get('lineupLocked', None),
+            # is_locked=player_entry.get('lineupLocked', None),
+            is_locked=False,
             is_injured=player_data.get('injured', None),
             status=player_data.get('injuryStatus', None),
             pts_act=act_points_obj[0] if act_points_obj else None,
@@ -165,16 +170,18 @@ class Player:
     @classmethod
     def get_players(
             cls,
+            dataloader: DataLoader,
             obj: list[dict],
             ctx: ParseContext,
             week: int | None = None,
-    ) -> dict[Player.id, Player]:
+    ) -> dict['Player.id', 'Player']:
         """get all player objects from ESPN"""
 
         slot_lookup = None
         if week:
-            teams_data = DataLoader(week=week).teams()
-            slot_lookup = cls.build_lineup_slot_lookup(teams_data)
+            teams_data = dataloader.teams()
+            rosters_data = dataloader.rosters()
+            slot_lookup = cls.build_lineup_slot_lookup(teams_data, rosters_data)
         players = {}
         for p in obj:
             player = cls.create_player(p, ctx=ctx, slot_lookup=slot_lookup)

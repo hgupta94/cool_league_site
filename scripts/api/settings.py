@@ -41,13 +41,14 @@ class RosterSettings:
         self.dataloader = dataloader
         _settings = self.dataloader.settings()
         _slot_limits = _settings['settings']['rosterSettings']['lineupSlotCounts']
-        _roster_limits = _settings['settings']['rosterSettings']['positionLimits']
+        _position_limits = _settings['settings']['rosterSettings']['positionLimits']
 
         self.player_stats_map = const.PLAYER_STATS_MAP
         self.slotcodes = const.SLOTCODES
-        self.slot_limits = {int(k): v for k, v in _slot_limits.items() if v > 0}
-        self.roster_limits = {int(k): v for k, v in _roster_limits.items() if v > 0}
-        self.positions = [const.POSITION_MAP[v] for v in self.slot_limits if v < 20]
+        self.roster_limits = {int(k): v for k, v in _slot_limits.items() if v > 0}
+        self.roster_position_limits = {int(k): v for k, v in _position_limits.items() if v > 0}
+        self.lineup_position_limits = {k: v for k, v in self.roster_limits.items()}
+        self.positions = {k: v for k, v in const.POSITION_MAP.items() if k in self.roster_limits}
         self.replacement_players = self.get_replacements()
 
     def get_replacements(self, n: int = 3):
@@ -55,27 +56,30 @@ class RosterSettings:
 
         # first get all free agents
         free_agents = []
-        position = ''
         for player in players_data['players']:
+            position_id = ''
             if player['onTeamId'] == 0:
                 player_id = player['id']
                 player_name = player['player']['fullName']
                 for pos in player['player']['eligibleSlots']:
                     if pos in const.POSITION_MAP:
-                        position = const.POSITION_MAP[pos]
+                        position_id = pos
 
                 projection = 0
-                if 'stat' in player['player']:
+                if 'stats' in player['player']:
                     for stat in player['player']['stats']:
-                        if stat['seasonId'] == const.SEASON and stat['scoringPeriodId'] == 0 and stat[
-                            'statSourceId'] == 1:
-                            projection = stat['appliedAverage']
+                        if (
+                                stat['seasonId'] == const.SEASON
+                                and stat['scoringPeriodId'] == const.WEEK
+                                and stat['statSourceId'] == 1
+                        ):
+                            projection = stat.get('appliedAverage', stat.get('appliedTotal', 0))
 
                 try:
                     free_agents.append({
                         'id': player_id,
                         'name': player_name,
-                        'position': position,
+                        'position_id': position_id,
                         'projection': projection
                     })
                 except NameError:
@@ -83,8 +87,8 @@ class RosterSettings:
 
         # get replacement player score - average of top 3
         pos_dict = {}
-        for position in self.positions:
-            pos_fa = [fa for fa in free_agents if fa['position'] == position]
+        for i, position in self.positions.items():
+            pos_fa = [fa for fa in free_agents if fa['position_id'] == i]
             top_n = sorted(pos_fa, key=lambda x: x['projection'], reverse=True)[:n]
             pos_dict[position] = sum(p['projection'] for p in top_n) / n
 

@@ -13,7 +13,7 @@ def get_efficiency_scores(
     # roster settings
     roster_settings = RosterSettings(dataloader=dataloader)
     position_map = roster_settings.slotcodes
-    slot_limits = roster_settings.slot_limits
+    slot_limits = roster_settings.roster_limits
     starter_limits = {i: v for i, v in slot_limits.items() if i not in {19, 20, 21, 22, 24, 25}}  # 23 is FLEX
     nfl_position_limits = {i: v for i, v in slot_limits.items() if i in {0, 2, 4, 6, 16}}  # QB, RB, WR, TE, DST. add position ids if needed
     flex_positions = []

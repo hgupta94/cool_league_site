@@ -495,5 +495,14 @@ TEAM_IDS = {
             'last': 'Ghesani',
             'display': 'Aide'
         }
+    },
+
+    '{32DFE3C4-263C-4F21-A13A-710BDE67C258}': {
+        'active': False,
+        'name': {
+            'first': 'Suraj',
+            'last': 'Nyalakonda',
+            'display': 'Akash'
+        }
     }
 }

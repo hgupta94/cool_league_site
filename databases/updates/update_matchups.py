@@ -14,20 +14,20 @@ def load_matchups(
     """Batch load rows to the matchups table for the prior week"""
 
     teams = TeamSettings(dataloader=dataloader)
-    schedules = TeamResult.get_all_team_schedules(week=week)
+    schedules = TeamResult.get_all_team_schedules(dataloader=dataloader)
 
     rows = []
     for t in teams.team_ids:
         team_matchup = schedules[t][week]
-        team_disp = teams._teamid_to_display(team_matchup.team_id)
-        opp_disp = teams._teamid_to_display(team_matchup.opponent_id)
+        team_id = team_matchup.team_id
+        opp_id = team_matchup.opponent_id
         row = (
-            f'{team_matchup.season}_{team_matchup.week:02}_{team_disp}',
+            f'{team_matchup.season}_{team_matchup.week:02}_{team_id}',
             team_matchup.season,
             team_matchup.week,
-            team_disp,
+            team_id,
             team_matchup.team_score,
-            opp_disp,
+            opp_id,
             team_matchup.opponent_score,
             team_matchup.matchup_result,
             team_matchup.tophalf_result,
@@ -42,3 +42,11 @@ def load_matchups(
         upsert=upsert,
         update_columns=upsert_cols
     )
+
+
+from scripts.api.settings import LeagueSettings
+dataloader = DataLoader(year=2014, week=1)
+teams_obj = dataloader.teams()
+matchups_obj = dataloader.matchups()
+settings = dataloader.settings()
+params = LeagueSettings(dataloader=dataloader)

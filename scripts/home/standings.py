@@ -9,10 +9,11 @@ from scripts.api.settings import LeagueSettings, TeamSettings
 
 class Standings:
     def __init__(self, dataloader: DataLoader, season, week):
+        self.dataloader = dataloader
         self.season = season
         self.week = week
-        self.params = LeagueSettings(dataloader=dataloader)
-        self.teams = TeamSettings(dataloader=dataloader)
+        self.params = LeagueSettings(dataloader=self.dataloader)
+        self.teams = TeamSettings(dataloader=self.dataloader)
         self.standings_df = pd.DataFrame(columns=['team', 'overall', 'overall_wins', 'win_perc',
                                                   'matchup', 'top_half', 'total_points'])
 
@@ -254,7 +255,7 @@ class Standings:
         """
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
-        matchups = TeamResult.get_all_team_schedules(week=as_of_week)
+        matchups = TeamResult.get_all_team_schedules(dataloader=self.dataloader)
 
         for team_id in self.teams.team_ids:
             # standings data for each team

@@ -1,3 +1,4 @@
+from scripts.api.dataloader import DataLoader
 from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.api.models.schedule import TeamResult
 from scripts.utils import constants as const
@@ -7,6 +8,7 @@ import pandas as pd
 
 
 def get_h2h(
+        dataloader: DataLoader,
         season: int = const.SEASON,
         week: int = const.WEEK-1  # week just finished
 ) -> list[dict]:
@@ -14,6 +16,7 @@ def get_h2h(
     Build pairwise head-to-head results for all teams in a given season/week.
 
     Args:
+        dataloader (DataLoader): ESPN dataloader object
         season (int): NFL season to evaluate. Defaults to const.SEASON
         week (int): NFL week to evaluate. Defaults to const.WEEK
 
@@ -23,7 +26,7 @@ def get_h2h(
             - `opponent`: Team ID for the compared team
             - `result`: Head-to-head outcome for `team` vs `opponent`
     """
-    schedules = TeamResult.get_all_team_schedules(week=week)
+    schedules = TeamResult.get_all_team_schedules(dataloader=dataloader)
 
     team_ids = list(schedules.keys())
     team_h2h = []
@@ -111,13 +114,14 @@ def get_wins_vs_opp(h2h_data: pd.DataFrame,
 
 
 def schedule_switcher(
+        dataloader: DataLoader,
         season: int = const.SEASON,
         week: int = const.WEEK-1  # week just finished
 ):
     """
     Create the schedule switcher dataframe
     """
-    schedules = TeamResult.get_all_team_schedules(week=week)
+    schedules = TeamResult.get_all_team_schedules(dataloader=dataloader)
     team_ids = list(schedules.keys())
     switches = []
     for team in team_ids:

@@ -152,11 +152,10 @@ class TeamResult:
         return schedule
 
     @classmethod
-    def get_all_team_schedules(cls, week: int) -> dict[int, 'TeamResult']:
+    def get_all_team_schedules(cls, dataloader: DataLoader) -> dict[int, 'TeamResult']:
         def get_median(scores: list[float]):
             return sum(scores[(len(scores) // 2) - 1: (len(scores) // 2) + 1]) / 2
 
-        dataloader = DataLoader(week=week)
         teams_obj = dataloader.teams()
         params = LeagueSettings(dataloader=dataloader)
         n_weeks = params.regular_season_end

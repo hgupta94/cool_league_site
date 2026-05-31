@@ -15,7 +15,7 @@ def load_switcher(
     """Batch load rows to the schedule_switcher table for the prior week"""
 
     teams = TeamSettings(dataloader)
-    switcher = schedule_switcher(season=season, week=week)
+    switcher = schedule_switcher(dataloader=dataloader, season=season, week=week)
     rows = []
     for s in switcher:
         t1_disp = constants.TEAM_IDS[teams.teamid_to_primowner[s['team']]]['name']['display']

@@ -55,7 +55,7 @@ class DataLoader:
 
         d = r.json()
 
-        return d
+        return d if self.year >= 2018 else d[0]
 
     @ttl_cache(maxsize=1, ttl=300)
     def settings(self):

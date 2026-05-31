@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
-from scripts.utils.constants import SEASON
 from scripts.api.dataloader import DataLoader
 from scripts.api.settings import LeagueSettings
 
@@ -116,6 +115,7 @@ class TeamResult:
     def get_team_schedule(
             cls,
             obj: list[dict],
+            season: int,
             team_id: int,
             medians: dict[int, float],
             n_reg_weeks: int
@@ -138,7 +138,7 @@ class TeamResult:
                     matchup_result = Result.WIN if points > opp_points else Result.LOSS
                     tophalf_result = Result.WIN if points > medians[week] else Result.LOSS
                     schedule[week] = TeamResult(
-                            season=SEASON,
+                            season=season,
                             week=week,
                             game_id=match['id'],
                             game_type=game_type,
@@ -166,6 +166,7 @@ class TeamResult:
         for team in teams_obj['teams']:
             schedules[team['id']] = TeamResult.get_team_schedule(
                 obj=matchups_obj,
+                season=params.season,
                 team_id=team['id'],
                 medians=medians,
                 n_reg_weeks=n_weeks

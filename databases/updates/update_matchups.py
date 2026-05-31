@@ -22,7 +22,7 @@ def load_matchups(
         team_id = team_matchup.team_id
         opp_id = team_matchup.opponent_id
         row = (
-            f'{team_matchup.season}_{team_matchup.week:02}_{team_id}',
+            f'{team_matchup.season}_{team_matchup.week:02}_{team_id:02}',
             team_matchup.season,
             team_matchup.week,
             team_id,
@@ -37,16 +37,8 @@ def load_matchups(
 
     Database().batch_insert(
         table='matchups',
-        columns=constants.MATCHUP_COLUMNS,
+        columns='id, season, week, team, score, opponent, opponent_score, matchup_result, tophalf_result, game_type',
         rows=rows,
         upsert=upsert,
         update_columns=upsert_cols
     )
-
-
-from scripts.api.settings import LeagueSettings
-dataloader = DataLoader(year=2014, week=1)
-teams_obj = dataloader.teams()
-matchups_obj = dataloader.matchups()
-settings = dataloader.settings()
-params = LeagueSettings(dataloader=dataloader)

@@ -99,8 +99,8 @@ class TeamResult:
     team_score: float
     opponent_id: int
     opponent_score: float
-    matchup_result: Result
-    tophalf_result: Result
+    matchup_result: Result | None
+    tophalf_result: Result | None
     wins: int = field(init=False)
 
     def __post_init__(self):
@@ -122,33 +122,41 @@ class TeamResult:
     ) -> 'TeamResult':
         schedule = {}
         for match in obj:
-            if 'away' in match and 'home' in match:
-                week = match.get('matchupPeriodId')
-                game_type = GameType.POST if week > n_reg_weeks else GameType.REG
-                tmid, opp_tm_id, points, opp_points = None, None, None, None
-                if match['away']['teamId'] == team_id or match['home']['teamId'] == team_id:
-                    for i, tm in enumerate(['home', 'away']):
-                        team_entry = match.get(tm, {})
-                        if team_entry['teamId'] == team_id:
-                            tmid = team_entry['teamId']
-                            points = team_entry.get('totalPoints', 0.0)
-                        else:
-                            opp_tm_id = team_entry['teamId']
-                            opp_points = team_entry.get('totalPoints', 0.0)
+            week = match.get('matchupPeriodId')
+            game_type = GameType.POST if week > n_reg_weeks else GameType.REG
+            tmid, opp_tm_id, points, opp_points = None, None, None, None
+            tm_away = match.get('away', {}).get('teamId', -1)
+            tm_home = match.get('home', {}).get('teamId', -1)
+            if (
+                    tm_away == team_id
+                    or tm_home == team_id
+            ):
+            # if match['away']['teamId'] == team_id or match['home']['teamId'] == team_id:
+                for i, tm in enumerate(['home', 'away']):
+                    team_entry = match.get(tm, {})
+                    if team_entry.get('teamId', -1) == team_id:
+                        tmid = team_entry.get('teamId', tmid)
+                        points = team_entry.get('totalPoints', points)
+                    else:
+                        opp_tm_id = team_entry.get('teamId', opp_tm_id)
+                        opp_points = team_entry.get('totalPoints', opp_points)
+                matchup_result = None
+                tophalf_result = None
+                if opp_tm_id:
                     matchup_result = Result.WIN if points > opp_points else Result.LOSS
                     tophalf_result = Result.WIN if points > medians[week] else Result.LOSS
-                    schedule[week] = TeamResult(
-                            season=season,
-                            week=week,
-                            game_id=match['id'],
-                            game_type=game_type,
-                            team_id=tmid,
-                            team_score=points,
-                            opponent_id=opp_tm_id,
-                            opponent_score=opp_points,
-                            matchup_result=matchup_result,
-                            tophalf_result=tophalf_result
-                        )
+                schedule[week] = TeamResult(
+                        season=season,
+                        week=week,
+                        game_id=match['id'],
+                        game_type=game_type,
+                        team_id=tmid,
+                        team_score=points,
+                        opponent_id=opp_tm_id,
+                        opponent_score=opp_points,
+                        matchup_result=matchup_result,
+                        tophalf_result=tophalf_result
+                    )
         return schedule
 
     @classmethod

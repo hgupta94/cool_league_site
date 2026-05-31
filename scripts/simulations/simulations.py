@@ -205,29 +205,6 @@ class Simulation:
             all_results.append(sim_results)
         return all_results
 
-    @staticmethod
-    def calculate_odds(init_prob: dict) -> dict:
-        """Convert counters from simulation into american odds"""
-
-        # round off very likely and unlikely events, less than 10/100,000
-        if init_prob >= 0.9999:
-            return '&#x2713;'  # check mark
-        elif init_prob <= 0.0001:
-            return '-'
-        else:
-            try:
-                if init_prob >= 0.5:
-                    odds = (-1 * init_prob / (1 - init_prob)) * 100
-                    return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
-                else:
-                    odds = (1 * (1 - init_prob) / init_prob) * 100
-                    return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
-            except ZeroDivisionError:  # init_prob = 1 or 0
-                if init_prob == 1:
-                    return '&#x2713;'  # check mark
-                else:
-                    return '-'
-
     def _get_best_lineup(
             self,
             team: Team,
@@ -306,7 +283,7 @@ class Simulation:
         else:
             flex_selector = sorted(
                 flex_pool,
-                key=lambda i: i.pts_proj,
+                key=lambda i: (i.pts_proj or 0),
                 reverse=True
             )
             if flex_selector:

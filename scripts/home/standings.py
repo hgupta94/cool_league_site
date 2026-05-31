@@ -262,11 +262,11 @@ class Standings:
             display_name = self.teams._teamid_to_display(team_id)
             team_matchups = matchups[team_id]
 
-            m_wins = sum(d.matchup_result for d in team_matchups.values())
+            m_wins = sum(d.matchup_result.value for d in team_matchups.values())
             m_losses = as_of_week - m_wins
             m_record = f'{int(m_wins)}-{int(m_losses)}'
 
-            th_wins = sum(d.tophalf_result for d in team_matchups.values())
+            th_wins = sum(d.tophalf_result.value for d in team_matchups.values())
             th_losses = as_of_week - th_wins
             th_record = f'{int(th_wins)}-{int(th_losses)}'
 

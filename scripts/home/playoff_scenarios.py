@@ -14,10 +14,10 @@ class PlayoffScenarios:
         self.teams = TeamSettings(dataloader=dataloader)
 
         self.season = constants.SEASON
-        self.team_names = [x['name']['display'] for x in self.params.team_map.values() if x['active']]
+        self.n_teams = self.params.league_size
 
         self.matchups = [
-            tuple([self._teamid_to_display(t) for t in m.teams.keys()])
+            tuple([t for t in m.teams.keys()])
             for m in Matchup.get_week_matchups(params=self.params)
         ]
 
@@ -44,7 +44,7 @@ class PlayoffScenarios:
         df = (
             Database()
             .retrieve_data(how='season', table='betting_table', season=self.season, week=self.params.current_week)
-            .sort_values('created').head(len(self.team_names))
+            .sort_values('created').head(self.n_teams)
         )
         return df[['team', 'matchup_id', 'p_win', 'p_tophalf']].to_dict(orient='records')
 
@@ -60,14 +60,14 @@ class PlayoffScenarios:
             - 32 * 252 = 8064 max scenarios
         """
         h2h_outcomes = list(product([0, 1], repeat=len(self.matchups)))
-        median_outcomes = list(combinations(self.team_names, len(self.team_names) // 2))
+        median_outcomes = list(combinations(self.teams.team_ids, self.n_teams // 2))
         all_scenarios = []
 
         for h2h in h2h_outcomes:
             for med_winners in median_outcomes:
                 week_winners = {
-                    'matchup': {name: 0 for name in self.team_names},
-                    'tophalf': {name: 0 for name in self.team_names},
+                    'matchup': {name: 0 for name in self.teams.team_ids},
+                    'tophalf': {name: 0 for name in self.teams.team_ids},
                 }
 
                 # H2H results
@@ -105,7 +105,7 @@ class PlayoffScenarios:
         """Calculate the probability that a set of tophalf winners occurs
         Need to find the joint probability of winners and losers and normalize"""
 
-        tophalf_outcomes = combinations(self.team_names, len(self.team_names) // 2)
+        tophalf_outcomes = combinations(self.teams.team_ids, self.n_teams // 2)
         th_winners = tuple([t for t, r in scenario['tophalf'].items() if r == 1])
         th_losers = tuple([t for t, r in scenario['tophalf'].items() if r == 0])
 
@@ -118,7 +118,7 @@ class PlayoffScenarios:
             return tophalf_set_prob
 
         total_weight = sum(
-            grouping_weight(group, [t for t in self.team_names if t not in group])
+            grouping_weight(group, [t for t in self.teams.team_ids if t not in group])
             for group in tophalf_outcomes
         )
         this_weight = grouping_weight(winners=th_winners, losers=th_losers)
@@ -149,7 +149,7 @@ class PlayoffScenarios:
                 'clinch_scenarios': [],
                 'elim_scenarios': []
             }
-            for name in self.team_names
+            for name in self.teams.team_ids
         }
         for s in self.scenarios:
             new_standings = []
@@ -173,7 +173,7 @@ class PlayoffScenarios:
             new_clinched, new_elim = self.get_teams(standings=new_standings, seed=seed)
             new_clinched = [t for t in new_clinched if t not in clinched]
             new_elim = [t for t in new_elim if t not in eliminated]
-            for tm in self.team_names:
+            for tm in self.teams.team_ids:
                 if tm in new_clinched:
                     results[tm]['clinched'] += 1
                     results[tm]['p_clinch'] += s['p']
@@ -184,10 +184,8 @@ class PlayoffScenarios:
                     results[tm]['elim_scenarios'].append(s)
         return {k: v for k, v in results.items() if v['clinched'] > 0 or v['eliminated'] > 0}
 
-    def team_magic_number(self, team: str, playoff_spots: int) -> int | None:
+    def team_magic_number(self, team: int, playoff_spots: int) -> int | None:
         """Calculate magic number to clinch"""
-        team = team.title()[:4]  # ensure name is a valid display name (first 4 letters)
-
         the_team = [s for s in self.standings if s['team'] == team][0]
         current_losses = int(the_team['losses'])
         leading_team_wins = self.standings[playoff_spots-1]['wins']  # -1 to get team in that seed
@@ -204,9 +202,9 @@ class PlayoffScenarios:
             tm: {
                 'bye': None,
                 'playoff': None
-            } for tm in self.teams.teams
+            } for tm in self.teams.team_ids
         }
-        for tm in self.teams.teams:
+        for tm in self.teams.team_ids:
             for seed in [2, 5]:
                 cat = 'bye' if seed == 2 else 'playoff'
                 magic = self.team_magic_number(team=tm, playoff_spots=seed)

@@ -9,13 +9,12 @@ from scripts.utils.database import Database
 from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.home.standings import Standings
 from scripts.utils import constants
+from scripts.utils.utils import calculate_odds
 import scripts.scenarios.scenarios as scenarios
-from scripts.simulations import simulations
 from scripts.efficiency.xxefficiencies import plot_efficiency
 
 
-season = constants.SEASON
-dataloader = DataLoader(season)
+dataloader = DataLoader(week=constants.WEEK)
 params = LeagueSettings(dataloader=dataloader)
 teams = TeamSettings(dataloader=dataloader)
 week = params.regular_season_end+1 if params.current_week > params.regular_season_end+1 else params.current_week
@@ -26,25 +25,25 @@ day = dt.now().strftime('%a')
 the_week = params.as_of_week if day == 'Tue' else params.current_week  # Wed is start of new week, and season_sim runs on Tue
 betting_table = (
     Database()
-    .retrieve_data(how='season', table='betting_table', season=season, week=params.current_week)  # show previous week on Tues
+    .retrieve_data(how='season', table='betting_table', season=params.season, week=params.current_week)  # show previous week on Tues
     .sort_values('created')
     .tail(n_teams)  # most recent db updates
 )
 season_sim_table = (
     Database().
-    retrieve_data(how='season', table='season_sim', season=season, week=week)
+    retrieve_data(how='season', table='season_sim', season=params.season, week=week)
     .sort_values('created')
 )
-season_sim_wins_table = Database().retrieve_data(how='week', table='season_sim_wins', season=season, week=the_week)
-season_sim_ranks_table = Database().retrieve_data(how='week', table='season_sim_ranks', season=season, week=the_week)
-h2h_data = Database().retrieve_data(how='season', table='h2h', season=season, week=params.as_of_week)
-ss_data = Database().retrieve_data(how='season', table='schedule_switcher', season=season, week=week)
+season_sim_wins_table = Database().retrieve_data(how='week', table='season_sim_wins', season=params.season, week=the_week)
+season_sim_ranks_table = Database().retrieve_data(how='week', table='season_sim_ranks', season=params.season, week=the_week)
+h2h_data = Database().retrieve_data(how='season', table='h2h', season=params.season, week=params.as_of_week)
+ss_data = Database().retrieve_data(how='season', table='schedule_switcher', season=params.season, week=week)
 alltime_df = Database().retrieve_data(how='all', table='alltime_standings')
 records_df = Database().retrieve_data(how='all', table='records')
 
 
 # HOME PAGE
-standings = Standings(dataloader=dataloader, season=season, week=week)
+standings = Standings(dataloader=dataloader, season=params.season, week=week)
 standings_df = standings.format_standings()
 standings_df['bye_magic_number'] = '-'
 standings_df['playoff_magic_number'] = '-'
@@ -95,7 +94,7 @@ if week > 1:
     # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
 
 
-pr_data = Database().retrieve_data(how='season', table='power_ranks', season=season, week=week)
+pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=week)
 pr_data[['power_score_norm', 'score_norm_change']] = pr_data[['power_score_norm', 'score_norm_change']] * 100
 pr_table = pr_data[pr_data.week == week-1]
 pr_table = pr_table.sort_values('power_score_raw', ascending=False)
@@ -125,10 +124,10 @@ score_data = {'score_data': score_data}
 timestamp_betting = pd.to_datetime(betting_table.created.values[0]).strftime("%A, %b %d %Y")
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(2).apply(lambda x: f'{x:.2f}')
-betting_table['p_win'] = betting_table.p_win.apply(lambda x: simulations.calculate_odds(init_prob=x))
-betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: simulations.calculate_odds(init_prob=x))
-betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: simulations.calculate_odds(init_prob=x))
-betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: simulations.calculate_odds(init_prob=x))
+betting_table['p_win'] = betting_table.p_win.apply(lambda x: calculate_odds(init_prob=x))
+betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: calculate_odds(init_prob=x))
+betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: calculate_odds(init_prob=x))
+betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: calculate_odds(init_prob=x))
 
 playoff_probs_data = season_sim_table[['week', 'team', 'playoffs', 'finals', 'champion']].to_dict(orient='records')
 playoff_probs_data = json.dumps(playoff_probs_data, indent=2)
@@ -178,7 +177,7 @@ ss_disp = pd.merge(ss_disp_temp, ss_luck, on='team')
 
 # TEAM EFFICIENCY PAGE
 eff_plot = plot_efficiency(
-    season=season,
+    season=params.season,
     week=week,
     x='actual_lineup_score',
     y='optimal_lineup_score',

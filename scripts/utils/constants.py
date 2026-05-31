@@ -502,7 +502,16 @@ TEAM_IDS = {
         'name': {
             'first': 'Suraj',
             'last': 'Nyalakonda',
-            'display': 'Akash'
+            'display': 'Sura'
+        }
+    },
+
+    '{A97F7F21-227B-428E-BF7F-21227B028EF9}': {
+        'active': False,
+        'name': {
+            'first': 'Rahul',
+            'last': 'U',
+            'display': 'Rahu'
         }
     }
 }

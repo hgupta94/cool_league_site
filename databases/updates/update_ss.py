@@ -1,6 +1,6 @@
 from scripts.scenarios.scenarios import schedule_switcher
+from scripts.api.models.schedule import TeamResult
 from scripts.api.dataloader import DataLoader
-from scripts.api.settings import TeamSettings
 from scripts.utils.database import Database
 from scripts.utils import constants
 
@@ -14,20 +14,18 @@ def load_switcher(
 ) -> None:
     """Batch load rows to the schedule_switcher table for the prior week"""
 
-    teams = TeamSettings(dataloader)
-    switcher = schedule_switcher(dataloader=dataloader, season=season, week=week)
+    schedules = TeamResult.get_all_team_schedules(dataloader=dataloader)
+    switcher = schedule_switcher(schedules=schedules, season=season, week=week)
     rows = []
     for s in switcher:
-        t1_disp = constants.TEAM_IDS[teams.teamid_to_primowner[s['team']]]['name']['display']
-        t2_disp = constants.TEAM_IDS[teams.teamid_to_primowner[s['schedule_of']]]['name']['display']
-        rowid = f'{s['season']}_{s['week']:02}_{t1_disp}_{t2_disp}'
+        rowid = f'{s['season']}_{s['week']:02}_{s['team']:02}_{s['schedule_of']:02}'
         rows.append((
-            rowid, s['season'], s['week'], t1_disp, t2_disp, s['result']
+            rowid, s['season'], s['week'], s['team'], s['schedule_of'], s['result']
         ))
 
     Database().batch_insert(
         table='schedule_switcher',
-        columns=constants.SCHEDULE_SWITCH_COLUMNS,
+        columns='id, season, week, team, schedule_of, result',
         rows=rows,
         upsert=upsert,
         update_columns=upsert_cols

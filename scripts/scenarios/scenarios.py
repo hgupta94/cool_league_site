@@ -1,4 +1,3 @@
-from scripts.api.dataloader import DataLoader
 from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.api.models.schedule import TeamResult
 from scripts.utils import constants as const
@@ -113,14 +112,13 @@ def get_wins_vs_opp(h2h_data: pd.DataFrame,
 
 
 def schedule_switcher(
-        dataloader: DataLoader,
+        schedules: TeamResult,
         season: int = const.SEASON,
         week: int = const.WEEK-1  # week just finished
 ):
     """
     Create the schedule switcher dataframe
     """
-    schedules = TeamResult.get_all_team_schedules(dataloader=dataloader)
     team_ids = list(schedules.keys())
     switches = []
     for team in team_ids:
@@ -134,10 +132,12 @@ def schedule_switcher(
             new_opp_score = schedule_of_sched.opponent_score
 
             # if team and new opp are the same, need to use actual schedule results
+            result = None
             if team != new_opp_tm:
-                result = 1.0 if score > new_opp_score else 0.5 if score == new_opp_score else 0.0
+                if new_opp_tm:
+                    result = 1.0 if score > new_opp_score else 0.5 if score == new_opp_score else 0.0
             else:
-                result = float(switch_with_sched.matchup_result)
+                result = float(switch_with_sched.matchup_result.value)
             switches.append({
                 'season': season,
                 'week': week,

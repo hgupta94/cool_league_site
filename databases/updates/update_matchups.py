@@ -29,9 +29,9 @@ def load_matchups(
             team_matchup.team_score,
             opp_id,
             team_matchup.opponent_score,
-            team_matchup.matchup_result,
-            team_matchup.tophalf_result,
-            team_matchup.game_type
+            team_matchup.matchup_result.value,
+            team_matchup.tophalf_result.value,
+            team_matchup.game_type.value
         )
         rows.append(row)
 

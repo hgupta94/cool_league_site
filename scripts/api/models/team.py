@@ -33,8 +33,7 @@ class Team:
             dataloader: DataLoader,
             obj: dict,
             roster_obj: dict,
-            ctx: ParseContext,
-            week: int | None = None,
+            ctx: ParseContext
     ) -> Team:
         def get_name_obj(mgr_id: str) -> dict:
             return TEAM_IDS[mgr_id]
@@ -43,7 +42,7 @@ class Team:
         record_obj = obj.get('record', {}).get('overall', {})
         transaction_obj = obj.get('transactionCounter', {})
         roster_entry = roster_obj['entries'] if 'entries' in roster_obj else roster_obj
-        roster = Player.get_players(dataloader=dataloader, obj=roster_entry, ctx=ctx, week=week)
+        roster = Player.get_players(dataloader=dataloader, obj=roster_entry, ctx=ctx)
 
         return Team(
             team_id=obj.get('id', None),
@@ -70,13 +69,12 @@ class Team:
             dataloader: DataLoader,
             obj: dict,
             roster_obj: dict,
-            ctx: ParseContext,
-            week: int | None = None,
+            ctx: ParseContext
     ) -> dict[Team.team_id, Team]:
         teams = {}
         for team_obj in obj['teams']:
             roster_entry = roster_obj['teams']
             team_roster = [r for r in roster_entry if r['id'] == team_obj['id']][0]['roster']
-            team = cls.create_team(dataloader=dataloader, obj=team_obj, roster_obj=team_roster, ctx=ctx, week=week)
+            team = cls.create_team(dataloader=dataloader, obj=team_obj, roster_obj=team_roster, ctx=ctx)
             teams[team.team_id] = team
         return teams

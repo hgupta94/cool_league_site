@@ -70,31 +70,31 @@ ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc
     # a: alpha (shape)
     # loc: location
 GAMMA_VALUES = {
-    'QB': {
+    0: {
         'mean': 19.5,
         'a': 25.0963,
         'loc': -20.3195,
         'scale': 1.5820
     },
-    'RB': {
+    2: {
         'mean': 13.5,
         'a': 2.9539,
         'loc': -0.2592,
         'scale': 4.6404
     },
-    'WR': {
+    4: {
         'mean': 12.0,
         'a': 2.1777,
         'loc': 0.5273,
         'scale': 5.2803
     },
-    'TE': {
+    6: {
         'mean': 9.5,
         'a': 1.7211,
         'loc': 0.8828,
         'scale': 4.9673
     },
-    'DST': {
+    16: {
         'mean': 8.5,
         'a': 2.2054,
         'loc': 1.0673,

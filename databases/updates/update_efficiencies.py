@@ -17,7 +17,7 @@ def load_efficiency(
     """Batch load rows to the efficiency table for the prior week"""
 
     ctx = ParseContext(view=PlayerView.WEEK, season=season, week=week)
-    teams = Team.get_teams(obj=dataloader.teams(), roster_obj=dataloader.rosters(), ctx=ctx, week=week)
+    teams = Team.get_teams(obj=dataloader.teams(), roster_obj=dataloader.rosters(), ctx=ctx)
     scores = get_efficiency_scores(dataloader=dataloader, teams=teams, season=season, week=week)
 
     ts = TeamSettings(dataloader)

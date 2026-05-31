@@ -1,5 +1,5 @@
 from scripts.api.settings import LeagueSettings, TeamSettings
-from scripts.api.models.schedule import TeamSchedule
+from scripts.api.models.schedule import TeamResult
 from scripts.utils import constants as const
 import scripts.utils.utils as ut
 
@@ -23,7 +23,7 @@ def get_h2h(
             - `opponent`: Team ID for the compared team
             - `result`: Head-to-head outcome for `team` vs `opponent`
     """
-    schedules = TeamSchedule.get_all_team_schedules(week=week)
+    schedules = TeamResult.get_all_team_schedules(week=week)
 
     team_ids = list(schedules.keys())
     team_h2h = []
@@ -117,7 +117,7 @@ def schedule_switcher(
     """
     Create the schedule switcher dataframe
     """
-    schedules = TeamSchedule.get_all_team_schedules(week=week)
+    schedules = TeamResult.get_all_team_schedules(week=week)
     team_ids = list(schedules.keys())
     switches = []
     for team in team_ids:

@@ -1,7 +1,6 @@
-from scripts.utils import constants
 from scripts.utils.database import Database
 from scripts.api.dataloader import DataLoader
-from scripts.api.models.schedule import TeamSchedule
+from scripts.api.models.schedule import TeamResult
 from scripts.api.settings import TeamSettings
 from scripts.utils import constants
 
@@ -15,7 +14,7 @@ def load_matchups(
     """Batch load rows to the matchups table for the prior week"""
 
     teams = TeamSettings(dataloader=dataloader)
-    schedules = TeamSchedule.get_all_team_schedules(week=week)
+    schedules = TeamResult.get_all_team_schedules(week=week)
 
     rows = []
     for t in teams.team_ids:

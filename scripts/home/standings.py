@@ -3,7 +3,7 @@ import pandas as pd
 from scripts.utils import utils
 from scripts.utils import constants
 from scripts.api.dataloader import DataLoader
-from scripts.api.models.schedule import TeamSchedule
+from scripts.api.models.schedule import TeamResult
 from scripts.api.settings import LeagueSettings, TeamSettings
 
 
@@ -254,7 +254,7 @@ class Standings:
         """
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
-        matchups = TeamSchedule.get_all_team_schedules(week=as_of_week)
+        matchups = TeamResult.get_all_team_schedules(week=as_of_week)
 
         for team_id in self.teams.team_ids:
             # standings data for each team

@@ -171,13 +171,12 @@ class Player:
             cls,
             dataloader: DataLoader,
             obj: list[dict],
-            ctx: ParseContext,
-            week: int | None = None,
-    ) -> dict['Player.id', 'Player']:
+            ctx: ParseContext
+    ) -> dict[int, 'Player']:
         """get all player objects from ESPN"""
 
         slot_lookup = None
-        if week:
+        if ctx.week:
             teams_data = dataloader.teams()
             rosters_data = dataloader.rosters()
             slot_lookup = cls.build_lineup_slot_lookup(teams_data, rosters_data)

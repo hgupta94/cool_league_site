@@ -9,7 +9,8 @@ class LeagueSettings:
         self.league_size = settings['settings']['size']
         self.roster_size = sum(settings['settings']['rosterSettings']['lineupSlotCounts'].values())
         self.regular_season_end = settings['settings']['scheduleSettings']['matchupPeriodCount']
-        self.current_week = const.WEEK
+        self.season = settings['seasonId']
+        self.current_week = settings['scoringPeriodId']
         self.as_of_week = 0 if self.current_week-1 < 0 else self.current_week-1  # just finished
         self.playoff_teams = settings['settings']['scheduleSettings']['playoffTeamCount']
         self.playoff_matchup_length = settings['settings']['scheduleSettings']['playoffMatchupPeriodLength']
@@ -90,7 +91,7 @@ class RosterSettings:
         for i, position in self.positions.items():
             pos_fa = [fa for fa in free_agents if fa['position_id'] == i]
             top_n = sorted(pos_fa, key=lambda x: x['projection'], reverse=True)[:n]
-            pos_dict[position] = sum(p['projection'] for p in top_n) / n
+            pos_dict[i] = sum(p['projection'] for p in top_n) / n
 
         return pos_dict
 

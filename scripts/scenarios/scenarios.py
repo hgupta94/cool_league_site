@@ -8,7 +8,7 @@ import pandas as pd
 
 
 def get_h2h(
-        dataloader: DataLoader,
+        schedules: TeamResult,
         season: int = const.SEASON,
         week: int = const.WEEK-1  # week just finished
 ) -> list[dict]:
@@ -16,7 +16,7 @@ def get_h2h(
     Build pairwise head-to-head results for all teams in a given season/week.
 
     Args:
-        dataloader (DataLoader): ESPN dataloader object
+        schedules (TeamResult): ESPN dataloader object
         season (int): NFL season to evaluate. Defaults to const.SEASON
         week (int): NFL week to evaluate. Defaults to const.WEEK
 
@@ -26,7 +26,6 @@ def get_h2h(
             - `opponent`: Team ID for the compared team
             - `result`: Head-to-head outcome for `team` vs `opponent`
     """
-    schedules = TeamResult.get_all_team_schedules(dataloader=dataloader)
 
     team_ids = list(schedules.keys())
     team_h2h = []

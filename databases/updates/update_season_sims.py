@@ -1,7 +1,7 @@
-from scripts.simulations.simulations_new import Simulation
+from scripts.simulations.simulations import Simulation
 from scripts.api.models.player import ParseContext, PlayerView
 from scripts.api.dataloader import DataLoader
-from scripts.utils.constants import SEASON, WEEK
+from scripts.utils.constants import SEASON, WEEK, SEASON_SIM_COLUMNS
 from scripts.utils.database import Database
 from scripts.api.settings import LeagueSettings
 from scripts.api.models.team import Team
@@ -11,7 +11,7 @@ import time
 import pandas as pd
 
 
-N_SIMS = 1000
+N_SIMS = 10000
 
 ctx = ParseContext(view=PlayerView.WEEK)
 dataloader = DataLoader(week=WEEK)
@@ -37,19 +37,18 @@ q = f'''
 '''
 top_scores = db.query(query=q)
 
-results = db.retrieve_data(how='season', table='matchups', season=params.season, week=params.as_of_week)
+results = db.retrieve_data(how='season', table='matchups', season=SEASON, week=WEEK-1)
 results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum().reset_index()
 results['total_wins'] = results.matchup_result + results.tophalf_result
 results.columns = ['team', 'total_points', 'matchup_wins', 'tophalf_wins', 'total_wins']
-if params.current_week > 1:
+if WEEK > 1:
     results = pd.merge(results, top_scores, on='team', how='outer').rename(columns={'n': 'top_scores'}).fillna(0)
 results_dict = {int(row.team): row.drop(labels=['team']).to_dict() for i, row in results.iterrows()}
 
 sims = Simulation(dataloader)
-ros_lineups = lineups = sims._build_season_lineups()
 
 start = time.perf_counter()
-sim_results = sims.simulate_full_season(results=results_dict, lineups=ros_lineups, n=N_SIMS)
+sim_results = sims.simulate_full_season(results=results_dict, n=N_SIMS)
 end = time.perf_counter()
 print((end - start) / 60)
 
@@ -125,3 +124,30 @@ sim_df = sim_df.reset_index().rename(columns={'index': 'team'})
 sim_df['season'] = SEASON
 sim_df['week'] = params.current_week
 sim_df['id'] = sim_df.season.astype(str) + '_' + sim_df.week.astype(str).str.zfill(2) + '_' + sim_df.team.astype(str).str.zfill(2)
+
+
+# update db's
+db = Database()
+
+sim_df = sim_df[SEASON_SIM_COLUMNS.split(', ')]
+db.batch_insert(
+    table='season_sim',
+    columns=SEASON_SIM_COLUMNS,
+    rows=[tuple(row) for _, row in sim_df.iterrows()]
+)
+
+if params.current_week <= params.regular_season_end + 1:
+    # no need to update these in the postseason
+    wins_prob_df = wins_prob_df[['id', 'season', 'week', 'team', 'wins', 'p']]
+    db.batch_insert(
+        table='season_sim_wins',
+        columns='id, season, week, team, wins, p',
+        rows=[tuple(row) for _, row in wins_prob_df.iterrows()]
+    )
+
+    ranks_prob_df = ranks_prob_df[['id', 'season', 'week', 'team', 'rank', 'p']]
+    db.batch_insert(
+        table='season_sim_ranks',
+        columns='id, season, week, team, ranks, p',
+        rows=[tuple(row) for _, row in wins_prob_df.iterrows()]
+    )

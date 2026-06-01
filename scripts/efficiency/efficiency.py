@@ -54,11 +54,11 @@ def get_efficiency_scores(
                 best_proj_lineup.extend([max(best_proj_flex_pool, key=lambda p: (p.pts_proj or 0))][:flex_limit])
                 optimal_lineup.extend([max(optimal_flex_pool, key=lambda p: (p.pts_act or 0))][:flex_limit])
 
-        best_proj_lineup_act = sum(p.pts_act for p in best_proj_lineup)
-        best_proj_proj = sum(p.pts_proj for p in best_proj_lineup)
+        best_proj_lineup_act = sum((p.pts_act or 0) for p in best_proj_lineup)
+        best_proj_proj = sum((p.pts_proj or 0) for p in best_proj_lineup)
 
-        opt_lineup_act = sum(p.pts_act for p in optimal_lineup)
-        opt_lineup_proj = sum(p.pts_proj for p in optimal_lineup)
+        opt_lineup_act = sum((p.pts_act or 0) for p in optimal_lineup)
+        opt_lineup_proj = sum((p.pts_proj or 0) for p in optimal_lineup)
 
         scores.append({
             'season': season,

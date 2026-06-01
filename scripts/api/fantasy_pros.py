@@ -36,7 +36,6 @@ class FantasyPros:
         self.proj_col = self.ppr_dict[str(self.league_settings.ppr_type)]
 
     def _loader(self, endpoint: str, params: dict = None):
-        print('getting data...')
         if endpoint not in {'players', 'projections'}:
             raise ValueError(f'Endpoint {endpoint} is not supported. Must be one of: '
                              f'["players", "news", "compare-players", "rankings", "consensus-rankings", "experts", "projections"]')
@@ -100,7 +99,7 @@ class FantasyPros:
         if not week:
             week = self.week
 
-        positions = ':'.join(self.roster_settings.positions)
+        positions = ':'.join(self.roster_settings.positions.values())
         params = {'season': season, 'week': week, 'positions': positions}
         if ros:
             params['ros'] = True

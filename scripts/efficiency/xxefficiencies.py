@@ -158,10 +158,12 @@ def plot_efficiency(season: int,
                     y: str,
                     xlab: str,
                     ylab: str,
+                    id_map: dict,
                     title: str):
     from adjustText import adjust_text
 
     eff = Database().retrieve_data(how='season', table='efficiency', season=season, week=week)
+    eff['team'] = eff.team.map(id_map)
     cols = eff.select_dtypes(include=['float']).columns.tolist()
     df = eff.groupby('team')[cols].sum() / eff.week.max()
     df['act_opt_perc'] = df[x] / df[y]

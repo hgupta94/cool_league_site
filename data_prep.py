@@ -24,21 +24,9 @@ n_teams = len(teams.team_ids)
 day = dt.now().strftime('%a')
 the_week = params.as_of_week if day == 'Tue' else params.current_week  # Wed is start of new week, and season_sim runs on Tue
 db = Database()
-betting_table = (
-    db
-    .retrieve_data(how='season', table='betting_table', season=params.season, week=params.current_week)  # show previous week on Tues
-    .sort_values('created')
-    .tail(n_teams)  # most recent db updates
-)
-season_sim_table = (
-    db
-    .retrieve_data(how='season', table='season_sim', season=params.season, week=week)
-    .sort_values('created')
-)
-season_sim_wins_table = db.retrieve_data(how='week', table='season_sim_wins', season=params.season, week=the_week)
-season_sim_ranks_table = db.retrieve_data(how='week', table='season_sim_ranks', season=params.season, week=the_week)
-h2h_data = db.retrieve_data(how='season', table='h2h', season=params.season, week=params.as_of_week)
-ss_data = db.retrieve_data(how='season', table='schedule_switcher', season=params.season, week=week)
+query = f'select t.team_id team, m.display_name from team_ids t left join managers m on t.manager_id=m.manager_id where season={constants.SEASON};'
+id_mapping = db.query(query=query)
+id_map = {row.team: row.display_name for row in id_mapping.itertuples()}
 alltime_df = db.retrieve_data(how='all', table='alltime_standings')
 records_df = db.retrieve_data(how='all', table='records')
 
@@ -96,6 +84,7 @@ if week > 1:
 
 
 pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=week)
+pr_data['team'] = pr_data.team.map(id_map)
 pr_data[['power_score_norm', 'score_norm_change']] = pr_data[['power_score_norm', 'score_norm_change']] * 100
 pr_table = pr_data[pr_data.week == week-1]
 pr_table = pr_table.sort_values('power_score_raw', ascending=False)
@@ -122,6 +111,13 @@ score_data = {'score_data': score_data}
 
 
 # SIMULATIONS PAGE
+betting_table = (
+    db
+    .retrieve_data(how='season', table='betting_table', season=params.season, week=params.current_week)  # show previous week on Tues
+    .sort_values('created')
+    .tail(n_teams)  # most recent db updates
+)
+betting_table['team'] = betting_table.team.map(id_map)
 timestamp_betting = pd.to_datetime(betting_table.created.values[0]).strftime("%A, %b %d %Y")
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(2).apply(lambda x: f'{x:.2f}')
@@ -129,6 +125,13 @@ betting_table['p_win'] = betting_table.p_win.apply(lambda x: calculate_odds(init
 betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: calculate_odds(init_prob=x))
 betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: calculate_odds(init_prob=x))
 betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: calculate_odds(init_prob=x))
+
+season_sim_table = (
+    db
+    .retrieve_data(how='season', table='season_sim', season=params.season, week=week)
+    .sort_values('created')
+)
+season_sim_table['team'] = season_sim_table.team.map(id_map)
 
 playoff_probs_data = season_sim_table[['week', 'team', 'playoffs', 'finals', 'champion']].to_dict(orient='records')
 playoff_probs_data = json.dumps(playoff_probs_data, indent=2)
@@ -154,26 +157,40 @@ teams_order.extend(season_sim_table[~season_sim_table.team.isin(teams_order)].so
 season_sim_table = season_sim_table.set_index('team')
 season_sim_table = season_sim_table.reindex(teams_order).reset_index()[keep_cols]
 
+season_sim_wins_table = db.retrieve_data(how='week', table='season_sim_wins', season=params.season, week=the_week)
+season_sim_wins_table['team'] = season_sim_wins_table.team.map(id_map)
 order = season_sim_table.team.tolist()
 season_sim_wins_table['p_str'] = round(season_sim_wins_table.p * 100).astype(int)
 season_sim_wins_table = season_sim_wins_table[['team', 'wins', 'p_str']].pivot(index='team', columns='wins', values='p_str').fillna('')
 season_sim_wins_table = season_sim_wins_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
+season_sim_ranks_table = db.retrieve_data(how='week', table='season_sim_ranks', season=params.season, week=the_week)
+season_sim_ranks_table['team'] = season_sim_ranks_table.team.map(id_map)
 season_sim_ranks_table['p_str'] = round(season_sim_ranks_table.p * 100).astype(int)
 season_sim_ranks_table = season_sim_ranks_table[['team', 'ranks', 'p_str']].pivot(index='team', columns='ranks', values='p_str').fillna('')
 season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
 
 # SCENARIOS PAGE
+h2h_data = db.retrieve_data(how='season', table='h2h', season=params.season, week=params.as_of_week)
 h2h_data = h2h_data[h2h_data.week <= params.regular_season_end]
 total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)
 if week > 1:
     wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, params=params, teams=teams)
     wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)
+    wins_by_week['team'] = wins_by_week.team.map(id_map)
+    wins_vs_opp['team'] = wins_vs_opp.team.map(id_map)
+    wins_vs_opp = wins_vs_opp.rename(columns=id_map)
 
+ss_data = db.retrieve_data(how='season', table='schedule_switcher', season=params.season, week=week)
 ss_disp_temp = scenarios.get_schedule_switcher_display(ss_data=ss_data, total_wins=total_wins, week=week)
+ss_disp_temp = ss_disp_temp.rename(columns=id_map)
 ss_luck = pd.DataFrame.from_dict(scenarios.calculate_schedule_luck(ss_data), orient='index').reset_index().rename(columns={'index':'team', 0:'Luck'})
 ss_disp = pd.merge(ss_disp_temp, ss_luck, on='team')
+ss_disp['team'] = ss_disp.team.map(id_map)
+
+h2h_data['team'] = h2h_data.team.map(id_map)
+total_wins['team'] = total_wins.team.map(id_map)
 
 
 # TEAM EFFICIENCY PAGE
@@ -184,6 +201,7 @@ eff_plot = plot_efficiency(
     y='optimal_lineup_score',
     xlab='Difference From Optimal Points per Week',
     ylab='Optimal Points per Week',
+    id_map=id_map,
     title=''
 )
 

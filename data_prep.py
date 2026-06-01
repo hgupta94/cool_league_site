@@ -81,6 +81,7 @@ if week > 1:
                 prob = f'0.0%'
             s.extend([prob])
     # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
+standings_df['team'] = standings_df['team'].map(id_map)
 
 
 pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=week)

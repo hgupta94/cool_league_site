@@ -247,7 +247,7 @@ for s in range(2021, 2025):
     d = DataLoader(year=s)
     params = Params(d)
     rosters = Rosters(year=s)
-    slot_limits = rosters.slot_limits
+    slot_limits = rosters.roster_limits
     ssn_df = pd.DataFrame()
     for wk in range(1, 15):
         print(s, wk)

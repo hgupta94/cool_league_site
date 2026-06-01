@@ -7,19 +7,19 @@ from scripts.home.power_ranks import power_rank
 import pandas as pd
 
 
-data = DataLoader(year=constants.SEASON)
-params = LeagueSettings(data=data)
-teams = TeamSettings(data=data)
+dataloader = DataLoader(year=constants.SEASON, week=constants.WEEK)
+params = LeagueSettings(dataloader=dataloader)
+teams = TeamSettings(dataloader=dataloader)
 week = params.as_of_week
 
 # get previous week data
 prev_wk = Database().retrieve_data(how='week', season=constants.SEASON, week=week-1, table='power_ranks')
-
 df = pd.DataFrame(power_rank(params=params, teams=teams, season=constants.SEASON, week=week)).transpose()
+
 df['season'] = constants.SEASON
 df['week'] = week
 df = df.reset_index().rename(columns={'index': 'team'})
-df['id'] = df['season'].astype(str) + '_' + df['week'].astype(str) + '_' + df['team']
+df['id'] = df['season'].astype(str) + '_' + df['week'].astype(str).str.zfill(2) + '_' + df['team'].astype(str).str.zfill(2)
 df['power_rank'] = df.power_score_norm.rank(ascending=False)
 df_final = pd.concat([prev_wk, df])
 df_final['score_raw_change'] = df_final.groupby(['team'])['power_score_raw'].diff()

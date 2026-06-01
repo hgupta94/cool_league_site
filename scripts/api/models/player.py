@@ -17,7 +17,7 @@ class ParseContext:
     week: int = WEEK  # unused for season view
 
 
-@dataclass(frozen=True)
+@dataclass
 class Player:
     id: int
     name: str
@@ -41,22 +41,26 @@ class Player:
         return f'Player(name={self.name})'
 
     @classmethod
-    def build_lineup_slot_lookup(cls, week_data: dict) -> dict[int, int]:
+    def build_lineup_slot_lookup(
+            cls,
+            teams_data: dict,
+            rosters_data: dict,
+    ) -> dict[int, int]:
         """
         Returns {(team_id, player_id): lineup_slot_id}
         from week_data -> teams_list -> team -> roster -> player.
         """
         slot_map: dict[int, int] = {}
 
-        teams_list = week_data.get("teams", [])
-
+        teams_list = teams_data.get("teams", teams_data)
+        rosters = rosters_data.get('teams', [])
         for team_obj in teams_list:
             team_id = team_obj.get("id")
             if team_id is None:
                 continue
 
-            roster = team_obj.get("roster", {})
-            entries = roster.get("entries", [])
+            roster_data = [r for r in rosters if r['id'] == team_id][0].get('roster', {})
+            entries = roster_data.get("entries", [])
 
             for player in entries:
                 # player_obj = (
@@ -80,13 +84,13 @@ class Player:
             obj: dict,
             ctx: ParseContext,
             slot_lookup: dict | None = None,
-    ) -> Player:
+    ) -> 'Player':
         """Create a player object from ESPN"""
         player_entry = obj.get('playerPoolEntry', obj)
-        player_data = player_entry.get('player', {})
+        player_data = player_entry.get('player', player_entry)
         player_stats = player_data.get('stats', [])
 
-        player_id = player_entry.get('id', None)
+        player_id = player_entry.get('id', player_entry.get('fpid', None))
         ownership = player_data.get("ownership", {})
 
         if slot_lookup:
@@ -104,43 +108,57 @@ class Player:
             return {}
 
         def get_points(stat_source_id: int) -> float:
-            for stat in player_stats:
-                if ctx.view is PlayerView.WEEK:
-                    if (
-                            stat.get('seasonId') == ctx.season
-                            and stat.get('scoringPeriodId') == ctx.week
-                            and stat.get('statSourceId') == stat_source_id
-                    ):
-                        return float(stat.get('appliedTotal', None)), stat.get('stats', {})
+            if isinstance(player_stats, list):
+                # espn
+                for stat in player_stats:
+                    if ctx.view is PlayerView.WEEK:
+                        if (
+                                stat.get('seasonId') == ctx.season
+                                and stat.get('scoringPeriodId') == ctx.week
+                                and stat.get('statSourceId') == stat_source_id
+                        ):
+                            return float(stat.get('appliedTotal', None)), stat.get('stats', {})
+                    else:
+                        if (
+                                stat.get('seasonId') == ctx.season
+                                and stat.get('statSourceId') == stat_source_id
+                                and stat.get('statSplitTypeId') == 0
+                        ):
+                            return float(stat.get('appliedTotal', None)), stat.get('stats', {})
+
+            if isinstance(player_stats, dict):
+                # fantasypros
+                if stat_source_id == 0:
+                    return None, None
                 else:
-                    if (
-                            stat.get('seasonId') == ctx.season
-                            and stat.get('statSourceId') == stat_source_id
-                            and stat.get('statSplitTypeId') == 0
-                    ):
-                        return float(stat.get('appliedTotal', None)), stat.get('stats', {})
-                    
+                    return (
+                        {
+                            'points': player_stats.get('points', None),
+                            'points_half': player_stats.get('points_half', None),
+                            'points_ppr': player_stats.get('points_ppr', None)
+                        }
+                    ), None
             return None, None
 
         eligible_slots = player_data.get('eligibleSlots', [])
         pl_position = get_position(eligible_slots)
 
-        act_points_obj = get_points(stat_source_id=0)
-        proj_points_obj = get_points(stat_source_id=1)
+        act_points_obj: tuple = get_points(stat_source_id=0)
+        proj_points_obj: tuple = get_points(stat_source_id=1)
 
         return Player(
             id=player_id,
-            name=player_data.get('fullName', None),
+            name=player_data.get('fullName', player_data.get('name', None)),
             team_id=player_entry.get('onTeamId', None),
             eligible_slots=eligible_slots,
             position_id=pl_position.get('id', None),
-            position=pl_position.get('position', None),
+            position=pl_position.get('position', player_data.get('position_id', None)),
             lineup_slot_id=lineup_slot_id,
-            is_locked=player_entry.get('lineupLocked', None),
+            is_locked=False,  # is_locked=player_entry.get('lineupLocked', None),
             is_injured=player_data.get('injured', None),
             status=player_data.get('injuryStatus', None),
-            pts_act=act_points_obj[0] if act_points_obj else None,
-            pts_breakdown_act=act_points_obj[1] if act_points_obj else None,
+            pts_act=0, # act_points_obj[0] if act_points_obj else None,
+            pts_breakdown_act={},  #act_points_obj[1] if act_points_obj else None,
             pts_proj=proj_points_obj[0] if act_points_obj else None,
             pts_breakdown_proj=proj_points_obj[1] if act_points_obj else None,
             percent_owned=round(float(ownership.get('percentOwned', 0.0)) / 100, 4),
@@ -151,16 +169,17 @@ class Player:
     @classmethod
     def get_players(
             cls,
+            dataloader: DataLoader,
             obj: list[dict],
-            ctx: ParseContext,
-            week: int | None = None,
-    ) -> dict[Player.id, Player]:
+            ctx: ParseContext
+    ) -> dict[int, 'Player']:
         """get all player objects from ESPN"""
 
         slot_lookup = None
-        if week:
-            week_data = DataLoader(week=week).load_week()
-            slot_lookup = cls.build_lineup_slot_lookup(week_data)
+        if ctx.week:
+            teams_data = dataloader.teams()
+            rosters_data = dataloader.rosters()
+            slot_lookup = cls.build_lineup_slot_lookup(teams_data, rosters_data)
         players = {}
         for p in obj:
             player = cls.create_player(p, ctx=ctx, slot_lookup=slot_lookup)

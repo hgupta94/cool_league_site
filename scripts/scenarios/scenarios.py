@@ -1,5 +1,5 @@
 from scripts.api.settings import LeagueSettings, TeamSettings
-from scripts.api.models.schedule import TeamSchedule
+from scripts.api.models.schedule import TeamResult
 from scripts.utils import constants as const
 import scripts.utils.utils as ut
 
@@ -7,6 +7,7 @@ import pandas as pd
 
 
 def get_h2h(
+        schedules: TeamResult,
         season: int = const.SEASON,
         week: int = const.WEEK-1  # week just finished
 ) -> list[dict]:
@@ -14,6 +15,7 @@ def get_h2h(
     Build pairwise head-to-head results for all teams in a given season/week.
 
     Args:
+        schedules (TeamResult): ESPN dataloader object
         season (int): NFL season to evaluate. Defaults to const.SEASON
         week (int): NFL week to evaluate. Defaults to const.WEEK
 
@@ -23,7 +25,6 @@ def get_h2h(
             - `opponent`: Team ID for the compared team
             - `result`: Head-to-head outcome for `team` vs `opponent`
     """
-    schedules = TeamSchedule.get_all_team_schedules(week=week)
 
     team_ids = list(schedules.keys())
     team_h2h = []
@@ -111,13 +112,13 @@ def get_wins_vs_opp(h2h_data: pd.DataFrame,
 
 
 def schedule_switcher(
+        schedules: TeamResult,
         season: int = const.SEASON,
         week: int = const.WEEK-1  # week just finished
 ):
     """
     Create the schedule switcher dataframe
     """
-    schedules = TeamSchedule.get_all_team_schedules(week=week)
     team_ids = list(schedules.keys())
     switches = []
     for team in team_ids:
@@ -131,10 +132,12 @@ def schedule_switcher(
             new_opp_score = schedule_of_sched.opponent_score
 
             # if team and new opp are the same, need to use actual schedule results
+            result = None
             if team != new_opp_tm:
-                result = 1.0 if score > new_opp_score else 0.5 if score == new_opp_score else 0.0
+                if new_opp_tm:
+                    result = 1.0 if score > new_opp_score else 0.5 if score == new_opp_score else 0.0
             else:
-                result = float(switch_with_sched.matchup_result)
+                result = float(switch_with_sched.matchup_result.value)
             switches.append({
                 'season': season,
                 'week': week,

@@ -1,7 +1,5 @@
-import time
-from functools import wraps
-
 import pandas as pd
+from scripts.api.settings import TeamSettings
 
 
 def flask_get_columns(data: pd.DataFrame) -> tuple[list[str]]:
@@ -43,12 +41,35 @@ def teamid_to_name(ids: dict[str, str],
     return ids[teams.teamid_to_primowner[teamid]]['name']['display']
 
 
-def timer(function):
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        result = function(*args, **kwargs)
-        end = time.perf_counter()
-        print(f'Executed in {end - start} seconds')
-        return result
-    return wrapper
+def calculate_odds(init_prob: dict) -> dict:
+    """Convert counters from simulation into american odds"""
+
+    # round off very likely and unlikely events, less than 10/100,000
+    if init_prob >= 0.9999:
+        return '&#x2713;'  # check mark
+    elif init_prob <= 0.0001:
+        return '-'
+    else:
+        try:
+            if init_prob >= 0.5:
+                odds = (-1 * init_prob / (1 - init_prob)) * 100
+                return f'{max(-10000, round(odds / 5) * 5)}'  # round to nearest 5
+            else:
+                odds = (1 * (1 - init_prob) / init_prob) * 100
+                return f'+{min(10000, round(odds / 5) * 5)}'  # round to nearest 5
+        except ZeroDivisionError:  # init_prob = 1 or 0
+            if init_prob == 1:
+                return '&#x2713;'  # check mark
+            else:
+                return '-'
+
+
+def get_matchup_id(teams: TeamSettings,
+                   week: int,
+                   team_id: int):
+    """Create a matchup ID for a team's matchup to display in UI table"""
+    matchups = [m for m in teams.matchups if m['week'] == week]
+    for m in matchups:
+        if any([t['team_id'] == team_id for t in m['teams']]):  # the current team name is present in the matchup
+            return int((len(teams.team_ids) // 2) - ((week * len(teams.team_ids) / 2) - m['matchup_id']))
+    return None

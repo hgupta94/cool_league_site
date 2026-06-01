@@ -1,4 +1,7 @@
 from scripts.utils import constants as const
+
+from cachetools.func import ttl_cache
+import logging
 import requests
 import json
 
@@ -52,17 +55,20 @@ class DataLoader:
 
         d = r.json()
 
-        return d
+        return d if self.year >= 2018 else d[0]
 
+    @ttl_cache(maxsize=1, ttl=300)
     def settings(self):
         return self._loader(view='mSettings')
 
     def draft(self):
         return self._loader(view='mDraftDetail')
 
+    @ttl_cache(maxsize=1, ttl=300)
     def teams(self):
         return self._loader(view='mTeam')
 
+    @ttl_cache(maxsize=1, ttl=300)
     def rosters(self):
         return self._loader(view='mRoster')
 
@@ -94,6 +100,7 @@ class DataLoader:
             scores[i] = sorted(week_scores)
         return scores
 
+    @ttl_cache(maxsize=1, ttl=300)
     def matchups(self):
         data = self._loader(view='mMatchup')
         if self.week:
@@ -104,6 +111,7 @@ class DataLoader:
     def nav(self):
         return self._loader(view='mNav')
 
+    @ttl_cache(maxsize=1, ttl=300)
     def players_info(self, n: int = 500):
         filters = {
             'players': {
@@ -123,6 +131,7 @@ class DataLoader:
     def players_card(self):
         return self._loader(view='kona_playercard')
 
+    @ttl_cache(maxsize=1, ttl=300)
     def transactions(self):
         return self._loader(view='mTransactions2')
 

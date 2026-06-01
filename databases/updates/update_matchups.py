@@ -1,7 +1,6 @@
-from scripts.utils import constants
 from scripts.utils.database import Database
 from scripts.api.dataloader import DataLoader
-from scripts.api.models.schedule import TeamSchedule
+from scripts.api.models.schedule import TeamResult
 from scripts.api.settings import TeamSettings
 from scripts.utils import constants
 
@@ -15,30 +14,30 @@ def load_matchups(
     """Batch load rows to the matchups table for the prior week"""
 
     teams = TeamSettings(dataloader=dataloader)
-    schedules = TeamSchedule.get_all_team_schedules(week=week)
+    schedules = TeamResult.get_all_team_schedules(dataloader=dataloader)
 
     rows = []
     for t in teams.team_ids:
         team_matchup = schedules[t][week]
-        team_disp = teams._teamid_to_display(team_matchup.team_id)
-        opp_disp = teams._teamid_to_display(team_matchup.opponent_id)
+        team_id = team_matchup.team_id
+        opp_id = team_matchup.opponent_id
         row = (
-            f'{team_matchup.season}_{team_matchup.week:02}_{team_disp}',
+            f'{team_matchup.season}_{team_matchup.week:02}_{team_id:02}',
             team_matchup.season,
             team_matchup.week,
-            team_disp,
+            team_id,
             team_matchup.team_score,
-            opp_disp,
+            opp_id,
             team_matchup.opponent_score,
-            team_matchup.matchup_result,
-            team_matchup.tophalf_result,
-            team_matchup.game_type
+            team_matchup.matchup_result.value,
+            team_matchup.tophalf_result.value,
+            team_matchup.game_type.value
         )
         rows.append(row)
 
     Database().batch_insert(
         table='matchups',
-        columns=constants.MATCHUP_COLUMNS,
+        columns='id, season, week, team, score, opponent, opponent_score, matchup_result, tophalf_result, game_type',
         rows=rows,
         upsert=upsert,
         update_columns=upsert_cols

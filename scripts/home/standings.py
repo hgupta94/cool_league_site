@@ -3,16 +3,17 @@ import pandas as pd
 from scripts.utils import utils
 from scripts.utils import constants
 from scripts.api.dataloader import DataLoader
-from scripts.api.models.schedule import TeamSchedule
+from scripts.api.models.schedule import TeamResult
 from scripts.api.settings import LeagueSettings, TeamSettings
 
 
 class Standings:
     def __init__(self, dataloader: DataLoader, season, week):
+        self.dataloader = dataloader
         self.season = season
         self.week = week
-        self.params = LeagueSettings(dataloader=dataloader)
-        self.teams = TeamSettings(dataloader=dataloader)
+        self.params = LeagueSettings(dataloader=self.dataloader)
+        self.teams = TeamSettings(dataloader=self.dataloader)
         self.standings_df = pd.DataFrame(columns=['team', 'overall', 'overall_wins', 'win_perc',
                                                   'matchup', 'top_half', 'total_points'])
 
@@ -96,11 +97,11 @@ class Standings:
         return None
 
     def _clinch_scenarios(self,
-                          team_name: str,
+                          team_id: int,
                           seed: int) -> list:
         """
         Calculate clinching scenarios for the current matchup week
-        :param team_name: Team display name to calculate clinching scenarios for
+        :param team_id: Team display name to calculate clinching scenarios for
         :param seed: Seed to calculate scenarios for (2=BYE week, 5=playoffs by wins)
         :returns: List of team, scenario (bye or playoffs), wins needed, and team(s) needed for clinch
         """
@@ -112,7 +113,7 @@ class Standings:
                          ascending=[False, False])
             .to_dict(orient='records')
         )
-        data_tm = [d for d in data if d['team'] == team_name][0]
+        data_tm = [d for d in data if d['team'] == team_id][0]
         clinched = True if data_tm[f'wb{seed}'] == -99 else False
         eliminated = True if data_tm[f'wb{seed}'] == 99 else False
 
@@ -128,22 +129,22 @@ class Standings:
                         clinch_over_teams_w_pts = '<br>'.join([
                             f'{d["team"]} ({round(d["total_points"] - data_tm["total_points"], 2) if clinch_weeks_left == 0 else ""})'
                             for d in data
-                            if d['team'] != team_name
+                            if d['team'] != team_id
                                and d['overall_wins'] == seed_plus_one_wins
                         ])
                         clinch_over_teams_wo_pts = ', '.join([
                             f'{d["team"]}'
                             for d in data
-                            if d['team'] != team_name
+                            if d['team'] != team_id
                                and d['overall_wins'] == seed_plus_one_wins
                         ])
-                        row = [team_name, clinch_type, wins,
+                        row = [team_id, clinch_type, wins,
                                clinch_over_teams_w_pts if clinch_weeks_left == 0 else clinch_over_teams_wo_pts]
                         if row[-1] not in utils.flatten_list(rows):
                             rows.append(row)
             else:
                 # if team is behind seed, need to clear all teams between them and seed
-                team_idx = [i for i, data in enumerate(data) if team_name in data['team']][0]
+                team_idx = [i for i, data in enumerate(data) if team_id == data['team']][0]
                 seed_to_team = data[(seed-1):team_idx]
                 rows = []
                 for team_to_clear in seed_to_team:
@@ -155,26 +156,26 @@ class Standings:
                             clinch_over_teams_w_pts = '<br>'.join([
                                 f'{d["team"]} ({round(d["total_points"] - data_tm["total_points"], 2) if clinch_weeks_left == 0 else ""})'
                                 for d in data
-                                if d['team'] != team_name
+                                if d['team'] != team_id
                                    and d['overall_wins'] == seed_wins
                             ])
                             clinch_over_teams_wo_pts = ', '.join([
                                 f'{d["team"]}'
                                 for d in data
-                                if d['team'] != team_name
+                                if d['team'] != team_id
                                    and d['overall_wins'] == seed_wins
                             ])
-                            row = [team_name, clinch_type, wins, clinch_over_teams_w_pts if clinch_weeks_left == 0 else clinch_over_teams_wo_pts]
+                            row = [team_id, clinch_type, wins, clinch_over_teams_w_pts if clinch_weeks_left == 0 else clinch_over_teams_wo_pts]
                             if row[-1] not in utils.flatten_list(rows):
                                 rows.append(row)
             return rows
 
     def _elim_scenarios(self,
-                        team_name: str,
+                        team_id: int,
                         seed: int) -> list:
         """
         Calculate elimination scenarios for the current matchup week
-        :param team_name: Team display name to calculate elimination scenarios for
+        :param team_id: Team display name to calculate elimination scenarios for
         :param seed: Seed to calculate scenarios for (2=BYE week, 5=playoffs by wins)
         :returns: List of team, scenario (bye or playoffs), wins needed, and team(s) to be eliminated by
         """
@@ -186,7 +187,7 @@ class Standings:
                          ascending=[False, False])
             .to_dict(orient='records')
         )
-        data_tm = [d for d in data if d['team'] == team_name][0]
+        data_tm = [d for d in data if d['team'] == team_id][0]
         clinched = True if data_tm[f'wb{seed}'] == -99 else False
         eliminated = True if data_tm[f'wb{seed}'] == 99 else False
 
@@ -205,22 +206,22 @@ class Standings:
                             elim_by_teams_w_pts = '<br>'.join([
                                 f'{d["team"]} ({round(d["total_points"] - data_tm["total_points"], 2) if clinch_weeks_left == 0 else ""})'
                                 for d in data
-                                if d['team'] != team_name
+                                if d['team'] != team_id
                                    and d['overall_wins'] == seed_wins
                             ])
                             elim_by_teams_wo_pts = ', '.join([
                                 f'{d["team"]}'
                                 for d in data
-                                if d['team'] != team_name
+                                if d['team'] != team_id
                                    and d['overall_wins'] == seed_wins
                             ])
-                            row = [team_name, elim_type, wins, elim_by_teams_w_pts if clinch_weeks_left == 0 else elim_by_teams_wo_pts]
+                            row = [team_id, elim_type, wins, elim_by_teams_w_pts if clinch_weeks_left == 0 else elim_by_teams_wo_pts]
                             if row[-1] not in utils.flatten_list(rows):
                                 rows.append(row)
 
             else:
                 # if team is seed or better, need all teams between them and teams tied with seed+1 to clear them
-                team_idx = [i for i, data in enumerate(data) if team_name in data['team']][0]
+                team_idx = [i for i, data in enumerate(data) if team_id == data['team']][0]
                 team_to_seed = data[(team_idx+1):(seed+1)]
                 rows = []
                 for team_to_clear in team_to_seed:
@@ -232,16 +233,16 @@ class Standings:
                             elim_by_teams_w_pts = '<br>'.join([
                                 f'{d["team"]} ({round(d["total_points"] - data_tm["total_points"], 2) if clinch_weeks_left == 0 else ""})'
                                 for d in data
-                                if d['team'] != team_name
+                                if d['team'] != team_id
                                    and d['overall_wins'] == seed_wins
                             ])
                             elim_by_teams_wo_pts = ', '.join([
                                 f'{d["team"]}'
                                 for d in data
-                                if d['team'] != team_name
+                                if d['team'] != team_id
                                    and d['overall_wins'] == seed_wins
                             ])
-                            row = [team_name, elim_type, wins, elim_by_teams_w_pts if clinch_weeks_left == 0 else elim_by_teams_wo_pts]
+                            row = [team_id, elim_type, wins, elim_by_teams_w_pts if clinch_weeks_left == 0 else elim_by_teams_wo_pts]
                             if (row[-1] not in utils.flatten_list(rows)) and (len(row[-1].split('<br>')) == len(team_to_seed)):
                                 rows.append(row)
             return rows
@@ -254,18 +255,17 @@ class Standings:
         """
         n_playoff_teams = self.params.playoff_teams
         as_of_week = self.params.as_of_week
-        matchups = TeamSchedule.get_all_team_schedules(week=as_of_week)
+        matchups = TeamResult.get_all_team_schedules(dataloader=self.dataloader)
 
         for team_id in self.teams.team_ids:
             # standings data for each team
-            display_name = self.teams._teamid_to_display(team_id)
             team_matchups = matchups[team_id]
 
-            m_wins = sum(d.matchup_result for d in team_matchups.values())
+            m_wins = sum(d.matchup_result.value for d in team_matchups.values())
             m_losses = as_of_week - m_wins
             m_record = f'{int(m_wins)}-{int(m_losses)}'
 
-            th_wins = sum(d.tophalf_result for d in team_matchups.values())
+            th_wins = sum(d.tophalf_result.value for d in team_matchups.values())
             th_losses = as_of_week - th_wins
             th_record = f'{int(th_wins)}-{int(th_losses)}'
 
@@ -279,7 +279,7 @@ class Standings:
                 win_pct = '0.000'
             total_points = round(sum(d.team_score for d in team_matchups.values()), 2)
 
-            row = [display_name, ov_record, ov_wins, win_pct, m_record, th_record, total_points]
+            row = [team_id, ov_record, ov_wins, win_pct, m_record, th_record, total_points]
             self.standings_df.loc[len(self.standings_df)] = row
 
         self.standings_df.sort_values(['win_perc', 'total_points'], ascending=[False, False], inplace=True)
@@ -329,13 +329,12 @@ class Standings:
         """
         clinch_rows = []
         elim_rows = []
-        for team in self.teams.owner_ids:
-            tm = constants.TEAM_IDS[team]['name']['display']
-            bye_clinches = self._clinch_scenarios(team_name=tm, seed=2)
-            bye_elims = self._elim_scenarios(team_name=tm, seed=2)
+        for team in self.teams.team_ids:
+            bye_clinches = self._clinch_scenarios(team_id=team, seed=2)
+            bye_elims = self._elim_scenarios(team_id=team, seed=2)
 
-            playoffs_clinches = self._clinch_scenarios(team_name=tm, seed=5)
-            playoffs_elims = self._elim_scenarios(team_name=tm, seed=5)
+            playoffs_clinches = self._clinch_scenarios(team_id=team, seed=5)
+            playoffs_elims = self._elim_scenarios(team_id=team, seed=5)
 
             if bye_clinches:
                 for bc_row in bye_clinches:

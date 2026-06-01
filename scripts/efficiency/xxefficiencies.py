@@ -30,9 +30,9 @@ def get_optimal_points(params: LeagueSettings,
     week_data = dl.load_week()
 
     slots = rosters.slotcodes
-    starters = {k: v for k, v in rosters.slot_limits.items() if k not in [20, 21, 23]}
+    starters = {k: v for k, v in rosters.roster_limits.items() if k not in [20, 21, 23]}
     positions = {k: v for k, v in slots.items() if k in starters.keys()}
-    slot_limits = rosters.slot_limits
+    slot_limits = rosters.roster_limits
     df = pd.DataFrame(columns=['id', 'season', 'week', 'team_id', 'team',
                                'actual_score', 'actual_projected',
                                'best_projected_actual', 'best_projected_proj',
@@ -158,10 +158,12 @@ def plot_efficiency(season: int,
                     y: str,
                     xlab: str,
                     ylab: str,
+                    id_map: dict,
                     title: str):
     from adjustText import adjust_text
 
     eff = Database().retrieve_data(how='season', table='efficiency', season=season, week=week)
+    eff['team'] = eff.team.map(id_map)
     cols = eff.select_dtypes(include=['float']).columns.tolist()
     df = eff.groupby('team')[cols].sum() / eff.week.max()
     df['act_opt_perc'] = df[x] / df[y]

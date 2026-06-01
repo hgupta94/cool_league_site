@@ -35,7 +35,8 @@ CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
-_TODAY = dt.datetime.now()
+# _TODAY = dt.datetime.now()
+_TODAY = dt.datetime(2025, 10, 22)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
 _SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game
@@ -69,31 +70,31 @@ ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc
     # a: alpha (shape)
     # loc: location
 GAMMA_VALUES = {
-    'QB': {
+    0: {
         'mean': 19.5,
         'a': 25.0963,
         'loc': -20.3195,
         'scale': 1.5820
     },
-    'RB': {
+    2: {
         'mean': 13.5,
         'a': 2.9539,
         'loc': -0.2592,
         'scale': 4.6404
     },
-    'WR': {
+    4: {
         'mean': 12.0,
         'a': 2.1777,
         'loc': 0.5273,
         'scale': 5.2803
     },
-    'TE': {
+    6: {
         'mean': 9.5,
         'a': 1.7211,
         'loc': 0.8828,
         'scale': 4.9673
     },
-    'DST': {
+    16: {
         'mean': 8.5,
         'a': 2.2054,
         'loc': 1.0673,
@@ -145,8 +146,17 @@ POSITION_MAP = {
     2:  'RB',
     4:  'WR',
     6:  'TE',
+    8:  'DT',
+    9:  'DE',
+    10: 'LB',
+    11: 'DL',
+    12: 'CB',
+    13: 'S',
+    14: 'DB',
     16: 'DST',
-    17: 'K'
+    17: 'K',
+    18: 'P',
+    19: 'HC',
 }
 
 SLOTCODES = {
@@ -484,6 +494,24 @@ TEAM_IDS = {
             'first': 'Aiden',
             'last': 'Ghesani',
             'display': 'Aide'
+        }
+    },
+
+    '{32DFE3C4-263C-4F21-A13A-710BDE67C258}': {
+        'active': False,
+        'name': {
+            'first': 'Suraj',
+            'last': 'Nyalakonda',
+            'display': 'Sura'
+        }
+    },
+
+    '{A97F7F21-227B-428E-BF7F-21227B028EF9}': {
+        'active': False,
+        'name': {
+            'first': 'Rahul',
+            'last': 'U',
+            'display': 'Rahu'
         }
     }
 }

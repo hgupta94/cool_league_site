@@ -51,6 +51,12 @@ class Database:
         if self.tunnel:
             self.tunnel.stop()
 
+    def query(self, query: str):
+        if not query:
+            raise ValueError('No query specified')
+        with self as conn:
+            return pd.read_sql(query, conn)
+
     def retrieve_data(self, table: str, how: str, season: int = None, week: int = None):
         query = ''
         if how == 'week':

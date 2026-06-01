@@ -23,23 +23,24 @@ n_teams = len(teams.team_ids)
 # load db tables
 day = dt.now().strftime('%a')
 the_week = params.as_of_week if day == 'Tue' else params.current_week  # Wed is start of new week, and season_sim runs on Tue
+db = Database()
 betting_table = (
-    Database()
+    db
     .retrieve_data(how='season', table='betting_table', season=params.season, week=params.current_week)  # show previous week on Tues
     .sort_values('created')
     .tail(n_teams)  # most recent db updates
 )
 season_sim_table = (
-    Database().
-    retrieve_data(how='season', table='season_sim', season=params.season, week=week)
+    db
+    .retrieve_data(how='season', table='season_sim', season=params.season, week=week)
     .sort_values('created')
 )
-season_sim_wins_table = Database().retrieve_data(how='week', table='season_sim_wins', season=params.season, week=the_week)
-season_sim_ranks_table = Database().retrieve_data(how='week', table='season_sim_ranks', season=params.season, week=the_week)
-h2h_data = Database().retrieve_data(how='season', table='h2h', season=params.season, week=params.as_of_week)
-ss_data = Database().retrieve_data(how='season', table='schedule_switcher', season=params.season, week=week)
-alltime_df = Database().retrieve_data(how='all', table='alltime_standings')
-records_df = Database().retrieve_data(how='all', table='records')
+season_sim_wins_table = db.retrieve_data(how='week', table='season_sim_wins', season=params.season, week=the_week)
+season_sim_ranks_table = db.retrieve_data(how='week', table='season_sim_ranks', season=params.season, week=the_week)
+h2h_data = db.retrieve_data(how='season', table='h2h', season=params.season, week=params.as_of_week)
+ss_data = db.retrieve_data(how='season', table='schedule_switcher', season=params.season, week=week)
+alltime_df = db.retrieve_data(how='all', table='alltime_standings')
+records_df = db.retrieve_data(how='all', table='records')
 
 
 # HOME PAGE

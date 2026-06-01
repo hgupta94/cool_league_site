@@ -66,11 +66,12 @@ def power_rank(params: LeagueSettings,
     consistency_factor = 1 if week >= 5 else week / 5  # increase by 20% each week
 
     # load data from db
-    season_sim = Database(table='season_sim', season=season, week=week+1).retrieve_data(how='week')
-    eff = Database(table='efficiency', season=season, week=week).retrieve_data(how='season')
-    h2h = Database(table='h2h', season=season, week=week).retrieve_data(how='season')
-    ss = Database(table='schedule_switcher', season=season, week=week).retrieve_data(how='season')
-    matchups = Database(table='matchups', season=season, week=week).retrieve_data(how='season')
+    db = Database()
+    season_sim = db.retrieve_data(how='week', table='season_sim', season=season, week=week+1)
+    eff = db.retrieve_data(how='season', table='efficiency', season=season, week=week)
+    h2h = db.retrieve_data(how='season', table='h2h', season=season, week=week)
+    ss = db.retrieve_data(how='season', table='schedule_switcher', season=season, week=week)
+    matchups = db.retrieve_data(how='season', table='matchups', season=season, week=week)
     matchups = matchups[matchups.week <= params.regular_season_end]
     matchups['median'] = matchups.groupby('week')['score'].transform('median')
 
@@ -81,7 +82,7 @@ def power_rank(params: LeagueSettings,
     pr_dict = {}
     c_scores = {}
     l_scores = {}
-    for t in teams.teams:
+    for t in teams.team_ids:
         # Season Scoring Index (includes season projections)
         pr_tm = matchups[matchups.team == t]
         pr_tm_sim = season_sim[season_sim.team == t]

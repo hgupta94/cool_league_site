@@ -1,6 +1,7 @@
 from scripts.simulations.simulations import Simulation
 from scripts.api.models.player import ParseContext, PlayerView
 from scripts.api.dataloader import DataLoader
+from scripts.api.fantasy_pros import FantasyPros
 from scripts.utils.constants import SEASON, WEEK, SEASON_SIM_COLUMNS
 from scripts.utils.database import Database
 from scripts.api.settings import LeagueSettings
@@ -9,17 +10,23 @@ from scripts.api.models.team import Team
 import time
 
 import pandas as pd
+import json
+
+
+with open(r'/Users/hirshgupta/PycharmProjects/cool_league_site/tables/fp_espn_lookup.json', 'r') as f:
+    mapping = json.load(f)
 
 
 N_SIMS = 10000
 
 ctx = ParseContext(view=PlayerView.WEEK)
 dataloader = DataLoader(week=WEEK)
+fp = FantasyPros(dataloader=dataloader, mapping=mapping)
 
 params = LeagueSettings(dataloader=dataloader)
 teams_obj = dataloader.teams()
 rosters_obj = dataloader.rosters()
-teams = Team.get_teams(dataloader=dataloader, obj=teams_obj, roster_obj=rosters_obj, ctx=ctx)
+teams = Team.get_teams(dataloader=dataloader, fpros=fp, obj=teams_obj, roster_obj=rosters_obj, ctx=ctx)
 
 db = Database()
 q = f'''
@@ -45,7 +52,7 @@ if WEEK > 1:
     results = pd.merge(results, top_scores, on='team', how='outer').rename(columns={'n': 'top_scores'}).fillna(0)
 results_dict = {int(row.team): row.drop(labels=['team']).to_dict() for i, row in results.iterrows()}
 
-sims = Simulation(dataloader)
+sims = Simulation(dataloader, fpros=fp)
 
 start = time.perf_counter()
 sim_results = sims.simulate_full_season(results=results_dict, n=N_SIMS)

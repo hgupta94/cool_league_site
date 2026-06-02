@@ -9,7 +9,6 @@ import difflib
 from scripts.utils import constants
 from scripts.api.dataloader import DataLoader
 from scripts.api.settings import LeagueSettings, RosterSettings
-from scripts.api.models.player import Player, ParseContext, PlayerView
 
 
 class FantasyPros:
@@ -106,7 +105,7 @@ class FantasyPros:
             season: int = None,
             week: int = None,
             ros: bool = False
-    ) -> list[Player]:
+    ) -> list[dict]:
         """
         Get FantasyPros projections for a given season and week.
         :param season: Season to search

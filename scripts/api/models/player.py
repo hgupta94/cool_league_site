@@ -1,4 +1,5 @@
 from scripts.api.dataloader import DataLoader
+from scripts.api.fantasy_pros import FantasyPros
 from scripts.utils.constants import SEASON, WEEK, POSITION_MAP_ESPN
 
 from dataclasses import dataclass
@@ -33,11 +34,11 @@ class Player:
     pts_act_breakdown: dict
     pts_proj: float
     pts_proj_breakdown: dict
-    pts_proj_fp: float | None
-    pts_proj_fp_breakdown: dict | None
     percent_owned: float
     percent_start: float
     source_view: ParseContext
+    pts_proj_fp: float | None = None
+    pts_proj_fp_breakdown: dict | None = None
 
     def __repr__(self) -> str:
         return f'Player(name={self.name})'
@@ -180,12 +181,13 @@ class Player:
     def get_players(
             cls,
             dataloader: DataLoader,
+            fpros: FantasyPros,
             obj: list[dict],
-            fpros: list[dict],
             ctx: ParseContext
     ) -> dict[int, 'Player']:
         """get all player objects from ESPN"""
 
+        fantasy_pros = fpros.get_projections()
         slot_lookup = None
         if ctx.week:
             teams_data = dataloader.teams()
@@ -193,10 +195,7 @@ class Player:
             slot_lookup = cls.build_lineup_slot_lookup(teams_data, rosters_data)
         players = {}
         for p in obj:
-            p_fp = None
-            temp = [fp for fp in fpros if fp['espn_id'] == p['id']]
-            if temp:
-                p_fp = temp[0]
+            p_fp = next((fp for fp in fantasy_pros if fp.get('espn_id') == p.get('id')), None)
             player = cls.create_player(obj=p, fpros=p_fp, ctx=ctx, slot_lookup=slot_lookup)
             players[player.id] = player
         return players

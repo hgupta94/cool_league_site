@@ -23,10 +23,11 @@ import scipy.stats as st
 
 
 class Simulation:
-    def __init__(self, dataloader: DataLoader):
+    def __init__(self, dataloader: DataLoader, fpros: FantasyPros):
         print('Starting simulations')
         # TODO: add fantasypros projections
         self.dataloader = dataloader
+        self.fpros = fpros
         self.league_settings = LeagueSettings(dataloader=self.dataloader)
         self.roster_settings = RosterSettings(dataloader=self.dataloader)
         self.team_settings = TeamSettings(dataloader=self.dataloader)
@@ -34,9 +35,10 @@ class Simulation:
         self.ctx = ParseContext(view=PlayerView.WEEK, week=self.league_settings.as_of_week)
         self.players_obj = self.dataloader.players_info()['players']
         self.teams_obj = self.dataloader.teams()
+        self.fpros_proj = self.fpros.get_projections()
         self.rosters_obj = self.dataloader.rosters()
-        self.players = Player.get_players(dataloader=self.dataloader, obj=self.players_obj, ctx=self.ctx)
-        self.teams = Team.get_teams(dataloader=self.dataloader, obj=self.teams_obj, roster_obj=self.rosters_obj, ctx=self.ctx)
+        self.players = Player.get_players(dataloader=self.dataloader, fpros=self.fpros, obj=self.players_obj, ctx=self.ctx)
+        self.teams = Team.get_teams(dataloader=self.dataloader, fpros=self.fpros, obj=self.teams_obj, roster_obj=self.rosters_obj, ctx=self.ctx)
         self.matchups = Matchup.get_season_matchups(params=self.league_settings)
         self.results = TeamResult.get_all_team_schedules(dataloader=self.dataloader)
 
@@ -45,7 +47,6 @@ class Simulation:
         self.playoff_teams = self.league_settings.playoff_teams
         self.gamma_map = constants.GAMMA_VALUES
 
-        # self.projections_fpros = fpros.get_projections()
 
     def simulate_week(self, n: int = 100) -> dict[str, dict]:
         """
@@ -244,7 +245,7 @@ class Simulation:
             if remaining:
                 selector = sorted(
                     pool.values(),
-                    key=lambda i: (i.pts_proj or 0.0),
+                    key=lambda i: (i.pts_proj_fp or i.pts_proj or 0.0),
                     reverse=True
                 )  # highest projected player(s)
 
@@ -266,8 +267,8 @@ class Simulation:
                                     lineup_slot_id=position_id,
                                     status='ACTIVE',
                                     pts_proj=self.roster_settings.replacement_players[position_id],
-                                    pts_act=None, pts_breakdown_act={}, eligible_slots=[], is_locked=False, is_injured=False,
-                                    pts_breakdown_proj={}, percent_owned=None, percent_start=None, source_view=None,
+                                    pts_act=None, pts_act_breakdown={}, eligible_slots=[], is_locked=False, is_injured=False,
+                                    pts_proj_breakdown={}, percent_owned=None, percent_start=None, source_view=None,
                                 )
                             ])
 
@@ -283,7 +284,7 @@ class Simulation:
         else:
             flex_selector = sorted(
                 flex_pool,
-                key=lambda i: (i.pts_proj or 0),
+                key=lambda i: (i.pts_proj_fp or i.pts_proj or 0),
                 reverse=True
             )
             if flex_selector:
@@ -301,8 +302,8 @@ class Simulation:
                             pts_proj=sum(
                                 v for k, v in self.roster_settings.replacement_players.items() if k in flex_positions
                             ) / len(flex_positions),  # avg of free agent flex positions
-                            position_id=None, position=None, pts_act=None, pts_breakdown_act={},
-                            eligible_slots=[], is_locked=False, is_injured=False, pts_breakdown_proj={},
+                            position_id=None, position=None, pts_act=None, pts_act_breakdown={},
+                            eligible_slots=[], is_locked=False, is_injured=False, pts_proj_breakdown={},
                             percent_owned=None, percent_start=None, source_view=None,
                         )
                     ])
@@ -332,7 +333,7 @@ class Simulation:
             else:
                 # simulate if not
                 gamma_values = self.gamma_map[player.position_id]
-                loc = gamma_values['loc'] + ((player.pts_proj or 0) - gamma_values['mean'])
+                loc = gamma_values['loc'] + ((player.pts_proj_fp or player.pts_proj or 0) - gamma_values['mean'])
                 sim = st.gamma.rvs(a=gamma_values['a'], loc=loc, scale=gamma_values['scale'], size=1).item()
                 projected += sim
         return projected
@@ -424,7 +425,7 @@ class Simulation:
             ctx = ParseContext(view=PlayerView.WEEK, week=week)
             teams_obj = dataloader.teams()
             rosters_obj = dataloader.rosters()
-            teams = Team.get_teams(dataloader=self.dataloader, obj=teams_obj, roster_obj=rosters_obj, ctx=ctx)
+            teams = Team.get_teams(dataloader=self.dataloader, fpros=self.fpros, obj=teams_obj, roster_obj=rosters_obj, ctx=ctx)
             lineups = {i: self._get_best_lineup(team=t) for i, t in teams.items()}
             ros_lineups[week] = lineups
         return ros_lineups

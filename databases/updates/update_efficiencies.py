@@ -1,6 +1,7 @@
 from scripts.efficiency.efficiency import get_efficiency_scores
 from scripts.api.models.player import ParseContext, PlayerView
 from scripts.api.dataloader import DataLoader
+from scripts.api.fantasy_pros import FantasyPros
 from scripts.utils.database import Database
 from scripts.api.models.team import Team
 from scripts.utils import constants
@@ -8,6 +9,7 @@ from scripts.utils import constants
 
 def load_efficiency(
         dataloader: DataLoader,
+        fpros: FantasyPros,
         season: int = constants.SEASON,
         week: int = constants.WEEK-1,
         upsert: bool = False,
@@ -16,7 +18,7 @@ def load_efficiency(
     """Batch load rows to the efficiency table for the prior week"""
 
     ctx = ParseContext(view=PlayerView.WEEK, season=season, week=week)
-    teams = Team.get_teams(dataloader=dataloader, obj=dataloader.teams(), roster_obj=dataloader.rosters(), ctx=ctx)
+    teams = Team.get_teams(dataloader=dataloader, fpros=fpros, obj=dataloader.teams(), roster_obj=dataloader.rosters(), ctx=ctx)
     scores = get_efficiency_scores(dataloader=dataloader, teams=teams, season=season, week=week)
 
     rows = []

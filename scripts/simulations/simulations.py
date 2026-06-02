@@ -238,7 +238,7 @@ class Simulation:
             # loop thru positions to get best projected lineup
             position_played = {k: v for k, v in team.roster.items() if v.lineup_slot_id == position_id and v.is_locked == True}  # take out players who played
             if position_played:
-                lineup.extend([position_played])
+                lineup.extend(position_played.values())
 
             pool = {k: v for k, v in team.roster.items() if v.position_id == position_id and v.is_locked == False}
             remaining = limit-len(position_played)
@@ -280,7 +280,7 @@ class Simulation:
         # get flex player
         flex_played = {k: v for k, v in team.roster.items() if v.lineup_slot_id == 23 and v.is_locked == True}
         if flex_played:
-            lineup.extend(list(flex_played.keys()))
+            lineup.extend(flex_played.values())
         else:
             flex_selector = sorted(
                 flex_pool,

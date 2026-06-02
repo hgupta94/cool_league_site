@@ -1,4 +1,3 @@
-import os
 from scripts.utils import constants
 import mysql.connector
 import pandas as pd
@@ -25,7 +24,7 @@ class Database:
             self.tunnel = SSHTunnelForwarder(
                 (constants.DB_HOST_SSH, 22),
                 ssh_username=constants.DB_USER_SSH,
-                ssh_password=os.getenv('PA_PASS'),
+                ssh_password=constants.PA_PASS,
                 remote_bind_address=(constants.DB_MYSQL_HOST_SSH, 3306)
             )
             self.tunnel.start()
@@ -80,81 +79,6 @@ class Database:
                     '''
         with self as conn:
             return pd.read_sql(query, conn)
-
-    @staticmethod
-    def sql_insert_query(table: str, columns: str) -> str:
-        """Generate the SQL INSERT query for the specified table"""
-        query = f'''
-                INSERT INTO
-                {table}
-                    ({columns})
-                VALUES
-                    ({', '.join(('%s',) * len(columns.split(', ')))});
-                '''
-        return query
-
-    def sql_update_table(
-            self,
-            table: str,
-            values: tuple,
-            set_column: str,
-            new_value: str | int | float,
-            id_column: str,
-            id_value: str,
-            season: int,
-            week: int
-    ) -> str:
-        """Generate a SQL query to update a specific value"""
-        if type(id_value) == str:  # need to add quotes around value
-            query = f"""
-                UPDATE {table}
-                SET {set_column} = {new_value}
-                WHERE {id_column} = '{id_value}' AND season = {season} and week = {week}
-            """
-        else:
-            query = f"""
-                UPDATE {table}
-                SET {set_column} = {new_value}
-                WHERE {id_column} = {id_value} AND season = {season} and week = {week}
-            """
-        with self as db:
-            c = db.cursor()
-            c.execute(query, values)
-            db.commit()
-
-    def commit_row(
-            self,
-            table: str,
-            columns: str,
-            values: tuple
-    ) -> None:
-        """Commit a row to the specified table"""
-        with self as db:
-            c = db.cursor()
-            query = self.sql_insert_query(table, columns)
-            c.execute(query, values)
-            db.commit()
-
-    def commit_data(
-            self, table:
-            str, columns:
-            str, values:
-            tuple, data:
-            dict|list|pd.DataFrame
-    ) -> None:
-        """Commit data to the database"""
-        with self:
-            if isinstance(data, dict):
-                for _, _ in data.items():
-                    self.commit_row(table, columns, values)
-
-            if isinstance(data, list):
-                for _ in data:
-                    self.commit_row(table, columns, values)
-
-            if isinstance(data, pd.DataFrame):
-                for _, _ in data.iterrows():
-                    self.commit_row(table, columns, values)
 
     def batch_insert(
             self,

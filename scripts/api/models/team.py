@@ -23,7 +23,7 @@ class Team:
     acquisitions: int
     drops: int
     trades: int
-    roster: dict[Player.id, Player]
+    roster: dict[int, 'Player']
 
     def __repr__(self) -> str:
         return f'Team(id={self.team_id}, display_name={self.display_name})'
@@ -36,7 +36,7 @@ class Team:
             obj: dict,
             roster_obj: dict,
             ctx: ParseContext
-    ) -> Team:
+    ) -> 'Team':
         def get_name_obj(mgr_id: str) -> dict:
             return TEAM_IDS[mgr_id]
 
@@ -73,7 +73,7 @@ class Team:
             obj: dict,
             roster_obj: dict,
             ctx: ParseContext
-    ) -> dict[Team.team_id, Team]:
+    ) -> dict[int, 'Team']:
         teams = {}
         for team_obj in obj['teams']:
             roster_entry = roster_obj['teams']

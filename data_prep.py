@@ -21,7 +21,7 @@ week = params.regular_season_end+1 if params.current_week > params.regular_seaso
 n_teams = len(teams.team_ids)
 
 # load db tables
-day = dt.now().strftime('%a')
+day = constants._TODAY.strftime('%a')
 the_week = params.as_of_week if day == 'Tue' else params.current_week  # Wed is start of new week, and season_sim runs on Tue
 db = Database()
 query = f'select t.team_id team, m.display_name from team_ids t left join managers m on t.manager_id=m.manager_id where season={constants.SEASON};'

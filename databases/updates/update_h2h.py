@@ -29,3 +29,7 @@ def load_h2h(
         upsert=upsert,
         update_columns=upsert_cols
     )
+
+if __name__ == '__main__':
+    d = DataLoader(year=constants.SEASON, week=constants.WEEK)
+    load_h2h(dataloader=d)

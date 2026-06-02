@@ -8,6 +8,7 @@ DB_USER = os.getenv('DB_USER_LOCAL')
 DB_PASS = os.getenv('DB_PASS_LOCAL')
 DB_HOST = os.getenv('DB_HOST_LOCAL')
 DB_NAME = os.getenv('DB_NAME_LOCAL')
+PA_PASS = os.getenv('PA_PASS')
 
 # SSH DB credentials
 DB_USER_SSH = os.getenv('DB_USER_SSH')
@@ -36,7 +37,7 @@ ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
 # _TODAY = dt.datetime.now()
-_TODAY = dt.datetime(2025, 10, 29)
+_TODAY = dt.datetime(2025, 11, 5)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
 _SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game

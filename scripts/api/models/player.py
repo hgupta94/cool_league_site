@@ -118,7 +118,7 @@ class Player:
                     if ctx.view is PlayerView.WEEK:
                         if (
                                 stat.get('seasonId') == ctx.season
-                                and stat.get('scoringPeriodId') == ctx.week+1
+                                and stat.get('scoringPeriodId') == ctx.week
                                 and stat.get('statSourceId') == stat_source_id
                         ):
                             return float(stat.get('appliedTotal', None)), stat.get('stats', {})
@@ -163,11 +163,11 @@ class Player:
             position_id=pl_position.get('id', None),
             position=pl_position.get('position', player_data.get('position_id', None)),
             lineup_slot_id=lineup_slot_id,
-            is_locked=False,  # is_locked=player_entry.get('lineupLocked', None),
+            is_locked=player_entry.get('lineupLocked', None),
             is_injured=player_data.get('injured', None),
             status=player_data.get('injuryStatus', None),
-            pts_act=0, # act_points_obj[0] if act_points_obj else None,
-            pts_act_breakdown={},  #act_points_obj[1] if act_points_obj else None,
+            pts_act=act_points_obj[0] if act_points_obj else None,
+            pts_act_breakdown=act_points_obj[1] if act_points_obj else None,
             pts_proj=proj_points_obj[0] if act_points_obj else None,
             pts_proj_breakdown=proj_points_obj[1] if act_points_obj else None,
             pts_proj_fp=pts_proj_fp,

@@ -37,7 +37,7 @@ def get_efficiency_scores(
         for pos_id, pos_limit in nfl_position_limits.items():
             pool = [p for p in roster.values() if p.position_id == pos_id]
 
-            best_proj_selector = sorted(pool, key=lambda p: (p.pts_proj_fp, p.pts_proj or 0), reverse=True)
+            best_proj_selector = sorted(pool, key=lambda p: (p.pts_proj_fp or p.pts_proj or 0), reverse=True)
             best_proj_lineup.extend(best_proj_selector[:pos_limit])
 
             opt_selector = sorted(pool, key=lambda p: (p.pts_act or 0), reverse=True)
@@ -51,7 +51,7 @@ def get_efficiency_scores(
         for i in {3, 5, 23}:
             if i in starter_limits.keys():
                 flex_limit = starter_limits[i]
-                best_proj_lineup.extend([max(best_proj_flex_pool, key=lambda p: (p.pts_proj_fp, p.pts_proj or 0))][:flex_limit])
+                best_proj_lineup.extend([max(best_proj_flex_pool, key=lambda p: (p.pts_proj_fp or p.pts_proj or 0))][:flex_limit])
                 optimal_lineup.extend([max(optimal_flex_pool, key=lambda p: (p.pts_act or 0))][:flex_limit])
 
         best_proj_lineup_act = sum((p.pts_act or 0) for p in best_proj_lineup)

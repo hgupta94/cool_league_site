@@ -13,7 +13,15 @@ from scripts.api.models.player import Player, ParseContext, PlayerView
 
 
 class FantasyPros:
-    def __init__(self, dataloader: DataLoader):
+    def __init__(
+            self,
+            dataloader: DataLoader,
+            mapping: dict = None
+    ):
+        """
+        :param dataloader: ESPN Dataloader object
+        :param mapping: dictionary of Fantasy Pros to desired external source player IDs
+        """
         load_dotenv()
         api_key = os.getenv('FPROS_KEY')
         self.base_url = 'https://api.fantasypros.com/public/v2/json/nfl'
@@ -24,6 +32,8 @@ class FantasyPros:
 
         self.league_settings = LeagueSettings(dataloader=dataloader)
         self.roster_settings = RosterSettings(dataloader=dataloader)
+
+        self.mapping = mapping
 
         self.ppr_dict = {
             '0': 'points',
@@ -52,15 +62,30 @@ class FantasyPros:
         return r.json()
 
     @ttl_cache(maxsize=1, ttl=3600)
-    def get_player_info(self) -> dict:
+    def get_player_info(
+            self,
+            external_ids: str | list[str] = 'espn',
+            player_ids: list[int] = None
+    ) -> dict:
         """
         Fantasy Pros player info
 
-        :param player_ids: FantasyPros player IDs to search, in id1:id2:...:idn format
+        :external_ids: Source IDs to include in the search
+        :param player_ids: FantasyPros player IDs to search
 
         :return: Dictionary of player info, including ESPN player ID
         """
-        params = {'external_ids': 'espn'}
+        params = {}
+        eids = external_ids
+        if external_ids:
+            if isinstance(external_ids, list):
+                eids = ':'.join(e.strip().lower() for e in external_ids)
+            params['external_ids'] = eids
+
+        if player_ids:
+            pids = ':'.join([p for p in player_ids])
+            params['player'] = pids
+
         players = self._loader(endpoint='players', params=params)
 
         data = {}
@@ -108,29 +133,25 @@ class FantasyPros:
         projections = self._loader(endpoint='projections', params=params)
 
         # espn_lookups = self.build_espn_lookup(season)
-        espn_id = None
-        ctx = ParseContext(view=PlayerView.WEEK)
         players = []
         for player in projections['players']:
+            player['projection'] = player['stats'][self.proj_col]
             try:
-                espn_id = player_info[player['fpid']].get('espn_id', None)
+                player['espn_id'] = player_info[player['fpid']].get('espn_id', None)
             except KeyError:
-                pass
                 # get fpros to espn json mapping, or list of player ids to pass to self.get_player_info
                 # fpros_player_string = f'{player["name"]}|{player["position_id"]}|{player["team_id"]}'
                 # espn_id = self.match_player(espn_lookups, fpros_player_string, thresh=0.8)
-            p = Player.create_player(obj=player, ctx=ctx)
-            p.espn_id = espn_id
-            p.projection = p.pts_proj[self.proj_col]
-            players.append(p)
+                player['espn_id'] = self.mapping.get(str(player['fpid']), None)
+            players.append(player)
         return players
 
     @staticmethod
     def build_espn_lookup(season: int) -> dict[int, dict]:
         def get_position(eligible_slots: list[int]) -> dict:
             for posid in eligible_slots:
-                if posid in constants.POSITION_MAP and constants.POSITION_MAP[posid]:
-                    return {'id': posid, 'position': constants.POSITION_MAP[posid]}
+                if posid in constants.POSITION_MAP_ESPN and constants.POSITION_MAP_ESPN[posid]:
+                    return {'id': posid, 'position': constants.POSITION_MAP_ESPN[posid]}
             return {}
 
         dataloader = DataLoader(year=season)
@@ -140,7 +161,7 @@ class FantasyPros:
             espnid = ep['id']
             name = ep['player']['fullName']
             position = get_position(ep['player']['eligibleSlots'])['position']
-            team = constants.NFL_TEAM_MAP[ep['player']['proTeamId']]
+            team = constants.NFL_TEAM_MAP_ESPN[ep['player']['proTeamId']]
             string = f'{name}|{position}|{team}'
             all_lookups[i] = {'id': espnid, 'string': string}
         return all_lookups

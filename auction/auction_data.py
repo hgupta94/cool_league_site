@@ -1,6 +1,6 @@
 from scripts.api.dataloader import DataLoader
 from scripts.api.Teams import Teams
-from scripts.utils.constants import TEAM_IDS, POSITION_MAP
+from scripts.utils.constants import TEAM_IDS, POSITION_MAP_ESPN
 import pandas as pd
 
 draft_df = pd.DataFrame()
@@ -26,8 +26,8 @@ for season in range (2023, 2025):
         full_name = player['player']['fullName']
 
         for pos in player['player']['eligibleSlots']:
-            if pos in POSITION_MAP.keys():
-                position = POSITION_MAP[pos]
+            if pos in POSITION_MAP_ESPN.keys():
+                position = POSITION_MAP_ESPN[pos]
         ppr_value = player['player']['draftRanksByRankType']['PPR']['auctionValue']
         standard_value = 0
         try:

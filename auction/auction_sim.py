@@ -1,5 +1,5 @@
 from scripts.api.dataloader import DataLoader
-from scripts.utils.constants import POSITION_MAP, NFL_TEAM_MAP
+from scripts.utils.constants import POSITION_MAP_ESPN, NFL_TEAM_MAP_ESPN
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
@@ -61,7 +61,7 @@ def load_espn_data(season: int,
     rank_ov = 1
     for player in players['players']:
         full_name = player['player']['fullName']
-        team = NFL_TEAM_MAP[player['player']['proTeamId']]
+        team = NFL_TEAM_MAP_ESPN[player['player']['proTeamId']]
         if team == 'None':
             continue
         bye = byes[team]
@@ -69,8 +69,8 @@ def load_espn_data(season: int,
         rank_ov +=1
 
         for pos in player['player']['eligibleSlots']:
-            if pos in POSITION_MAP.keys():
-                position = POSITION_MAP[pos]
+            if pos in POSITION_MAP_ESPN.keys():
+                position = POSITION_MAP_ESPN[pos]
 
         projection_total = 0
         projection_ppg = 0

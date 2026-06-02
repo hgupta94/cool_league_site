@@ -44,12 +44,12 @@ class RosterSettings:
         _slot_limits = _settings['settings']['rosterSettings']['lineupSlotCounts']
         _position_limits = _settings['settings']['rosterSettings']['positionLimits']
 
-        self.player_stats_map = const.PLAYER_STATS_MAP
-        self.slotcodes = const.SLOTCODES
+        self.player_stats_map = const.PLAYER_STATS_MAP_ESPN
+        self.slotcodes = const.SLOTCODES_ESPN
         self.roster_limits = {int(k): v for k, v in _slot_limits.items() if v > 0}
         self.roster_position_limits = {int(k): v for k, v in _position_limits.items() if v > 0}
         self.lineup_position_limits = {k: v for k, v in self.roster_limits.items()}
-        self.positions = {k: v for k, v in const.POSITION_MAP.items() if k in self.roster_limits}
+        self.positions = {k: v for k, v in const.POSITION_MAP_ESPN.items() if k in self.roster_limits}
         self.replacement_players = self.get_replacements()
 
     def get_replacements(self, n: int = 3):
@@ -63,7 +63,7 @@ class RosterSettings:
                 player_id = player['id']
                 player_name = player['player']['fullName']
                 for pos in player['player']['eligibleSlots']:
-                    if pos in const.POSITION_MAP:
+                    if pos in const.POSITION_MAP_ESPN:
                         position_id = pos
 
                 projection = 0

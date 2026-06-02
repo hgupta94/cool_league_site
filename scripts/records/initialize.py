@@ -361,7 +361,7 @@ def get_per_stat_records(last_season):
     to_stats = [20, 72]
     all_stats = flatten_list([pass_stats, rush_stats, rec_stats, to_stats])
     rows = [[] for stat in all_stats]
-    records_dict = {constants.PLAYER_STATS_MAP[s]["display"]: -99 for s in all_stats}
+    records_dict = {constants.PLAYER_STATS_MAP_ESPN[s]["display"]: -99 for s in all_stats}
 
     for s in range(2019, last_season + 1):
         print(s)
@@ -377,7 +377,7 @@ def get_per_stat_records(last_season):
                     team = teamid_to_name(ids=constants.TEAM_IDS, teams=teams, teamid=m[tm]['teamId'])
                     stats = m[tm]['cumulativeScore']
                     for idx, (stat, row) in enumerate(zip(all_stats, rows)):
-                        stat_name = constants.PLAYER_STATS_MAP[stat]['display']
+                        stat_name = constants.PLAYER_STATS_MAP_ESPN[stat]['display']
                         try:
                             total = int(stats['scoreByStat'][str(stat)]['score'])
                             if total == records_dict[stat_name]:  # if total equals current record, append

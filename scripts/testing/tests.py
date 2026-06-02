@@ -241,8 +241,8 @@ df = df.drop_duplicates()
 
 # get player actual scores by position, week
 final_df = pd.DataFrame()
-slots = const.SLOTCODES
-positions = const.POSITION_MAP
+slots = const.SLOTCODES_ESPN
+positions = const.POSITION_MAP_ESPN
 for s in range(2021, 2025):
     d = DataLoader(year=s)
     params = Params(d)

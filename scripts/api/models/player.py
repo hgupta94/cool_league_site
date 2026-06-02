@@ -1,5 +1,5 @@
 from scripts.api.dataloader import DataLoader
-from scripts.utils.constants import SEASON, WEEK, POSITION_MAP
+from scripts.utils.constants import SEASON, WEEK, POSITION_MAP_ESPN
 
 from dataclasses import dataclass
 from enum import Enum
@@ -30,12 +30,14 @@ class Player:
     is_injured: bool
     status: str
     pts_act: float
-    pts_breakdown_act: dict
+    pts_act_breakdown: dict
     pts_proj: float
-    pts_breakdown_proj: dict
+    pts_proj_breakdown: dict
+    pts_proj_fp: float | None
+    pts_proj_fp_breakdown: dict | None
     percent_owned: float
     percent_start: float
-    source_view: PlayerView
+    source_view: ParseContext
 
     def __repr__(self) -> str:
         return f'Player(name={self.name})'
@@ -83,6 +85,7 @@ class Player:
             cls,
             obj: dict,
             ctx: ParseContext,
+            fpros: dict | None = None,
             slot_lookup: dict | None = None,
     ) -> 'Player':
         """Create a player object from ESPN"""
@@ -103,8 +106,8 @@ class Player:
 
         def get_position(eligible_slots: list[int]) -> dict:
             for posid in eligible_slots:
-                if posid in POSITION_MAP and POSITION_MAP[posid]:
-                    return {'id': posid, 'position': POSITION_MAP[posid]}
+                if posid in POSITION_MAP_ESPN and POSITION_MAP_ESPN[posid]:
+                    return {'id': posid, 'position': POSITION_MAP_ESPN[posid]}
             return {}
 
         def get_points(stat_source_id: int) -> float:
@@ -145,6 +148,11 @@ class Player:
 
         act_points_obj: tuple = get_points(stat_source_id=0)
         proj_points_obj: tuple = get_points(stat_source_id=1)
+        pts_proj_fp = None
+        pts_proj_fp_breakdown = None
+        if fpros:
+            pts_proj_fp = fpros['projection']
+            pts_proj_fp_breakdown = fpros['stats']
 
         return Player(
             id=player_id,
@@ -158,12 +166,14 @@ class Player:
             is_injured=player_data.get('injured', None),
             status=player_data.get('injuryStatus', None),
             pts_act=0, # act_points_obj[0] if act_points_obj else None,
-            pts_breakdown_act={},  #act_points_obj[1] if act_points_obj else None,
+            pts_act_breakdown={},  #act_points_obj[1] if act_points_obj else None,
             pts_proj=proj_points_obj[0] if act_points_obj else None,
-            pts_breakdown_proj=proj_points_obj[1] if act_points_obj else None,
+            pts_proj_breakdown=proj_points_obj[1] if act_points_obj else None,
+            pts_proj_fp=pts_proj_fp,
+            pts_proj_fp_breakdown=pts_proj_fp_breakdown,
             percent_owned=round(float(ownership.get('percentOwned', 0.0)) / 100, 4),
             percent_start=round(float(ownership.get('percentStarted', 0.0)) / 100, 4),
-            source_view=ctx.view,
+            source_view=ctx,
         )
 
     @classmethod
@@ -171,6 +181,7 @@ class Player:
             cls,
             dataloader: DataLoader,
             obj: list[dict],
+            fpros: list[dict],
             ctx: ParseContext
     ) -> dict[int, 'Player']:
         """get all player objects from ESPN"""
@@ -182,6 +193,10 @@ class Player:
             slot_lookup = cls.build_lineup_slot_lookup(teams_data, rosters_data)
         players = {}
         for p in obj:
-            player = cls.create_player(p, ctx=ctx, slot_lookup=slot_lookup)
+            p_fp = None
+            temp = [fp for fp in fpros if fp['espn_id'] == p['id']]
+            if temp:
+                p_fp = temp[0]
+            player = cls.create_player(obj=p, fpros=p_fp, ctx=ctx, slot_lookup=slot_lookup)
             players[player.id] = player
         return players

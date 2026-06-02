@@ -16,7 +16,7 @@ import requests
 warnings.simplefilter(action='ignore')
 
 from scripts.api.dataloader import DataLoader
-from scripts.utils.constants import POSITION_MAP
+from scripts.utils.constants import POSITION_MAP_ESPN
 
 # parameters
 TEAMS = 10
@@ -87,8 +87,8 @@ def load_espn_data(season):
         full_name = player['player']['fullName']
 
         for pos in player['player']['eligibleSlots']:
-            if pos in POSITION_MAP.keys():
-                position = POSITION_MAP[pos]
+            if pos in POSITION_MAP_ESPN.keys():
+                position = POSITION_MAP_ESPN[pos]
         price = player['draftAuctionValue']
 
         # get overall and position ranks

@@ -36,7 +36,7 @@ ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
 # _TODAY = dt.datetime.now()
-_TODAY = dt.datetime(2025, 10, 22)
+_TODAY = dt.datetime(2025, 10, 29)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
 _SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game
@@ -282,19 +282,19 @@ PLAYER_STATS_MAP_ESPN = {
     91: 'defensive7To13PointsAllowed',  # PA7
     92: 'defensive14To17PointsAllowed',  # PA14
     93: 'defensiveBlockedKickForTouchdowns',  # BLKKRTD
-    94: 'defensiveTouchdowns',  # Does not include defensive blocked kick for touchdowns (BLKKRTD)
-    95: 'defensiveInterceptions',  # INT
-    96: 'defensiveFumbles',  # FR
+    94: {'name': 'defensiveTouchdowns', 'display': 'Touchdowns', 'frpos': 'def_td'},  # Does not include defensive blocked kick for touchdowns (BLKKRTD)
+    95: {'name': 'defensiveInterceptions', 'display': 'Interceptions', 'fpros': 'def_int'},  # INT
+    96: {'name': 'defensiveFumbles', 'display': 'Fumbles Recovered', 'frpos': 'def_fr'},  # FR
     97: 'defensiveBlockedKicks',  # BLKK
-    98: 'defensiveSafeties',  # SF
-    99: 'defensiveSacks',  # SK
+    98: {'name': 'defensiveSafeties', 'display': 'Safeties', 'fpros': 'def_safety'},  # SF
+    99: {'name': 'defensiveSacks', 'display': 'Sacks', 'fpros': 'def_sack'},  # SK
     # 100: This appears to be defensiveSacks * 2
     101: 'kickoffReturnTouchdowns',  # KRTD
     102: 'puntReturnTouchdowns',  # PRTD
     103: 'interceptionReturnTouchdowns',  # INTTD
     104: 'fumbleReturnTouchdowns',  # FRTD
-    105: 'DSTTouchdowns',  # Includes defensive blocked kick for touchdowns (BLKKRTD) and kickoff/punt return touchdowns
-    106: 'defensiveForcedFumbles',  # FF
+    105: {'name': 'DSTTouchdowns', 'display': 'Total Touchdowns', 'fpros': 'def_td'},  # Includes defensive blocked kick for touchdowns (BLKKRTD) and kickoff/punt return touchdowns
+    106: {'name': 'defensiveForcedFumbles', 'display': 'Forced Fumbles', 'frpos': 'def_ff'},  # FF
     107: 'defensiveAssistedTackles',  # TKA
     108: 'defensiveSoloTackles',  # TKS
     109: 'defensiveTotalTackles',  # TK
@@ -306,7 +306,7 @@ PLAYER_STATS_MAP_ESPN = {
     118: 'puntsReturned',  # PTR
 
     # Team Defense Points Allowed
-    120: 'defensivePointsAllowed',  # PA
+    120: {'name': 'defensivePointsAllowed', 'display': 'Points Allowed', 'fpros': 'def_pa'},  # PA
     121: 'defensive18To21PointsAllowed',  # PA18
     122: 'defensive22To27PointsAllowed',  # PA22
     123: 'defensive28To34PointsAllowed',  # PA28
@@ -314,7 +314,7 @@ PLAYER_STATS_MAP_ESPN = {
     125: 'defensive45PlusPointsAllowed',  # PA46
 
     # Team Defense Yards Allowed
-    127: 'defensiveYardsAllowed',  # YA
+    127: {'name': 'defensiveYardsAllowed', 'display': 'Yards Allowed', 'fpros': 'def_ytda'},  # YA
     128: 'defensiveLessThan100YardsAllowed',  # YA100
     129: 'defensive100To199YardsAllowed',  # YA199
     130: 'defensive200To299YardsAllowed',  # YA299
@@ -469,18 +469,18 @@ SETTINGS_SCORING_FORMAT_MAP_ESPN = {
     92: { 'abbr': 'PA14', 'label': '14-17 points allowed' },
     93: { 'abbr': 'BLKKRTD', 'label': 'Blocked Punt or FG return for TD' },
     94: { 'abbr': 'DEFRETTD', 'label': 'Fumble or INT Return for TD' },
-    95: { 'abbr': 'INT', 'label': 'Each Interception' },
-    96: { 'abbr': 'FR', 'label': 'Each Fumble Recovered' },
+    95: { 'abbr': 'INT', 'label': 'Each Interception', 'fpros': 'def_int' },
+    96: { 'abbr': 'FR', 'label': 'Each Fumble Recovered', 'fpros': 'def_fr' },
     97: { 'abbr': 'BLKK', 'label': 'Blocked Punt, PAT or FG' },
-    98: { 'abbr': 'SF', 'label': 'Each Safety' },
-    99: { 'abbr': 'SK', 'label': 'Each Sack' },
+    98: { 'abbr': 'SF', 'label': 'Each Safety', 'frpos': 'def_safety' },
+    99: { 'abbr': 'SK', 'label': 'Each Sack', 'fpros': 'def_sack' },
     100: { 'abbr': 'HALFSK', 'label': '1/2 Sack' },
     101: { 'abbr': 'KRTD', 'label': 'Kickoff Return TD' },
     102: { 'abbr': 'PRTD', 'label': 'Punt Return TD' },
     103: { 'abbr': 'INTTD', 'label': 'Interception Return TD' },
     104: { 'abbr': 'FRTD', 'label': 'Fumble Return TD' },
-    105: { 'abbr': 'TRTD', 'label': 'Total Return TD' },
-    106: { 'abbr': 'FF', 'label': 'Each Fumble Forced' },
+    105: { 'abbr': 'TRTD', 'label': 'Total Return TD', 'fpros': 'def_retd' },
+    106: { 'abbr': 'FF', 'label': 'Each Fumble Forced', 'fpros': 'def_ff' },
     107: { 'abbr': 'TKA', 'label': 'Assisted Tackles' },
     108: { 'abbr': 'TKS', 'label': 'Solo Tackles' },
     109: { 'abbr': 'TK', 'label': 'Total Tackles' },
@@ -494,14 +494,14 @@ SETTINGS_SCORING_FORMAT_MAP_ESPN = {
     117: { 'abbr': 'KR25', 'label': 'Every 25 kickoff return yards' },
     118: { 'abbr': 'PR10', 'label': 'Every 10 punt return yards' },
     119: { 'abbr': 'PR25', 'label': 'Every 25 punt return yards' },
-    120: { 'abbr': 'PTSA', 'label': 'Points Allowed' },
+    120: { 'abbr': 'PTSA', 'label': 'Points Allowed', 'fpros': 'def_pa' },
     121: { 'abbr': 'PA18', 'label': '18-21 points allowed' },
     122: { 'abbr': 'PA22', 'label': '22-27 points allowed' },
     123: { 'abbr': 'PA28', 'label': '28-34 points allowed' },
     124: { 'abbr': 'PA35', 'label': '35-45 points allowed' },
     125: { 'abbr': 'PA46', 'label': '46+ points allowed' },
     126: { 'abbr': 'PAPG', 'label': 'Points Allowed Per Game' },
-    127: { 'abbr': 'YA', 'label': 'Yards Allowed' },
+    127: { 'abbr': 'YA', 'label': 'Yards Allowed', 'fpros': 'def_tyda' },
     128: { 'abbr': 'YA100', 'label': 'Less than 100 total yards allowed' },
     129: { 'abbr': 'YA199', 'label': '100-199 total yards allowed' },
     130: { 'abbr': 'YA299', 'label': '200-299 total yards allowed' },

@@ -118,7 +118,7 @@ class Player:
                     if ctx.view is PlayerView.WEEK:
                         if (
                                 stat.get('seasonId') == ctx.season
-                                and stat.get('scoringPeriodId') == ctx.week
+                                and stat.get('scoringPeriodId') == ctx.week+1
                                 and stat.get('statSourceId') == stat_source_id
                         ):
                             return float(stat.get('appliedTotal', None)), stat.get('stats', {})
@@ -195,7 +195,7 @@ class Player:
             slot_lookup = cls.build_lineup_slot_lookup(teams_data, rosters_data)
         players = {}
         for p in obj:
-            p_fp = next((fp for fp in fantasy_pros if fp.get('espn_id') == p.get('id')), None)
+            p_fp = next((fp for fp in fantasy_pros if fp.get('espn_id') == p.get('playerId')), None)
             player = cls.create_player(obj=p, fpros=p_fp, ctx=ctx, slot_lookup=slot_lookup)
             players[player.id] = player
         return players

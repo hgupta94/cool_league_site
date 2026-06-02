@@ -13,15 +13,15 @@ import pandas as pd
 import json
 
 
-with open(r'/Users/hirshgupta/PycharmProjects/cool_league_site/tables/fp_espn_lookup.json', 'r') as f:
-    mapping = json.load(f)
+# with open(r'/Users/hirshgupta/PycharmProjects/cool_league_site/tables/fp_espn_lookup.json', 'r') as f:
+#     mapping = json.load(f)
 
 
 N_SIMS = 10000
 
 ctx = ParseContext(view=PlayerView.WEEK)
 dataloader = DataLoader(week=WEEK)
-fp = FantasyPros(dataloader=dataloader, mapping=mapping)
+fp = FantasyPros(dataloader=dataloader)#, mapping=mapping)
 
 params = LeagueSettings(dataloader=dataloader)
 teams_obj = dataloader.teams()
@@ -140,7 +140,8 @@ sim_df = sim_df[SEASON_SIM_COLUMNS.split(', ')]
 db.batch_insert(
     table='season_sim',
     columns=SEASON_SIM_COLUMNS,
-    rows=[tuple(row) for _, row in sim_df.iterrows()]
+    rows=[tuple(row) for _, row in sim_df.iterrows()],
+    upsert=True
 )
 
 if params.current_week <= params.regular_season_end + 1:
@@ -149,12 +150,14 @@ if params.current_week <= params.regular_season_end + 1:
     db.batch_insert(
         table='season_sim_wins',
         columns='id, season, week, team, wins, p',
-        rows=[tuple(row) for _, row in wins_prob_df.iterrows()]
+        rows=[tuple(row) for _, row in wins_prob_df.iterrows()],
+        upsert=True
     )
 
     ranks_prob_df = ranks_prob_df[['id', 'season', 'week', 'team', 'rank', 'p']]
     db.batch_insert(
         table='season_sim_ranks',
         columns='id, season, week, team, ranks, p',
-        rows=[tuple(row) for _, row in wins_prob_df.iterrows()]
+        rows=[tuple(row) for _, row in ranks_prob_df.iterrows()],
+        upsert=True
     )

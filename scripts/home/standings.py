@@ -259,7 +259,7 @@ class Standings:
 
         for team_id in self.teams.team_ids:
             # standings data for each team
-            team_matchups = matchups[team_id]
+            team_matchups = {w: tr for w, tr in matchups[team_id].items() if w <= as_of_week}
 
             m_wins = sum(d.matchup_result.value for d in team_matchups.values())
             m_losses = as_of_week - m_wins

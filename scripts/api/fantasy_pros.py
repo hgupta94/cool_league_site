@@ -138,10 +138,11 @@ class FantasyPros:
             try:
                 player['espn_id'] = player_info[player['fpid']].get('espn_id', None)
             except KeyError:
+                player['espn_id'] = None
                 # get fpros to espn json mapping, or list of player ids to pass to self.get_player_info
                 # fpros_player_string = f'{player["name"]}|{player["position_id"]}|{player["team_id"]}'
                 # espn_id = self.match_player(espn_lookups, fpros_player_string, thresh=0.8)
-                player['espn_id'] = self.mapping.get(str(player['fpid']), None)
+                # player['espn_id'] = self.mapping.get(str(player['fpid']), None)
             players.append(player)
         return players
 

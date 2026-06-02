@@ -8,20 +8,20 @@ from scripts.simulations.simulations import Simulation
 
 from datetime import datetime as dt
 import time
-import json
-
-
-with open(r'/Users/hirshgupta/PycharmProjects/cool_league_site/tables/fp_espn_lookup.json', 'r') as f:
-    mapping = json.load(f)
+# import json
+#
+#
+# with open(r'/Users/hirshgupta/PycharmProjects/cool_league_site/tables/fp_espn_lookup.json', 'r') as f:
+#     mapping = json.load(f)
 
 
 # TODO only run simulation if a roster move was made
 # load parameters
 day = constants._TODAY.strftime('%a')
-N_SIMS = 50000
+N_SIMS = 100_000
 
 dataloader = DataLoader(year=constants.SEASON, week=constants.WEEK)
-fp = FantasyPros(dataloader=dataloader, mapping=mapping)
+fp = FantasyPros(dataloader=dataloader)#, mapping=mapping)
 teams = TeamSettings(dataloader)
 start = time.perf_counter()
 sim_results = Simulation(dataloader, fpros=fp).simulate_week(n=N_SIMS)

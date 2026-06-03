@@ -57,12 +57,16 @@ if week > 1:
         if s[1] == 'Bye':
             try:
                 prob = f'{format_prob(bye_scens[s[0]]['p_clinch'])}'
+                s[0] = id_map[s[0]]
+                s[3] = id_map[int(s[3])]
             except KeyError:
                 prob = f'0.0%'
             s.extend([prob])
         else:
             try:
                 prob = f'{format_prob(playoff_scens[s[0]]['p_clinch'])}'
+                s[0] = id_map[s[0]]
+                s[3] = id_map[int(s[3])]
             except KeyError:
                 prob = f'0.0%'
             s.extend([prob])
@@ -71,12 +75,16 @@ if week > 1:
         if s[1] == 'Bye':
             try:
                 prob = f'{format_prob(bye_scens[s[0]]['p_elim'])}'
+                s[0] = id_map[s[0]]
+                s[3] = id_map[int(s[3])]
             except KeyError:
                 prob = f'0.0%'
             s.extend([prob])
         else:
             try:
                 prob = f'{format_prob(playoff_scens[s[0]]['p_elim'])}'
+                s[0] = id_map[s[0]]
+                s[3] = id_map[str(s[3])]
             except KeyError:
                 prob = f'0.0%'
             s.extend([prob])
@@ -147,7 +155,7 @@ season_sim_table['xpo'] = '$' + (
         + season_sim_table.third * constants.PAYOUTS['third']
         + season_sim_table.most_wins * constants.PAYOUTS['most_wins']
         + season_sim_table.most_points * constants.PAYOUTS['most_points']
-).apply(lambda x: f'{x: ,.2f}').astype(str)
+).apply(lambda x: f'{x:,.2f}')
 keep_cols = ['team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion', 'xpo']
 season_sim_table[['playoffs', 'finals', 'champion']] = (season_sim_table[['playoffs', 'finals', 'champion']]*100).round(0).astype(int).astype(str) + '%'
 season_sim_table[['matchup_wins', 'tophalf_wins', 'total_wins']] = season_sim_table[['matchup_wins', 'tophalf_wins', 'total_wins']].round(1)

@@ -48,7 +48,7 @@ def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 5
         results = pd.merge(results, top_scores, on='team', how='outer').rename(columns={'n': 'top_scores'}).fillna(0)
     results_dict = {int(row.team): row.drop(labels=['team']).to_dict() for i, row in results.iterrows()}
 
-    sims = Simulation(dataloader, fpros=fp)
+    sims = Simulation(dataloader, fpros=fpros)
 
     start = time.perf_counter()
     sim_results = sims.simulate_full_season(results=results_dict, n=n_sims)
@@ -160,5 +160,5 @@ def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 5
 
 if __name__ == '__main__':
     dataloader = DataLoader(week=WEEK)
-    fp = FantasyPros(dataloader=dataloader)
-    load_season_sims(dataloader=dataloader, fpros=fp)
+    fpros = FantasyPros(dataloader=dataloader)
+    load_season_sims(dataloader=dataloader, fpros=fpros)

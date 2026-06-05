@@ -108,36 +108,26 @@ class FantasyPros:
     @ttl_cache(maxsize=1, ttl=3600)
     def get_projections(
             self,
-            season: int = None,
-            week: int = None,
             ros: bool = False
     ) -> list[dict]:
         """
-        Get FantasyPros projections for a given season and week.
-        :param season: Season to search
-        :param week: Week to search
+        Get FantasyPros projections.
         :param ros: Include rest of season projections (default: False)
 
         :return: Dictionary of projections with ESPN player ID as key
         """
-        if season:
-            if season < 2012:
+        if self.season:
+            if self.season < 2012:
                 raise ValueError('Season cannot be < 2012')
 
-        if not season:
-            season = self.season
-        if not week:
-            week = self.week
-
         positions = ':'.join(self.roster_settings.positions.values())
-        params = {'season': season, 'week': week, 'positions': positions}
+        params = {'season': self.season, 'week': self.week, 'positions': positions}
         if ros:
             params['ros'] = True
 
         projections = self._loader(endpoint='projections', params=params)
         player_info = self.get_player_info()
 
-        # espn_lookups = self.build_espn_lookup(season)
         players = []
         for player in projections['players']:
             player['projection'] = player['stats'][self.proj_col]
@@ -146,32 +136,3 @@ class FantasyPros:
                 or (self.mapping or {}).get(str(player['fpid']))
             )
         return players
-
-    @staticmethod
-    def build_espn_lookup(season: int) -> dict[int, dict]:
-        def get_position(eligible_slots: list[int]) -> dict:
-            for posid in eligible_slots:
-                if posid in constants.POSITION_MAP_ESPN and constants.POSITION_MAP_ESPN[posid]:
-                    return {'id': posid, 'position': constants.POSITION_MAP_ESPN[posid]}
-            return {}
-
-        dataloader = DataLoader(year=season)
-        espn_players = dataloader.players_info()['players']
-        all_lookups = {}
-        for i, ep in enumerate(espn_players):
-            espnid = ep['id']
-            name = ep['player']['fullName']
-            position = get_position(ep['player']['eligibleSlots'])['position']
-            team = constants.NFL_TEAM_MAP_ESPN[ep['player']['proTeamId']]
-            string = f'{name}|{position}|{team}'
-            all_lookups[i] = {'id': espnid, 'string': string}
-        return all_lookups
-
-    @staticmethod
-    def match_player(espn_lookup: dict, player_string: str, thresh: float = 0.8):
-        espn_strings = [a['string'] for a in espn_lookup.values()]
-        calc = [difflib.SequenceMatcher(None, player_string, m).ratio() for m in espn_strings]
-        if max(calc) > thresh:
-            match_idx = calc.index(max(calc))
-            return espn_lookup[match_idx]['id'], max(calc)
-        return None

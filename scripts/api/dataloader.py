@@ -125,11 +125,31 @@ class DataLoader:
         }
         return self._loader(view='kona_player_info', filters=filters)
 
-    def players_wl(self):
-        return self._loader(view='players_wl')
+    def players_wl(self, n: int = 500):
+        filters = {
+            'players': {
+                'limit': n,
+                'sortDraftRanks': {
+                    'sortPriority': 100,
+                    'sortAsc': True,
+                    'value': 'PPR'
+                }
+            }
+        }
+        return self._loader(view='players_wl', filters=filters)
 
-    def players_card(self):
-        return self._loader(view='kona_playercard')
+    def players_card(self, n: int = 500):
+        filters = {
+            'players': {
+                'limit': n,
+                'sortDraftRanks': {
+                    'sortPriority': 100,
+                    'sortAsc': True,
+                    'value': 'PPR'
+                }
+            }
+        }
+        return self._loader(view='kona_playercard', filters=filters)
 
     @ttl_cache(maxsize=1, ttl=300)
     def transactions(self):

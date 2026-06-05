@@ -15,6 +15,8 @@ class FantasyPros:
     def __init__(
             self,
             dataloader: DataLoader,
+            season: int = None,
+            week: int = None,
             mapping: dict = None
     ):
         """
@@ -26,8 +28,12 @@ class FantasyPros:
         self.base_url = 'https://api.fantasypros.com/public/v2/json/nfl'
         self.headers = {'x-api-key': api_key}
 
-        self.season = constants.SEASON
-        self.week = constants.WEEK
+        self.season = season
+        if not season:
+            self.season = constants.SEASON
+        self.week = week
+        if not week:
+            self.week = constants.WEEK
 
         self.league_settings = LeagueSettings(dataloader=dataloader)
         self.roster_settings = RosterSettings(dataloader=dataloader)
@@ -89,7 +95,7 @@ class FantasyPros:
 
         data = {}
         for player in players['players']:
-            if player['espn_id'] and player['position_id'] in {'QB', 'RB', 'WR', 'TE', 'DST'}:
+            if player['espn_id'] and player['position_id'] in set(self.roster_settings.positions.values()):
                 data[player['player_id']] = {
                     'espn_id': int(player['espn_id']),
                     'name': player['player_name'],
@@ -128,22 +134,17 @@ class FantasyPros:
         if ros:
             params['ros'] = True
 
-        player_info = self.get_player_info()
         projections = self._loader(endpoint='projections', params=params)
+        player_info = self.get_player_info()
 
         # espn_lookups = self.build_espn_lookup(season)
         players = []
         for player in projections['players']:
             player['projection'] = player['stats'][self.proj_col]
-            try:
-                player['espn_id'] = player_info[player['fpid']].get('espn_id', None)
-            except KeyError:
-                player['espn_id'] = None
-                # get fpros to espn json mapping, or list of player ids to pass to self.get_player_info
-                # fpros_player_string = f'{player["name"]}|{player["position_id"]}|{player["team_id"]}'
-                # espn_id = self.match_player(espn_lookups, fpros_player_string, thresh=0.8)
-                # player['espn_id'] = self.mapping.get(str(player['fpid']), None)
-            players.append(player)
+            player['espn_id'] = (
+                player_info.get(player['fpid'], {}).get('espn_id')
+                or (self.mapping or {}).get(str(player['fpid']))
+            )
         return players
 
     @staticmethod

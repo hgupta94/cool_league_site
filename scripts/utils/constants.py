@@ -163,6 +163,16 @@ POSITION_MAP_ESPN = {
     19: 'HC',
 }
 
+DEFAULT_POSITION_MAP_ESPN = {
+    # for some reason, player's defaultPositionId doesn't follow the previous mapping
+    1: 'QB',
+    2: 'RB',
+    3: 'WR',
+    4: 'TE',
+    5: 'K',
+    16: 'DST'
+}
+
 SLOTCODES_ESPN = {
     # position ID to position
     # all fantasy positions

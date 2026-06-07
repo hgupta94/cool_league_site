@@ -1,10 +1,8 @@
 import json
-from datetime import datetime as dt
 
 import pandas as pd
 
 from scripts.api.dataloader import DataLoader
-from scripts.home.playoff_scenarios import PlayoffScenarios
 from scripts.utils.database import Database
 from scripts.api.settings import LeagueSettings, TeamSettings
 from scripts.home.standings import Standings
@@ -33,63 +31,17 @@ records_df = db.retrieve_data(how='all', table='records')
 
 # HOME PAGE
 standings = Standings(dataloader=dataloader, season=params.season, week=week)
-standings_df = standings.format_standings()
-standings_df['bye_magic_number'] = '-'
-standings_df['playoff_magic_number'] = '-'
+standings_final = standings.format_standings()
+standings_to_flask = []
+for t in standings_final:
+    standings_to_flask.append((
+        t['seed'], id_map[t['team_id']], t['record'], t['win_pct'], t['matchup'], t['tophalf'],
+        t['points_disp'], t['wb2'], t['wb5'], t['pb6'], t['bye_magic_disp'], t['po_magic_disp']
+    ))
 clinches = {'clinches': [], 'eliminations': []}
 if week > 1:
-    clinches = standings.clinching_scenarios()
-    ps = PlayoffScenarios(dataloader=dataloader)
-    bye_scens = ps.get_new_clinches(seed=2)
-    playoff_scens = ps.get_new_clinches(seed=5)
-    magic_numbers = ps.get_magic_numbers()
-    standings_df['bye_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('bye', None))
-    standings_df['playoff_magic_number'] = standings_df['team'].map(lambda t: magic_numbers.get(t, {}).get('playoff', None))
-    def format_prob(p):
-        if 0 < p <= 0.001:
-            return "<0.1%"
-        elif .999 <= p < 1:
-            return ">99.9%"
-        else:
-            return f"{p*100:.1f}%"
-
-    for s in clinches['clinches']:
-        if s[1] == 'Bye':
-            try:
-                prob = f'{format_prob(bye_scens[s[0]]['p_clinch'])}'
-                s[0] = id_map[s[0]]
-                s[3] = id_map[int(s[3])]
-            except KeyError:
-                prob = f'0.0%'
-            s.extend([prob])
-        else:
-            try:
-                prob = f'{format_prob(playoff_scens[s[0]]['p_clinch'])}'
-                s[0] = id_map[s[0]]
-                s[3] = id_map[int(s[3])]
-            except KeyError:
-                prob = f'0.0%'
-            s.extend([prob])
-
-    for s in clinches['eliminations']:
-        if s[1] == 'Bye':
-            try:
-                prob = f'{format_prob(bye_scens[s[0]]['p_elim'])}'
-                s[0] = id_map[s[0]]
-                s[3] = id_map[int(s[3])]
-            except KeyError:
-                prob = f'0.0%'
-            s.extend([prob])
-        else:
-            try:
-                prob = f'{format_prob(playoff_scens[s[0]]['p_elim'])}'
-                s[0] = id_map[s[0]]
-                s[3] = id_map[str(s[3])]
-            except KeyError:
-                prob = f'0.0%'
-            s.extend([prob])
+    clinches = standings.get_playoff_scenarios(id_map=id_map)
     # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
-standings_df['team'] = standings_df['team'].map(id_map)
 
 
 pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=week)

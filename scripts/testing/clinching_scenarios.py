@@ -17,7 +17,7 @@ magic_numbers = ps.get_magic_numbers()
 
 # clinching/elimination scenarios and probabilities
 for team, res in playoff_scens.items():
-    wins_needed = {t:[] for t in teams.teams}
+    wins_needed = {t:[] for t in teams.team_settings}
     if res['eliminated']:
         print(f'{team} has a {round(res['p_elim'] * 100, 2)}% chance of being ELIMINATED from a playoff spot')
 

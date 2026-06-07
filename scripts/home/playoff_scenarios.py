@@ -43,8 +43,8 @@ class PlayoffScenarios:
         """Load betting table from database for scenario probabilities"""
         df = (
             Database()
-            .retrieve_data(how='season', table='betting_table', season=self.season, week=self.params.current_week)
-            .sort_values('created').head(self.n_teams)
+            .retrieve_data(how='week', table='betting_table', season=self.season, week=self.params.current_week)
+            .sort_values('created').tail(self.n_teams)
         )
         return df[['team', 'matchup_id', 'p_win', 'p_tophalf']].to_dict(orient='records')
 
@@ -130,7 +130,7 @@ class PlayoffScenarios:
         clinched = {}
         eliminated = {}
         for tm in standings:
-            clinched[tm['team']] = tm['wins'] - standings[seed if seed==2 else seed+1]['wins'] > weeks_left * 2  # 2 results per week. +1 to get 7th seed
+            clinched[tm['team']] = tm['wins'] - standings[seed]['wins'] > weeks_left * 2  # 2 results per week
             eliminated[tm['team']] = standings[seed-1]['wins'] - tm['wins'] > (weeks_left * 2)  # -1 to get team in that seed
 
         clinched_tms = [k for k, v in clinched.items() if v]

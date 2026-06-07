@@ -4,7 +4,6 @@ import os
 
 from cachetools.func import ttl_cache
 from dotenv import load_dotenv
-import difflib
 
 from scripts.utils import constants
 from scripts.api.dataloader import DataLoader
@@ -69,22 +68,20 @@ class FantasyPros:
     @ttl_cache(maxsize=1, ttl=3600)
     def get_player_info(
             self,
-            external_ids: str | list[str] = 'espn',
-            player_ids: list[int] = None
+            external_ids: tuple[str] = ('espn',),
+            player_ids: tuple[int] = None
     ) -> dict:
         """
         Fantasy Pros player info
 
-        :external_ids: Source IDs to include in the search
+        :external_ids: External player IDs to include in the search
         :param player_ids: FantasyPros player IDs to search
 
         :return: Dictionary of player info, including ESPN player ID
         """
         params = {}
-        eids = external_ids
         if external_ids:
-            if isinstance(external_ids, list):
-                eids = ':'.join(e.strip().lower() for e in external_ids)
+            eids = ':'.join(e.strip().lower() for e in external_ids)
             params['external_ids'] = eids
 
         if player_ids:
@@ -101,13 +98,13 @@ class FantasyPros:
                     'name': player['player_name'],
                     'position': player['position_id'],
                     'nfl_team': player['team_id'],
-                    'search_string': f'{player["player_name"]}|{player["position_id"]}|{player["team_id"]}',
                 }
         return data
 
-    @ttl_cache(maxsize=1, ttl=3600)
+    @ttl_cache(maxsize=20, ttl=3600)
     def get_projections(
             self,
+            player_ids: tuple[str] | None = None,
             ros: bool = False
     ) -> list[dict]:
         """
@@ -122,6 +119,8 @@ class FantasyPros:
 
         positions = ':'.join(self.roster_settings.positions.values())
         params = {'season': self.season, 'week': self.week, 'positions': positions}
+        if player_ids:
+            params['players'] = ':'.join(player_ids)
         if ros:
             params['ros'] = True
 
@@ -135,4 +134,5 @@ class FantasyPros:
                 player_info.get(player['fpid'], {}).get('espn_id')
                 or (self.mapping or {}).get(str(player['fpid']))
             )
+            players.append(player)
         return players

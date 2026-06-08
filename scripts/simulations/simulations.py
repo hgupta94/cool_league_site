@@ -32,7 +32,7 @@ class Simulation:
         self.roster_settings = RosterSettings(dataloader=self.dataloader)
         self.team_settings = TeamSettings(dataloader=self.dataloader)
 
-        self.ctx = ParseContext(view=PlayerView.WEEK, week=self.league_settings.as_of_week)
+        self.ctx = ParseContext(view=PlayerView.WEEK, week=self.league_settings.current_week)
         self.players_obj = self.dataloader.players_info()['players']
         self.teams_obj = self.dataloader.teams()
         self.fpros_proj = self.fpros.get_projections()
@@ -223,7 +223,7 @@ class Simulation:
         """
         # lineup settings
         position_map = self.roster_settings.slotcodes
-        nfl_starter_limits = {i: v for i, v in self.roster_settings.roster_limits.items() if i in {0, 2, 4, 6, 16}}  # QB, RB, WR, TE, DST. add position ids if needed
+        nfl_starter_limits = {i: v for i, v in self.roster_settings.roster_limits.items() if i in self.roster_settings.positions}  # QB, RB, WR, TE, DST. add position ids if needed
         starter_limits = {i: v for i, v in self.roster_settings.roster_limits.items() if i not in {19, 20, 21, 22, 24, 25}}  # 23 is FLEX
         flex_positions = []
         for i in {3, 5, 23}:  # ESPN flex positions

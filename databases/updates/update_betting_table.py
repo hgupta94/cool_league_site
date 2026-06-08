@@ -15,7 +15,7 @@ import time
 #     mapping = json.load(f)
 
 
-def load_betting_table(dataloader:DataLoader, fpros: FantasyPros, n_sims: int=100000):
+def load_betting_table(dataloader:DataLoader, fpros: FantasyPros, n_sims: int=100_000):
     # TODO only run simulation if a roster move was made
     # load parameters
     day = constants._TODAY.strftime('%a')

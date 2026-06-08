@@ -86,7 +86,7 @@ class Player:
             cls,
             obj: dict,
             ctx: ParseContext,
-            fpros: dict | None = None,
+            fpros: list[dict] | None = None,
             slot_lookup: dict | None = None,
     ) -> 'Player':
         """Create a player object from ESPN"""
@@ -163,11 +163,11 @@ class Player:
             position_id=pl_position.get('id', None),
             position=pl_position.get('position', player_data.get('position_id', None)),
             lineup_slot_id=lineup_slot_id,
-            is_locked=player_entry.get('lineupLocked', None),
+            is_locked=False, #player_entry.get('lineupLocked', None),
             is_injured=player_data.get('injured', None),
             status=player_data.get('injuryStatus', None),
-            pts_act=act_points_obj[0] if act_points_obj else None,
-            pts_act_breakdown=act_points_obj[1] if act_points_obj else None,
+            pts_act=None, #act_points_obj[0] if act_points_obj else None,
+            pts_act_breakdown={}, #act_points_obj[1] if act_points_obj else None,
             pts_proj=proj_points_obj[0] if act_points_obj else None,
             pts_proj_breakdown=proj_points_obj[1] if act_points_obj else None,
             pts_proj_fp=pts_proj_fp,
@@ -195,7 +195,8 @@ class Player:
             slot_lookup = cls.build_lineup_slot_lookup(teams_data, rosters_data)
         players = {}
         for p in obj:
-            p_fp = next((fp for fp in fantasy_pros if fp.get('espn_id') == p.get('playerId')), None)
+            espn_id_col = 'id' if 'id' in p else 'playerId'
+            p_fp = next((fp for fp in fantasy_pros if fp.get('espn_id') == p.get(espn_id_col)), None)
             player = cls.create_player(obj=p, fpros=p_fp, ctx=ctx, slot_lookup=slot_lookup)
             players[player.id] = player
         return players

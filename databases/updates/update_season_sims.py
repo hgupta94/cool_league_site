@@ -17,7 +17,7 @@ import json
 #     mapping = json.load(f)
 
 
-def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 50000):
+def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 50_000):
     ctx = ParseContext(view=PlayerView.WEEK)
     params = LeagueSettings(dataloader=dataloader)
     teams_obj = dataloader.teams()

@@ -30,3 +30,7 @@ def load_switcher(
         upsert=upsert,
         update_columns=upsert_cols
     )
+
+if __name__ == '__main__':
+    d = DataLoader(year=constants.SEASON, week=constants.WEEK-1)
+    load_switcher(dataloader=d)

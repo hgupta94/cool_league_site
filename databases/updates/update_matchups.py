@@ -44,5 +44,5 @@ def load_matchups(
     )
 
 if __name__ == '__main__':
-    d = DataLoader(year=constants.SEASON, week=constants.WEEK)
+    d = DataLoader(year=constants.SEASON, week=constants.WEEK-1)
     load_matchups(dataloader=d)

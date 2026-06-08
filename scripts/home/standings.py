@@ -1,4 +1,3 @@
-import pandas as pd
 from enum import Enum
 
 from scripts.utils import utils
@@ -23,9 +22,6 @@ class Standings:
         self.team_settings = TeamSettings(dataloader=self.dataloader)
         self.matchups: dict = TeamResult.get_all_team_schedules(dataloader=self.dataloader)
         self.playoff_scenarios = PlayoffScenarios(dataloader=self.dataloader)
-
-        self.standings_df = pd.DataFrame(columns=['team', 'overall', 'overall_wins', 'win_perc',
-                                                  'matchup', 'top_half', 'total_points'])
 
     @staticmethod
     def _format_points_back(value):
@@ -293,12 +289,12 @@ class Standings:
                     - ((self.league_settings.as_of_week * 2) - row['wins'])
                 )
                 row['bye_magic_disp'] = (
-                    '-' if row['bye_magic'] < 0
+                    '-' if row['bye_magic'] <= 0
                            or row['bye_magic'] >= self.league_settings.as_of_week-1
                     else f'{int(row['bye_magic'])}'
                 )
                 row['po_magic_disp'] = (
-                    '-' if row['po_magic'] < 0
+                    '-' if row['po_magic'] <= 0
                            or row['po_magic'] >= self.league_settings.as_of_week-1
                     else f'{int(row['po_magic'])}'
                 )

@@ -37,7 +37,7 @@ ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
 # _TODAY = dt.datetime.now()
-_TODAY = dt.datetime(2025, 11, 12)
+_TODAY = dt.datetime(2025, 11, 19)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
 _SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game
@@ -71,34 +71,106 @@ ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc
     # loc: location
 GAMMA_VALUES = {
     0: {
-        'mean': 19.5,
-        'a': 25.0963,
-        'loc': -20.3195,
-        'scale': 1.5820
+        'mean': 18.1987,
+        'a': 3.8710,
+        'loc': 0,
+        'scale': 4.7013,
+        'var': 85.5582,
+        'cv': 0.5082,
+        'max': 55
     },
     2: {
-        'mean': 13.5,
-        'a': 2.9539,
-        'loc': -0.2592,
-        'scale': 4.6404
+        'mean': 10.9303,
+        'a': 1.6797,
+        'loc': 0,
+        'scale': 6.5074,
+        'var': 71.1279,
+        'cv': 0.7716,
+        'max': 55
     },
     4: {
-        'mean': 12.0,
-        'a': 2.1777,
-        'loc': 0.5273,
-        'scale': 5.2803
+        'mean': 10.6807,
+        'a': 2.0045,
+        'loc': 0,
+        'scale': 5.3285,
+        'var': 56.9123,
+        'cv': 0.7063,
+        'max': 50
     },
     6: {
-        'mean': 9.5,
-        'a': 1.7211,
-        'loc': 0.8828,
-        'scale': 4.9673
+        'mean': 8.8227,
+        'a': 2.0571,
+        'loc': 0,
+        'scale': 4.2889,
+        'var': 37.8405,
+        'cv': 0.6972,
+        'max': 40
     },
     16: {
-        'mean': 8.5,
-        'a': 2.2054,
-        'loc': 1.0673,
-        'scale': 3.3139
+        'mean': 7.8577,
+        'a': 2.4491,
+        'loc': 0,
+        'scale': 3.2084,
+        'var': 25.2108,
+        'cv': 0.6390,
+        'max': 35
+    },
+}
+
+GAMMA_VALUES_STD = {
+    0: {
+        'mean': 19.7267,
+        'a': 4.5630,
+        'loc': 0,
+        'scale': 4.3232,
+        'var': 85.2819,
+        'cv': 0.4681,
+        'max': 45
+    },
+    2: {
+        'mean': 10.1373,
+        'a': 1.5153,
+        'loc': 0,
+        'scale': 6.6898,
+        'var': 67.8170,
+        'cv': 0.8124,
+        'max': 55
+    },
+    4: {
+        'mean': 9.1377,
+        'a': 1.7217,
+        'loc': 0,
+        'scale': 5.3072,
+        'var': 48.4954,
+        'cv': 0.7621,
+        'max': 45
+    },
+    6: {
+        'mean': 7.1001,
+        'a': 1.5351,
+        'loc': 0,
+        'scale': 4.6251,
+        'var': 32.8389,
+        'cv': 0.8071,
+        'max': 35
+    },
+    16: {
+        'mean': 8.7302,
+        'a': 2.0546,
+        'loc': 0,
+        'scale': 4.2490,
+        'var': 37.0946,
+        'cv': 0.6976,
+        'max': 35
+    },
+    17: {
+        'mean': 8.4088,
+        'a': 3.8613,
+        'loc': 0,
+        'scale': 4.2178,
+        'var': 18.3121,
+        'cv': 0.5089,
+        'max': 25
     },
 }
 

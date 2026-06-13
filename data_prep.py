@@ -87,31 +87,31 @@ betting_table['p_tophalf'] = betting_table.p_tophalf.apply(lambda x: calculate_o
 betting_table['p_highest'] = betting_table.p_highest.apply(lambda x: calculate_odds(init_prob=x))
 betting_table['p_lowest'] = betting_table.p_lowest.apply(lambda x: calculate_odds(init_prob=x))
 
-season_sim_table = (
+season_sim_table_full = (
     db
     .retrieve_data(how='season', table='season_sim', season=params.season, week=week)
     .sort_values('created')
 )
-season_sim_table['team'] = season_sim_table.team.map(id_map)
+season_sim_table_full['team'] = season_sim_table_full.team.map(id_map)
+season_sim_table_full['xpo'] = (
+        season_sim_table_full.top_scores * constants.PAYOUTS['weekly_top_score']
+        + season_sim_table_full.champion * constants.PAYOUTS['first']
+        + (season_sim_table_full.finals - season_sim_table_full.champion) * constants.PAYOUTS['second']
+        + season_sim_table_full.third * constants.PAYOUTS['third']
+        + season_sim_table_full.most_wins * constants.PAYOUTS['most_wins']
+        + season_sim_table_full.most_points * constants.PAYOUTS['most_points']
+)
+playoff_chart_data = season_sim_table_full.drop(['id', 'season', 'created'], axis=1).to_dict(orient='records')
+playoff_chart_data = json.dumps(playoff_chart_data, indent=2)
+playoff_chart_data = {'probs': playoff_chart_data}
 
-playoff_probs_data = season_sim_table[['week', 'team', 'playoffs', 'finals', 'champion']].to_dict(orient='records')
-playoff_probs_data = json.dumps(playoff_probs_data, indent=2)
-playoff_probs_data = {'probs': playoff_probs_data}
-
-season_sim_table = season_sim_table.tail(n_teams)  # most recent db updates
+season_sim_table = season_sim_table_full.tail(n_teams)  # most recent db updates
 timestamp_season_sim = pd.to_datetime(season_sim_table.created.values[0]).strftime("%A, %b %d %Y")
-season_sim_table['xpo'] = '$' + (
-        season_sim_table.top_scores * constants.PAYOUTS['weekly_top_score']
-        + season_sim_table.champion * constants.PAYOUTS['first']
-        + (season_sim_table.finals - season_sim_table.champion) * constants.PAYOUTS['second']
-        + season_sim_table.third * constants.PAYOUTS['third']
-        + season_sim_table.most_wins * constants.PAYOUTS['most_wins']
-        + season_sim_table.most_points * constants.PAYOUTS['most_points']
-).apply(lambda x: f'{x:,.2f}')
 keep_cols = ['team', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'playoffs', 'finals', 'champion', 'xpo']
-season_sim_table[['playoffs', 'finals', 'champion']] = (season_sim_table[['playoffs', 'finals', 'champion']]*100).round(0).astype(int).astype(str) + '%'
+season_sim_table[['playoffs', 'finals', 'champion']] = (season_sim_table[['playoffs', 'finals', 'champion']]*100).round(1).astype(str) + '%'
 season_sim_table[['matchup_wins', 'tophalf_wins', 'total_wins']] = season_sim_table[['matchup_wins', 'tophalf_wins', 'total_wins']].round(1)
 season_sim_table['total_points'] = season_sim_table.total_points.apply(lambda x: f'{x:,.2f}')
+season_sim_table['xpo'] = season_sim_table.xpo.apply(lambda x: f'${x:,.2f}')
 teams_order = season_sim_table.sort_values(['total_wins', 'total_points'], ascending=False).iloc[:5, 3].to_list()
 teams_order.extend(season_sim_table[~season_sim_table.team.isin(teams_order)].sort_values('total_points', ascending=False).iloc[:1, 3].to_list())
 teams_order.extend(season_sim_table[~season_sim_table.team.isin(teams_order)].sort_values(['total_wins', 'total_points'], ascending=False).iloc[:4, 3].to_list())
@@ -121,14 +121,12 @@ season_sim_table = season_sim_table.reindex(teams_order).reset_index()[keep_cols
 season_sim_wins_table = db.retrieve_data(how='week', table='season_sim_wins', season=params.season, week=the_week)
 season_sim_wins_table['team'] = season_sim_wins_table.team.map(id_map)
 order = season_sim_table.team.tolist()
-season_sim_wins_table['p_str'] = round(season_sim_wins_table.p * 100).astype(int)
-season_sim_wins_table = season_sim_wins_table[['team', 'wins', 'p_str']].pivot(index='team', columns='wins', values='p_str').fillna('')
+season_sim_wins_table = season_sim_wins_table[['team', 'wins', 'p']].pivot(index='team', columns='wins', values='p').fillna('')
 season_sim_wins_table = season_sim_wins_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
 season_sim_ranks_table = db.retrieve_data(how='week', table='season_sim_ranks', season=params.season, week=the_week)
 season_sim_ranks_table['team'] = season_sim_ranks_table.team.map(id_map)
-season_sim_ranks_table['p_str'] = round(season_sim_ranks_table.p * 100).astype(int)
-season_sim_ranks_table = season_sim_ranks_table[['team', 'ranks', 'p_str']].pivot(index='team', columns='ranks', values='p_str').fillna('')
+season_sim_ranks_table = season_sim_ranks_table[['team', 'ranks', 'p']].pivot(index='team', columns='ranks', values='p').fillna('')
 season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
 

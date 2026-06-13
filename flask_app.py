@@ -50,23 +50,9 @@ def sims():
 
     headings_w = tuple(season_sim_wins_table.columns)
     data_w = ut.flask_get_data(season_sim_wins_table)
-    # team_df = season_sim_wins_table[['Team']]
-    # wins_df = season_sim_wins_table.iloc[:, 1:]
-    # wins_df.columns = wins_df.columns.astype(str)
-    # scaler = MinMaxScaler()
-    # normalized_df = pd.DataFrame(scaler.fit_transform(wins_df), columns=wins_df.columns)
-    # win_colors_df = pd.merge(team_df, normalized_df, left_index=True, right_index=True)
-    # colors_w = ut.flask_get_data(win_colors_df)
 
     headings_r = tuple(season_sim_ranks_table.columns)
     data_r = ut.flask_get_data(season_sim_ranks_table)
-    # team_df = season_sim_ranks_table[['Team']]
-    # ranks_df = season_sim_ranks_table.iloc[:, 1:]
-    # ranks_df.columns = ranks_df.columns.astype(str)
-    # scaler = MinMaxScaler()
-    # normalized_df = pd.DataFrame(scaler.fit_transform(ranks_df), columns=ranks_df.columns)
-    # rank_colors_df = pd.merge(team_df, normalized_df, left_index=True, right_index=True)
-    # colors_r = ut.flask_get_data(rank_colors_df)
 
     return render_template(
         "simulations.html", week=f'Week {week}',
@@ -74,8 +60,7 @@ def sims():
         headings_s=headings_season_sim, data_s=data_season_sim,
         headings_w=headings_w, data_w=data_w,
         headings_r=headings_r, data_r=data_r,
-        probs=playoff_probs_data,
-        # headings_p=headings_p, data_p=data_p,
+        probs=playoff_chart_data,
         tstamp_bets=timestamp_betting, tstamp_s=timestamp_season_sim
     )
 

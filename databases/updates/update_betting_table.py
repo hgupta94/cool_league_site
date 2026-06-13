@@ -22,7 +22,7 @@ def load_betting_table(dataloader:DataLoader, fpros: FantasyPros, n_sims: int=10
 
     teams = TeamSettings(dataloader)
     start = time.perf_counter()
-    sim_results = Simulation(dataloader, fpros=fpros).simulate_week(n=n_sims)
+    sim_results = Simulation(dataloader, fpros=fpros).simulate_week(n_sims=n_sims)
     end = time.perf_counter()
     print((end-start) / 60)
 

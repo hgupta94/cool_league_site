@@ -17,7 +17,7 @@ import json
 #     mapping = json.load(f)
 
 
-def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 50_000):
+def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 100_000):
     ctx = ParseContext(view=PlayerView.WEEK)
     params = LeagueSettings(dataloader=dataloader)
     teams_obj = dataloader.teams()
@@ -32,15 +32,16 @@ def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 5
                 team,
                 SUM(result) AS r
             FROM h2h
-            WHERE season={SEASON}
-                AND week < {WEEK}
+            WHERE season={params.season}
+                AND week < {params.current_week}
             GROUP BY team, week
-            HAVING r=9
-        ) t GROUP BY team;
+            HAVING r={len(teams)-1}
+        ) t
+        GROUP BY team;
     '''
     top_scores = db.query(query=q)
 
-    results = db.retrieve_data(how='season', table='matchups', season=SEASON, week=WEEK-1)
+    results = db.retrieve_data(how='season', table='matchups', season=params.season, week=params.as_of_week)
     results = results[['team', 'score', 'matchup_result', 'tophalf_result']].groupby('team').sum().reset_index()
     results['total_wins'] = results.matchup_result + results.tophalf_result
     results.columns = ['team', 'total_points', 'matchup_wins', 'tophalf_wins', 'total_wins']
@@ -51,7 +52,7 @@ def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 5
     sims = Simulation(dataloader, fpros=fpros)
 
     start = time.perf_counter()
-    sim_results = sims.simulate_full_season(results=results_dict, n=n_sims)
+    sim_results = sims.simulate_full_season(results=results_dict, n_sims=n_sims)
     end = time.perf_counter()
     print((end - start) / 60)
 

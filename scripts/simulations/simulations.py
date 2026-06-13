@@ -28,6 +28,7 @@ class Simulation:
         # TODO: add fantasypros projections
         self.dataloader = dataloader
         self.fpros = fpros
+
         self.league_settings = LeagueSettings(dataloader=self.dataloader)
         self.roster_settings = RosterSettings(dataloader=self.dataloader)
         self.team_settings = TeamSettings(dataloader=self.dataloader)
@@ -37,6 +38,7 @@ class Simulation:
         self.teams_obj = self.dataloader.teams()
         self.fpros_proj = self.fpros.get_projections()
         self.rosters_obj = self.dataloader.rosters()
+
         self.players = Player.get_players(dataloader=self.dataloader, fpros=self.fpros, obj=self.players_obj, ctx=self.ctx)
         self.teams = Team.get_teams(dataloader=self.dataloader, fpros=self.fpros, obj=self.teams_obj, roster_obj=self.rosters_obj, ctx=self.ctx)
         self.matchups = Matchup.get_season_matchups(params=self.league_settings)
@@ -48,7 +50,7 @@ class Simulation:
         self.gamma_map = constants.GAMMA_VALUES
 
 
-    def simulate_week(self, n: int = 100) -> dict[str, dict]:
+    def simulate_week(self, n_sims: int) -> dict[str, dict]:
         """
         Simulate a week `n` times and calculate number of occurrences for each category below
 
@@ -63,7 +65,7 @@ class Simulation:
                 - `n_highest`: number of times with the highest score
                 - `n_lowest`: number of times with the lowest score`
         """
-        lineups = {k: self._get_best_lineup(v) for k, v in self.teams.items()}
+        lineups = {k: self._get_best_lineup(v, n_sims=n_sims) for k, v in self.teams.items()}
 
         # initialize counters
         results = {
@@ -74,9 +76,9 @@ class Simulation:
             'n_lowest': {key: 0 for key in self.teams},
         }
 
-        for sim in range(n):
+        for sim in range(n_sims):
             if sim % 1000 == 0:
-                print(f'{sim+1}/{n}', end='\r')
+                print(f'{sim+1}/{n_sims}', end='\r')
             matchup_sim = self._simulate_matchups(lineups=lineups)
 
             scores = sorted(m.team_score for m in matchup_sim)
@@ -99,7 +101,7 @@ class Simulation:
     def simulate_full_season(
             self,
             results: dict[int, dict],
-            n: int = 100,
+            n_sims: int,
     ) -> list[dict]:
         """
         Simulate a full regular season + playoffs
@@ -119,12 +121,12 @@ class Simulation:
         playoff_wks_left = champ_wk - start_wk + 1
         playoff_weeks = list(range(end + 1, champ_wk + 1))
 
-        lineups = self._build_season_lineups()
+        lineups = self._build_season_lineups(n_sims=n_sims)
 
         all_results = []
-        for sim in range(n):
+        for sim in range(n_sims):
             if sim % 100 == 0:
-                print(f'{sim+1}/{n}', end='\r')
+                print(f'{sim+1}/{n_sims}', end='\r')
             # initialize sim counter
             sim_results = {  # initialize sim counter
                 o: {
@@ -209,6 +211,7 @@ class Simulation:
     def _get_best_lineup(
             self,
             team: Team,
+            n_sims: int,
             n_flex: int = 1
     ) -> list[Player]:
         """
@@ -216,6 +219,7 @@ class Simulation:
 
         Args:
             team: Team object to calculate a best lineup for
+            n_sims: Number of simulations to run
             n_flex: number of flex starters in a lineup
 
         Returns:
@@ -240,7 +244,7 @@ class Simulation:
             if position_played:
                 lineup.extend(position_played.values())
 
-            pool = {k: v for k, v in team.roster.items() if v.position_id == position_id and v.is_locked == False}
+            pool = {k: v for k, v in team.roster.items() if v.position_id == position_id and v.is_locked == False and (v.pts_proj_fp or v.pts_proj)}
             remaining = limit-len(position_played)
             if remaining:
                 selector = sorted(
@@ -253,6 +257,9 @@ class Simulation:
                     # add player to lineup
                     lineup.extend(selector[:remaining])
                 else:
+                    # add all players
+                    lineup.extend(selector)
+
                     # team needs a free agent
                     needed = limit - len(selector)
                     if needed:
@@ -284,13 +291,15 @@ class Simulation:
         else:
             flex_selector = sorted(
                 flex_pool,
-                key=lambda i: (i.pts_proj_fp or i.pts_proj or 0),
+                key=lambda i: (i.pts_proj_fp or i.pts_proj),
                 reverse=True
             )
             if flex_selector:
                 lineup.extend(flex_selector[:n_flex])
             else:
                 flex_id = 23
+                fas = {k: v for k, v in self.roster_settings.replacement_players.items() if k in flex_positions}
+                the_fa = max(fas.items(), key=lambda i: i[1])
                 for i in range(1, n_flex+1):
                     lineup.extend([
                         Player(
@@ -298,20 +307,31 @@ class Simulation:
                             name='Free Agent',
                             team_id=team.team_id,
                             lineup_slot_id=flex_id,
+                            position_id=the_fa[0],
                             status='ACTIVE',
-                            pts_proj=sum(
-                                v for k, v in self.roster_settings.replacement_players.items() if k in flex_positions
-                            ) / len(flex_positions),  # avg of free agent flex positions
-                            position_id=None, position=None, pts_act=None, pts_act_breakdown={},
+                            pts_proj=the_fa[1],
+                            position=None, pts_act=None, pts_act_breakdown={},
                             eligible_slots=[], is_locked=False, is_injured=False, pts_proj_breakdown={},
                             percent_owned=None, percent_start=None, source_view=None,
                         )
                     ])
 
+        # pre-compute gamma parameters for each player
+        for player in lineup:
+            if not player.is_locked:
+                gamma_values = self.gamma_map[player.position_id]
+                shape = gamma_values['shape']
+                max_val = gamma_values['max']
+                proj = (player.pts_proj_fp or player.pts_proj)
+                scale = proj / shape
+                cdf_max = st.gamma.cdf(max_val, a=shape, loc=0, scale=scale)
+
+                u = st.uniform.rvs(loc=0, scale=cdf_max, size=n_sims)
+                player.sim_scores = (s for s in st.gamma.ppf(u, a=shape, scale=scale))
         return lineup
 
+    @staticmethod
     def _simulate_lineup(
-            self,
             lineup: list[Player]
     ) -> float:
         """
@@ -332,10 +352,8 @@ class Simulation:
                 projected += player.pts_act
             else:
                 # simulate if not
-                gamma_values = self.gamma_map[player.position_id]
-                loc = gamma_values['loc'] + ((player.pts_proj_fp or player.pts_proj or 0) - gamma_values['mean'])
-                sim = st.gamma.rvs(a=gamma_values['a'], loc=loc, scale=gamma_values['scale'], size=1).item()
-                projected += sim
+                sim = next(player.sim_scores)
+                projected += float(sim)
         return projected
 
     def _simulate_matchups(
@@ -415,18 +433,19 @@ class Simulation:
             ])
         return matchups_sim
 
-    def _build_season_lineups(self) -> dict:
+    def _build_season_lineups(self, n_sims: int) -> dict:
         """
         Build the best projected lineup for all remaining weeks, including playoffs
         """
         ros_lineups = {}
-        for week in range(self.league_settings.current_week, 17+1):
+        end = self.league_settings.regular_season_end + self.league_settings.playoff_length
+        for week in range(self.league_settings.current_week, end+1):
             dataloader = DataLoader(week=week)
             ctx = ParseContext(view=PlayerView.WEEK, week=week)
             teams_obj = dataloader.teams()
             rosters_obj = dataloader.rosters()
             teams = Team.get_teams(dataloader=self.dataloader, fpros=self.fpros, obj=teams_obj, roster_obj=rosters_obj, ctx=ctx)
-            lineups = {i: self._get_best_lineup(team=t) for i, t in teams.items()}
+            lineups = {i: self._get_best_lineup(team=t, n_sims=n_sims) for i, t in teams.items()}
             ros_lineups[week] = lineups
         return ros_lineups
 

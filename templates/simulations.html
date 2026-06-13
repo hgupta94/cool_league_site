@@ -67,7 +67,7 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
   const el = typeof selector === "string" ? document.querySelector(selector) : selector;
   if (!el) return;
 
-  const teams = [...new Set(data.map(d => d.team))];
+  const teams = [...new Set(data.map(d => d.team))].sort();
 
   const addlColors = ['#20B2C8', '#9B59B6'];
   const colorMap = {
@@ -230,7 +230,7 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
         .on("mouseenter", function(event) {
           setHighlight(team);
           const label = isFraction
-            ? Math.round(d[metric] * 100) + "%"
+            ? Math.round(d[metric] * 100).toFixed(1) + "%"
             : (metric === "xpo" ? "$" : "") + d3.format(",.2f")(d[metric]);
           tooltip
             .style("display", "block")

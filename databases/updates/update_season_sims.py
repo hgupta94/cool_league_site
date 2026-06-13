@@ -65,7 +65,7 @@ def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 1
 
     # Convert to a DataFrame
     sim_results_df = pd.DataFrame(flattened_results).sort_values('team')
-    columns_order = ['simulation', 'team', 'rank', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'most_points', 'most_wins', 'top_scores', 'playoffs', 'third', 'finals', 'champion']
+    columns_order = ['simulation', 'team', 'seed', 'matchup_wins', 'tophalf_wins', 'total_wins', 'total_points', 'most_points', 'most_wins', 'top_scores', 'playoffs', 'third', 'finals', 'champion']
     sim_results_df = sim_results_df[columns_order]
 
     # get wins table
@@ -83,11 +83,11 @@ def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 1
 
 
     # get ranks table
-    ranks_prob_df = sim_results_df.groupby(['team', 'rank']).simulation.count().reset_index().rename(columns={'simulation':'p'})
+    ranks_prob_df = sim_results_df.groupby(['team', 'seed']).simulation.count().reset_index().rename(columns={'simulation':'p'})
     ranks_prob_df['p'] = ranks_prob_df.p / n_sims
     ranks_prob_df['season'] = SEASON
     ranks_prob_df['week'] = params.current_week
-    ranks_prob_df['id'] = ranks_prob_df.season.astype(str) + '_' + ranks_prob_df.week.astype(str).str.zfill(2) + '_' + ranks_prob_df['rank'].astype(str).str.zfill(2) + '_' + ranks_prob_df.team.astype(str).str.zfill(2)
+    ranks_prob_df['id'] = ranks_prob_df.season.astype(str) + '_' + ranks_prob_df.week.astype(str).str.zfill(2) + '_' + ranks_prob_df['seed'].astype(str).str.zfill(2) + '_' + ranks_prob_df.team.astype(str).str.zfill(2)
 
 
     # get season_sims table
@@ -151,7 +151,7 @@ def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 1
             upsert=True
         )
 
-        ranks_prob_df = ranks_prob_df[['id', 'season', 'week', 'team', 'rank', 'p']]
+        ranks_prob_df = ranks_prob_df[['id', 'season', 'week', 'team', 'seed', 'p']]
         db.batch_insert(
             table='season_sim_ranks',
             columns='id, season, week, team, ranks, p',

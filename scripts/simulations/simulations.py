@@ -125,12 +125,12 @@ class Simulation:
 
         all_results = []
         for sim in range(n_sims):
-            if sim % 100 == 0:
+            if sim % 1000 == 0:
                 print(f'{sim+1}/{n_sims}', end='\r')
             # initialize sim counter
             sim_results = {  # initialize sim counter
                 o: {
-                    'rank': 0,
+                    'seed': 0,
                     'matchup_wins': 0,
                     'tophalf_wins': 0,
                     'total_wins': 0,
@@ -148,9 +148,11 @@ class Simulation:
 
             sim_data = self._simulate_regular_season(results=results, lineups=lineups)
             standings = self._get_final_standings(standings=sim_data)
-            for rank, (tid, stats) in enumerate(standings.items(), start=1):
-                stats['rank'] = rank
-            playoff_teams = list(standings)[:self.league_settings.playoff_teams]
+            for seed, (tid, stats) in enumerate(standings.items(), start=1):
+                stats['seed'] = seed
+            for_playoffs = {k: v for k, v in standings.items() if v['seed'] <= self.league_settings.playoff_teams}
+            playoff_teams = dict(sorted(for_playoffs.items(), key=lambda x: (x[1]['total_wins'], x[1]['total_points']), reverse=True))
+            # playoff_teams = list(standings)[:self.league_settings.playoff_teams]
 
             qf_teams = set(playoff_teams.copy())
             sf_teams = None
@@ -180,7 +182,7 @@ class Simulation:
             n_most_points = len([s['total_points'] for s in standings.values() if s['total_points'] == most_points])  # in case there's a tie
 
             for tid in self.teams:
-                sim_results[tid]['rank'] += standings[tid]['rank']
+                sim_results[tid]['seed'] += standings[tid]['seed']
                 sim_results[tid]['matchup_wins'] += standings[tid]['matchup_wins']
                 sim_results[tid]['tophalf_wins'] += standings[tid]['tophalf_wins']
                 sim_results[tid]['total_wins'] += standings[tid]['total_wins']
@@ -557,30 +559,44 @@ class Simulation:
     def _simulate_round(
             self,
             lineups: dict,
-            round_teams: list[int],
+            round_teams: dict,
             week: int,
             n_bye: int | None = None,
     ):
+        def get_winner(a: int, b: int) -> int:
+            if scores[a] > scores[b]:
+                return a
+            if scores[b] > scores[a]:
+                return b
+
         advances = []
+        team_ids = list(round_teams.keys())
         if n_bye:
-            advances.extend(round_teams[:n_bye])
+            advances.extend(team_ids[:n_bye])
 
-        remaining_teams = [t for t in round_teams if t not in advances]
-        n_advance = len(remaining_teams) // 2
-        round_lineups = {t: l for t, l in lineups[week].items() if t in remaining_teams}
+        non_bye_teams = [tid for tid in team_ids if tid not in advances]
 
-        if self.league_settings.current_week > self.league_settings.regular_season_end:
-            # if in the playoffs, simulate current matchup
+        if week == self.league_settings.current_week and week > self.league_settings.regular_season_end:
+            # if actual week is in the playoffs, simulate current matchup
+            round_lineups = {tid: lineups[week][tid] for tid in non_bye_teams}
             results = self._simulate_matchups(lineups=round_lineups)
             winners = [r.team_id for r in results if r.matchup_result.value == 1 and r.team_id in round_teams]
             advances.extend(winners)
             return advances
-        else:
-            # if not in the playoffs, simulate lineup and get tophalf winners
-            scores = {}
-            for tid, lineup in round_lineups.items():
-                scores[tid] = self._simulate_lineup(lineup=lineup)
 
-            to_advance = [t[0] for t in sorted(scores.items(), key=lambda x: x[1], reverse=True)][:n_advance]
-            advances.extend(to_advance)
-        return advances
+        # if not in the playoffs, simulate lineup and get winners
+        # assumes top remaining seed plays lowest scoring team
+        scores = {tid: self._simulate_lineup(lineups[week][tid]) for tid in non_bye_teams}
+
+        # matchup 1 - top seed chooses lowest scorer
+        chooser = min(non_bye_teams, key=lambda tid: round_teams[tid]['seed'])
+        opp = min((tid for tid in non_bye_teams if tid != chooser), key=lambda tid: round_teams[tid]['total_points'])
+        advances.append(get_winner(chooser, opp))
+
+        remaining = [tid for tid in non_bye_teams if tid not in (chooser, opp)]
+        if remaining:
+            # matchup 2 - remaining teams
+            advances.append(get_winner(remaining[0], remaining[1]))
+
+        advances_dict = {k: v for k, v in round_teams.items() if k in advances}
+        return advances_dict

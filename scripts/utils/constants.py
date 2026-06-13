@@ -66,13 +66,13 @@ ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc
 
 
 # Gamma distribution values for simulations
-    # mean: average score of starters since 2021
+    # mean: average score of rostered players since 2021
     # a: alpha (shape)
     # loc: location
 GAMMA_VALUES = {
     0: {
         'mean': 18.1987,
-        'a': 3.8710,
+        'shape': 3.8710,
         'loc': 0,
         'scale': 4.7013,
         'var': 85.5582,
@@ -81,7 +81,7 @@ GAMMA_VALUES = {
     },
     2: {
         'mean': 10.9303,
-        'a': 1.6797,
+        'shape': 1.6797,
         'loc': 0,
         'scale': 6.5074,
         'var': 71.1279,
@@ -90,7 +90,7 @@ GAMMA_VALUES = {
     },
     4: {
         'mean': 10.6807,
-        'a': 2.0045,
+        'shape': 2.0045,
         'loc': 0,
         'scale': 5.3285,
         'var': 56.9123,
@@ -99,7 +99,7 @@ GAMMA_VALUES = {
     },
     6: {
         'mean': 8.8227,
-        'a': 2.0571,
+        'shape': 2.0571,
         'loc': 0,
         'scale': 4.2889,
         'var': 37.8405,
@@ -108,7 +108,7 @@ GAMMA_VALUES = {
     },
     16: {
         'mean': 7.8577,
-        'a': 2.4491,
+        'shape': 2.4491,
         'loc': 0,
         'scale': 3.2084,
         'var': 25.2108,
@@ -120,7 +120,7 @@ GAMMA_VALUES = {
 GAMMA_VALUES_STD = {
     0: {
         'mean': 19.7267,
-        'a': 4.5630,
+        'shape': 4.5630,
         'loc': 0,
         'scale': 4.3232,
         'var': 85.2819,
@@ -129,7 +129,7 @@ GAMMA_VALUES_STD = {
     },
     2: {
         'mean': 10.1373,
-        'a': 1.5153,
+        'shape': 1.5153,
         'loc': 0,
         'scale': 6.6898,
         'var': 67.8170,
@@ -138,7 +138,7 @@ GAMMA_VALUES_STD = {
     },
     4: {
         'mean': 9.1377,
-        'a': 1.7217,
+        'shape': 1.7217,
         'loc': 0,
         'scale': 5.3072,
         'var': 48.4954,
@@ -147,7 +147,7 @@ GAMMA_VALUES_STD = {
     },
     6: {
         'mean': 7.1001,
-        'a': 1.5351,
+        'shape': 1.5351,
         'loc': 0,
         'scale': 4.6251,
         'var': 32.8389,
@@ -156,7 +156,7 @@ GAMMA_VALUES_STD = {
     },
     16: {
         'mean': 8.7302,
-        'a': 2.0546,
+        'shape': 2.0546,
         'loc': 0,
         'scale': 4.2490,
         'var': 37.0946,
@@ -165,7 +165,7 @@ GAMMA_VALUES_STD = {
     },
     17: {
         'mean': 8.4088,
-        'a': 3.8613,
+        'shape': 3.8613,
         'loc': 0,
         'scale': 4.2178,
         'var': 18.3121,

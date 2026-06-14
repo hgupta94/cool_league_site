@@ -163,12 +163,8 @@ class PlayoffScenarios:
                     'score': round(team['score'], 2),  # points don't change for scenario purposes
                 })
 
-            # order standings with wild card
+            # re-sort standings for clinches
             new_standings.sort(key=lambda x: [x['wins'], x['score']], reverse=True)
-            top5 = new_standings[:5]
-            wc = sorted([s for s in new_standings if s['team'] not in [t['team'] for t in top5]], key=lambda x: x['score'], reverse=True)[0]
-            bot4 = [s for s in new_standings if s['team'] not in [t['team'] for t in top5] and s['team'] != wc['team']]
-            new_standings = top5 + [wc] + bot4
 
             new_clinched, new_elim = self.get_teams(standings=new_standings, seed=seed)
             new_clinched = [t for t in new_clinched if t not in clinched]

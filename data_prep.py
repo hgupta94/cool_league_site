@@ -122,6 +122,11 @@ season_sim_wins_table = db.retrieve_data(how='week', table='season_sim_wins', se
 season_sim_wins_table['team'] = season_sim_wins_table.team.map(id_map)
 order = season_sim_table.team.tolist()
 season_sim_wins_table = season_sim_wins_table[['team', 'wins', 'p']].pivot(index='team', columns='wins', values='p').fillna('')
+# ensure every integer win column exists from min to max
+win_min = int(season_sim_wins_table.columns.min())
+win_max = int(season_sim_wins_table.columns.max())
+all_wins = list(range(win_min, win_max + 1))
+season_sim_wins_table = season_sim_wins_table.reindex(columns=all_wins).fillna('')
 season_sim_wins_table = season_sim_wins_table.reindex(order).reset_index().rename(columns={'team': 'Team'})
 
 season_sim_ranks_table = db.retrieve_data(how='week', table='season_sim_ranks', season=params.season, week=the_week)

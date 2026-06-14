@@ -37,7 +37,7 @@ ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
 # _TODAY = dt.datetime.now()
-_TODAY = dt.datetime(2025, 11, 19)
+_TODAY = dt.datetime(2025, 12, 3)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
 _SEASON_START = dt.datetime(2025, 9, 1)  # monday before first game

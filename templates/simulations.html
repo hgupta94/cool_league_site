@@ -83,8 +83,8 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
     'Varu': '#C0392B',
   };
 
-  const margin = { top: 60, right: 100, bottom: 60, left: 60 };
-  const totalW = 960;
+  const margin = { top: 60, right: 80, bottom: 60, left: 60 };
+  const totalW = 700;
   const totalH = 400;
   const W = totalW - margin.left - margin.right;
   const H = totalH - margin.top - margin.bottom;
@@ -122,11 +122,11 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
   const isFraction = FRACTION_METRICS.has(metric);
   const METRIC_LABELS = {
     playoffs: "Make Playoffs",
-    third: "Third Place Finish",
+    third: "Third Place",
     finals: "Make Finals",
     champion: "Win Championship",
-    most_wins: "Reg. Season Most Wins",
-    most_points: "Reg. Season Most Points",
+    most_wins: "Most Wins",
+    most_points: "Most Points",
     matchup_wins: "Matchup Wins",
     tophalf_wins: "Top Half Wins",
     total_wins: "Total Wins",
@@ -141,7 +141,13 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
   const yPadding = (yMax - yMin) * 0.05 || 0.05;
 
   const yScale = d3.scaleLinear()
-    .domain(isFraction ? [0, 1] : [Math.min(0, yMin), yMax + yPadding])
+    .domain(
+      isFraction
+        ? [0, 1]
+        : metric === "total_points"
+          ? [Math.floor((yMin - 100) / 100) * 100, Math.ceil((yMax + 100) / 100) * 100]
+          : [Math.min(0, yMin), yMax + yPadding]
+    )
     .range([H, 0]);
 
   const textCol = "rgba(0,0,0,0.4)";
@@ -270,14 +276,14 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
 }
 
   // Title
-  svg.append('text')
-  .attr('x', margin.left + W / 2)
-  .attr('y', margin.top / 2)
-  .attr('text-anchor', 'middle')
-  .attr('font-size', 32)
-  .attr('font-weight', 500)
-  .attr('fill', 'rgba(0,0,0,0.7)')
-  .text(METRIC_LABELS[metric] ?? metric);
+<!--  svg.append('text')-->
+<!--  .attr('x', margin.left + W / 2)-->
+<!--  .attr('y', 35)-->
+<!--  .attr('text-anchor', 'middle')-->
+<!--  .attr('font-size', 32)-->
+<!--  .attr('font-weight', 500)-->
+<!--  .attr('fill', 'rgba(0,0,0,0.7)')-->
+<!--  .text(METRIC_LABELS[metric] ?? metric);-->
 
   // X label
   svg.append('text')
@@ -294,7 +300,7 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
   const totalLegendHeight = numTeams * itemSpacing;
 
   const legend = svg.append("g")
-    .attr("transform", `translate(${margin.left + W + 5}, ${margin.top + (H - totalLegendHeight) / 2})`);
+    .attr("transform", `translate(${margin.left + W + 15}, ${margin.top + (H - totalLegendHeight) / 2})`);
 
   teams.forEach((team, i) => {
     const gItem = legend.append("g")
@@ -317,10 +323,10 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
   });
 }
 </script>
-<div id="sim-chart" style="overflow-x:auto;">
-    <div id="sim-chart-inner" style="width:960px; margin: 0 auto;"></div>
-    <div>
-        <label for="metric-select">
+<div style="overflow-x:auto; width:100%;">
+    <div id="sim-chart" style="position:relative; width:700px; margin: 0 auto;">
+    <div style="position:absolute; top:20px; left:50px; z-index:10">
+        <label for="metric-select" style="font-size:18px; font-weight:500; text-align:center">
             <select id="metric-select">
                 <option value="playoffs">Make Playoffs</option>
                 <option value="third">Third Place</option>
@@ -337,6 +343,7 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
             </select>
         </label>
     </div>
+    <div id="sim-chart-inner" style="width:700px; margin: 0 auto;"></div>
     <script>
         // Populate dropdown from data
         const data = {{ probs.probs | safe }}
@@ -352,6 +359,8 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
         drawTeamProbChart("#sim-chart-inner", data, getSelectedMetric())
     </script>
 </div>
+</div>
+<br>
 <h3>Rank Distribution</h3>
 <p>Percentage of simulations where team finished in <i>n<sup>th</sup></i> place</p>
 <div class="tscroll" style="overflow-x:auto;">
@@ -370,8 +379,8 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
                     <td style="
                         {% if cell is number %}
                             {% set alpha = cell %}
-                            {% if alpha < 0.05 %}{% set alpha = 0.05 %}{% endif %}
-                            {% if alpha > 0.95 %}{% set alpha = 0.95 %}{% endif %}
+                            {% if alpha < 0.025 %}{% set alpha = 0.025 %}{% endif %}
+                            {% if alpha > 0.975 %}{% set alpha = 0.975 %}{% endif %}
                             background-color: rgba(220, 53, 69, {{ alpha }});
                             color: {{ 'white' if alpha > 0.65 else 'black' }};
                             font-size: 13px;
@@ -380,9 +389,9 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
                         {% if cell is none or cell == '' %}
                             {{ '' }}
                         {% elif cell is number %}
-                            {% if cell < 0.001 %}
+                            {% if 0 < cell < 0.001 %}
                                 &lt;0.1%
-                            {% elif cell > 0.999 %}
+                            {% elif 1 > cell > 0.999 %}
                                 &gt;99.9%
                             {% else %}
                                 {{ '%.1f'|format(cell * 100) }}%
@@ -414,9 +423,10 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
             <tr>
                 {% for cell in row %}
                     <td style="
+                        min-width:55px;
                         {% if cell is number %}
                             {% set alpha = cell %}
-                            {% if alpha < 0.05 %}{% set alpha = 0.05 %}{% endif %}
+                            {% if alpha < 0.025 %}{% set alpha = 0.025 %}{% endif %}
                             {% if alpha > 0.95 %}{% set alpha = 0.95 %}{% endif %}
                             background-color: rgba(220, 53, 69, {{ alpha }});
                             color: {{ 'white' if alpha > 0.65 else 'black' }};

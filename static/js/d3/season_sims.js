@@ -166,7 +166,8 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
         .attr("cy", yScale(d[metric]))
         .attr("r", 3.5)
         .attr("fill", color)
-        .attr("stroke", "#fff")
+        .attr("stroke", "#f5f5f5")
+        .attr("stroke-opacity", 0.85)
         .attr("stroke-width", 1.5)
         .on("mouseenter", function(event) {
           setHighlight(team);

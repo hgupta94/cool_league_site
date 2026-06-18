@@ -31,6 +31,8 @@ function drawEfficiencyChart(selector, data) {
     .style("border", "1px solid rgba(0,0,0,0.1)")
     .style("border-radius", "6px")
     .style("padding", "6px 10px")
+    .style("width", "160px")
+    .style("box-sizing", "border-box")
     .style("font-size", "13px")
     .style("color", "rgba(0,0,0,0.7)")
     .style("pointer-events", "none")
@@ -110,6 +112,30 @@ function drawEfficiencyChart(selector, data) {
     .attr('fill', textCol)
     .text('Optimal Points');
 
+  function showTooltip(d) {
+    const effLabel = (typeof d.efficiency === "number") ? (d.efficiency * 100).toFixed(1) + "%" : "N/A";
+    tooltip
+      .style("display", "block")
+      .html(`<strong>${d.team}</strong><br>Optimal PPG: ${d.optimal_lineup_score.toFixed(2)}<br>Efficiency: ${effLabel}`);
+  }
+
+  function moveTooltip(event) {
+    const [mx, my] = d3.pointer(event, el);
+    const tooltipW = 160;
+    const tooltipH = 70;
+    const gap = 10;
+
+    const fitsRight = mx + gap + tooltipW <= totalW - 5;
+    const left = fitsRight ? mx + gap : mx - gap - tooltipW;
+
+    const top = Math.max(Math.min(my - 28, totalH - tooltipH - 5), 5);
+    tooltip.style("left", left + "px").style("top", top + "px");
+  }
+
+  function hideTooltip() {
+    tooltip.style("display", "none");
+  }
+
   // Points
   g.selectAll(".point")
     .data(data)
@@ -119,25 +145,17 @@ function drawEfficiencyChart(selector, data) {
     .attr("cy", d => yScale(d.optimal_lineup_score))
     .attr("r", 6)
     .attr("fill", d => colorMap[d.team] ?? defaultColor)
-    .attr("stroke", "#fff")
+    .attr("stroke", "#f5f5f5")
     .attr("stroke-width", 1.5)
     .style("cursor", "pointer")
     .on("mouseenter", function(event, d) {
       d3.select(this).attr("r", 8);
-      const effLabel = (typeof d.efficiency === "number") ? (d.efficiency * 100).toFixed(1) + "%" : "N/A";
-      tooltip
-        .style("display", "block")
-        .html(`<strong>${d.team}</strong><br>Optimal PPG: ${d.optimal_lineup_score.toFixed(2)}<br>Efficiency: ${effLabel}`);
+      showTooltip(d);
     })
-    .on("mousemove", function(event) {
-      const [mx, my] = d3.pointer(event, el);
-      tooltip
-        .style("left", (mx + 14) + "px")
-        .style("top", (my - 28) + "px");
-    })
+    .on("mousemove", moveTooltip)
     .on("mouseleave", function(event, d) {
       d3.select(this).attr("r", 6);
-      tooltip.style("display", "none");
+      hideTooltip();
     });
 
   // Team labels next to each point
@@ -149,6 +167,9 @@ function drawEfficiencyChart(selector, data) {
     .attr("y", d => yScale(d.optimal_lineup_score) + 4)
     .attr("font-size", 13)
     .attr("fill", textCol)
-    .style("pointer-events", "none")
-    .text(d => d.team);
+    .style("cursor", "pointer")
+    .text(d => d.team)
+    .on("mouseenter", function(event, d) { showTooltip(d); })
+    .on("mousemove", moveTooltip)
+    .on("mouseleave", hideTooltip);
 }

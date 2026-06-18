@@ -143,7 +143,7 @@ function createScoreChart(container, data, options = {}) {
       .attr('cy', d => yScale(d.y))
       .attr('r', 3.5)
       .attr('fill', colorMap[team])
-      .attr('stroke', isDark ? '#1a1a1a' : '#fff')
+      .attr('stroke', isDark ? '#1a1a1a' : '#f5f5f5')
       .attr('stroke-width', 1.5)
       .style('pointer-events', 'none');
   });

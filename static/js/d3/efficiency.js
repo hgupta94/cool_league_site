@@ -16,7 +16,7 @@ function drawEfficiencyChart(selector, data) {
   };
   const defaultColor = '#666666';
 
-  const margin = { top: 30, right: 40, bottom: 60, left: 60 };
+  const margin = { top: 30, right: 80, bottom: 60, left: 60 };
   const totalW = 500;
   const totalH = 375;
   const W = totalW - margin.left - margin.right;
@@ -65,6 +65,9 @@ function drawEfficiencyChart(selector, data) {
     .domain([ptsExtent[0] - ptsPad, ptsExtent[1] + ptsPad])
     .range([H, 0]);
 
+  const xMedian = d3.median(data, d => d.difference_from_optimal);
+  const yMedian = d3.median(data, d => d.optimal_lineup_score);
+
   const textCol = "rgba(0,0,0,0.4)";
   const gridCol = "rgba(0,0,0,0.2)";
 
@@ -72,12 +75,16 @@ function drawEfficiencyChart(selector, data) {
   g.selectAll(".grid-h").data(yScale.ticks(6)).join("line")
     .attr("x1", 0).attr("x2", W)
     .attr("y1", d => yScale(d)).attr("y2", d => yScale(d))
-    .attr("stroke", gridCol).attr("stroke-width", 0.5);
+    .attr("stroke", gridCol)
+    .attr("stroke-opacity", 0.5)
+    .attr("stroke-width", 0.5);
 
   g.selectAll(".grid-v").data(xScale.ticks(6)).join("line")
     .attr("y1", 0).attr("y2", H)
     .attr("x1", d => xScale(d)).attr("x2", d => xScale(d))
-    .attr("stroke", gridCol).attr("stroke-width", 0.5);
+    .attr("stroke", gridCol)
+    .attr("stroke-opacity", 0.5)
+    .attr("stroke-width", 0.5);
 
   // Axes
   g.append("g").call(
@@ -111,6 +118,44 @@ function drawEfficiencyChart(selector, data) {
     .attr('font-size', 14)
     .attr('fill', textCol)
     .text('Optimal Points');
+
+  // Median reference lines
+  g.append("line")
+    .attr("x1", xScale(xMedian))
+    .attr("x2", xScale(xMedian))
+    .attr("y1", 0)
+    .attr("y2", H)
+    .attr("stroke", "#999")
+    .attr("stroke-width", 1)
+    .attr("stroke-opacity", 0.65)
+    .attr("stroke-dasharray", "4,3");
+
+  g.append("line")
+    .attr("x1", 0)
+    .attr("x2", W)
+    .attr("y1", yScale(yMedian))
+    .attr("y2", yScale(yMedian))
+    .attr("stroke", "#999")
+    .attr("stroke-width", 1)
+    .attr("stroke-opacity", 0.65)
+    .attr("stroke-dasharray", "4,3");
+
+  // Median line labels
+  g.append("text")
+    .attr("x", xScale(xMedian))
+    .attr("y", -6)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 11)
+    .attr("fill", "#999")
+    .text(`Median: ${xMedian.toFixed(1)}`);
+
+  g.append("text")
+    .attr("x", W + 4)
+    .attr("y", yScale(yMedian) - 4)
+    .attr("text-anchor", "start")
+    .attr("font-size", 11)
+    .attr("fill", "#999")
+    .text(`Median: ${yMedian.toFixed(2)}`);
 
   function showTooltip(d) {
     const effLabel = (typeof d.efficiency === "number") ? (d.efficiency * 100).toFixed(1) + "%" : "N/A";

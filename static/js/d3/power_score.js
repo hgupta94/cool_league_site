@@ -15,21 +15,6 @@ function createScoreChart(container, data, options = {}) {
   } = options;
 
   const isDark = matchMedia('(prefers-color-scheme: light)').matches;
-
-  const addlColors = ['#20B2C8', '#9B59B6'];
-  const colorMap = {
-    'Aaro': '#378ADD',
-    'Adit': '#1D9E75',
-    'Aide': '#D85A30',
-    'Aksh': '#7F77DD',
-    'Arju': '#D4537E',
-    'Char': '#BA7517',
-    'Ayaz': '#639922',
-    'Hirs': '#888780',
-    'Nick': '#E07B39',
-    'Varu': '#C0392B',
-  };
-
   const teams = Array.from(new Set(data.map(d => d.team)));
 
   const grouped = d3.group(data, d => d.team);
@@ -127,7 +112,7 @@ function createScoreChart(container, data, options = {}) {
     const path = grp.append('path')
       .datum(pts)
       .attr('fill', 'none')
-      .attr('stroke', colorMap[team])
+      .attr('stroke', TEAM_COLORS[team])
       .attr('stroke-width', 2.5)
       .attr('d', line)
       .style('transition', 'stroke-width 0.15s ease, opacity 0.15s ease')
@@ -142,7 +127,7 @@ function createScoreChart(container, data, options = {}) {
       .attr('cx', d => xScale(d.week))
       .attr('cy', d => yScale(d.y))
       .attr('r', 3.5)
-      .attr('fill', colorMap[team])
+      .attr('fill', TEAM_COLORS[team])
       .attr('stroke', isDark ? '#1a1a1a' : '#f5f5f5')
       .attr('stroke-width', 1.5)
       .style('pointer-events', 'none');
@@ -207,13 +192,13 @@ function createScoreChart(container, data, options = {}) {
     const line = row.append('line')
       .attr('x1', 0).attr('y1', 5)
       .attr('x2', 12).attr('y2', 5)
-      .attr('stroke', colorMap[team])
+      .attr('stroke', TEAM_COLORS[team])
       .attr('stroke-width', 2.5);
 
     const label = row.append('text')
       .attr('x', 15).attr('y', 10)
       .attr('font-size', 14)
-      .attr('fill', colorMap[team])
+      .attr('fill', TEAM_COLORS[team])
       .text(team)
       .style('transition', 'font-weight 0.1s ease, fill 0.1s ease');
 

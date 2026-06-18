@@ -2,20 +2,6 @@ function drawEfficiencyChart(selector, data) {
   const el = typeof selector === "string" ? document.querySelector(selector) : selector;
   if (!el) return;
 
-  const colorMap = {
-    'Aaro': '#378ADD',
-    'Adit': '#1D9E75',
-    'Aide': '#D85A30',
-    'Aksh': '#7F77DD',
-    'Arju': '#D4537E',
-    'Char': '#BA7517',
-    'Ayaz': '#639922',
-    'Hirs': '#888780',
-    'Nick': '#E07B39',
-    'Varu': '#C0392B',
-  };
-  const defaultColor = '#666666';
-
   const margin = { top: 30, right: 80, bottom: 60, left: 60 };
   const totalW = 500;
   const totalH = 375;
@@ -67,6 +53,7 @@ function drawEfficiencyChart(selector, data) {
 
   const xMedian = d3.median(data, d => d.difference_from_optimal);
   const yMedian = d3.median(data, d => d.optimal_lineup_score);
+  const effMedian = d3.median(data, d => d.efficiency);
 
   const textCol = "rgba(0,0,0,0.4)";
   const gridCol = "rgba(0,0,0,0.2)";
@@ -147,7 +134,7 @@ function drawEfficiencyChart(selector, data) {
     .attr("text-anchor", "middle")
     .attr("font-size", 11)
     .attr("fill", "#999")
-    .text(`Median: ${xMedian.toFixed(1)}`);
+    .text(`Median: ${xMedian.toFixed(1)} / ${(effMedian * 100).toFixed(1)}%`);
 
   g.append("text")
     .attr("x", W + 4)
@@ -189,7 +176,7 @@ function drawEfficiencyChart(selector, data) {
     .attr("cx", d => xScale(d.difference_from_optimal))
     .attr("cy", d => yScale(d.optimal_lineup_score))
     .attr("r", 6)
-    .attr("fill", d => colorMap[d.team] ?? defaultColor)
+    .attr("fill", d => TEAM_COLORS[d.team] ?? defaultColor)
     .attr("stroke", "#f5f5f5")
     .attr("stroke-width", 1.5)
     .style("cursor", "pointer")

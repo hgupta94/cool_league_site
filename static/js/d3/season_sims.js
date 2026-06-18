@@ -3,21 +3,6 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
   if (!el) return;
 
   const teams = [...new Set(data.map(d => d.team))].sort();
-
-  const addlColors = ['#20B2C8', '#9B59B6'];
-  const colorMap = {
-    'Aaro': '#378ADD',
-    'Adit': '#1D9E75',
-    'Aide': '#D85A30',
-    'Aksh': '#7F77DD',
-    'Arju': '#D4537E',
-    'Char': '#BA7517',
-    'Ayaz': '#639922',
-    'Hirs': '#888780',
-    'Nick': '#E07B39',
-    'Varu': '#C0392B',
-  };
-
   const margin = { top: 60, right: 80, bottom: 60, left: 45 };
   const totalW = 700;
   const totalH = 400;
@@ -138,7 +123,7 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
 
   // Lines + dots
   teamData.forEach((rows, team) => {
-    const color = colorMap[team];
+    const color = TEAM_COLORS[team];
     const sorted = rows.sort((a, b) => a.week - b.week);
 
     const lineGen = d3.line()
@@ -249,12 +234,12 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
 
     gItem.append("rect")
       .attr("width", 12).attr("height", 12).attr("rx", 2)
-      .attr("fill", colorMap[team]);
+      .attr("fill", TEAM_COLORS[team]);
 
     gItem.append("text")
       .attr("x", 17).attr("y", 10)
       .attr("font-size", 14)
-      .attr("fill", colorMap[team])
+      .attr("fill", TEAM_COLORS[team])
       .text(team);
   });
 }

@@ -376,3 +376,20 @@ class Standings:
             'clinches': clinch_rows,
             'elims': elim_rows
         }
+
+    def final_week_playoff_scenarios(self, seed: int):
+        from scripts.utils.database import Database
+        db = Database()
+        sim_ranks = db.retrieve_data(table='season_sim_ranks', how='week', season=self.season, week=self.week)
+        if sim_ranks.empty:
+            pass  # run season simulation
+
+        standings = self.format_standings()
+        seed_wins = [t for t in standings if t['seed'] == seed][0]['wins']
+
+        team_probs = sim_ranks[sim_ranks.ranks <= seed].groupby('team').p.sum()
+        team_probs = team_probs[team_probs < 1]
+        for team, p in team_probs.items():
+            tm_data = [t for t in standings if t['team_id'] == team][0]
+            net_wins = seed_wins - tm_data['wins']
+

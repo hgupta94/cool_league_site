@@ -32,6 +32,7 @@ records_df = db.retrieve_data(how='all', table='records')
 # HOME PAGE
 standings = Standings(dataloader=dataloader, season=params.season, week=week)
 standings_final = standings.format_standings()
+# standings.final_week_playoff_scenarios(standings_final, seed=2)
 standings_to_flask = []
 for t in standings_final:
     standings_to_flask.append((
@@ -158,16 +159,16 @@ total_wins['team'] = total_wins.team.map(id_map)
 
 
 # TEAM EFFICIENCY PAGE
-eff_plot = plot_efficiency(
-    season=params.season,
-    week=week,
-    x='actual_lineup_score',
-    y='optimal_lineup_score',
-    xlab='Difference From Optimal Points per Week',
-    ylab='Optimal Points per Week',
-    id_map=id_map,
-    title=''
-)
+eff = Database().retrieve_data(how='season', table='efficiency', season=params.season, week=week)
+eff['team'] = eff.team.map(id_map)
+cols = eff.select_dtypes(include=['float']).columns.tolist()
+eff_df = eff.groupby('team')[cols].sum() / eff.week.max()
+eff_df['efficiency'] = eff_df['actual_lineup_score'] / eff_df['optimal_lineup_score']
+eff_df['difference_from_optimal'] = eff_df.actual_lineup_score - eff_df.optimal_lineup_score
+eff_df['act_bestproj_perc'] = eff_df.actual_lineup_score / eff_df.best_projected_lineup_score
+eff_chart_data = eff_df[['optimal_lineup_score', 'difference_from_optimal', 'efficiency']].reset_index().to_dict(orient='records')
+eff_chart_data = json.dumps(eff_chart_data, indent=2)
+eff_chart_data = {'efficiencies': eff_chart_data}
 
 # HISTORY/CHAMPIONS PAGE
 champs = pd.read_csv(r'champions.csv').sort_values('Season', ascending=False)

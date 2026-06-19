@@ -9,9 +9,9 @@
  */
 function createRankChart(container, data, options = {}) {
   const {
-    width = 960,
-    height = 1000,
-    margin = {top:50, right:120, bottom:60, left:50},
+    width = 700,
+    height = 400,
+    margin = {top:50, right:60, bottom:70, left:60},
   } = options;
 
   const isDark = matchMedia('(prefers-color-scheme: light)').matches;
@@ -31,7 +31,7 @@ function createRankChart(container, data, options = {}) {
   el.innerHTML = '';
 
   const innerWidth  = width - margin.left - margin.right;
-  const innerHeight = 300;
+  const innerHeight = height - margin.top - margin.bottom;
   const totalHeight = innerHeight + margin.top + margin.bottom;
 
   const allX = data.map(d => d.week);
@@ -143,7 +143,7 @@ function createRankChart(container, data, options = {}) {
   function boldLine(team) {
     Object.entries(lineGroups).forEach(([t, path]) => {
       if (t === team) {
-        path.attr('stroke-width', 4.5).style('opacity', 1);
+        path.attr('stroke-width', 3).style('opacity', 1);
       } else {
         path.attr('stroke-width', 2).style('opacity', 0.2);
       }
@@ -151,15 +151,20 @@ function createRankChart(container, data, options = {}) {
     Object.entries(legendItems).forEach(([t, label]) => {
       label.style('opacity', t === team ? 1 : 0.2);
     });
+    g.selectAll('circle')
+      .style('opacity', d => d.team === team ? 1 : 0)
+      .attr('r', d => d.team === team ? 5 : 0);
   }
 
   function resetLines() {
     Object.values(lineGroups).forEach(path =>
-      path.attr('stroke-width', 2.5).style('opacity', 1)
+      path.attr('stroke-width', 2).style('opacity', 1)
     );
     Object.values(legendItems).forEach(label =>
       label.style('opacity', 1)
     );
+    g.selectAll('circle').style('opacity', 1)
+      .attr('r', 3.5);
   }
 
   // Line hover

@@ -65,6 +65,44 @@ RECORDS_COLUMNS_FLASK = ['category', 'record', 'holder', 'season', 'week']
 ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc', 'matchup_rec', 'tophalf_rec', 'points']
 
 
+VOR_REPLACEMENTS = {
+    # calculated in player_war.py
+    # avg of top 3 free agents from 2021-2025
+    0 : 14.4,
+    2 : 10.1,
+    4 : 8.9,
+    6 : 6.8,
+    16: 7.9,
+    17: 6.8,  # 2018-2021
+
+    'QB' : 14.4,
+    'RB' : 10.1,
+    'WR' : 8.9,
+    'TE' : 6.8,
+    'DST': 7.9,
+    'K': 6.8  # 2018-2021
+}
+VOR_MARGINAL_POINTS = 21.5  # points needed to turn 50% of historical losses into a win
+
+VOR_REPLACEMENTS_2018_2020 = {
+    # for standard scoring
+    # calculated in player_war.py
+    # avg of top 3 free agents from 2024-2025
+    0 : 16.3,
+    2 : 7.6,
+    4 : 8.9,
+    6 : 5.8,
+    16: 6.7,
+    17: 6.8,  # 2018-2021
+
+    'QB' : 16.3,
+    'RB' : 7.6,
+    'WR' : 8.9,
+    'TE' : 5.8,
+    'DST': 6.7,
+    'K': 6.8  # 2018-2021
+}
+
 # Gamma distribution values for simulations
     # mean: average score of rostered players since 2021
     # a: alpha (shape)

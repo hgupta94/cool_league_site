@@ -47,7 +47,6 @@ def load_player_stats(
                 fp_projection = None
                 fpid = None
 
-            # get free agents
             rows.append((
                 f'{pid}{season}{week:02}',
                 season,
@@ -61,12 +60,13 @@ def load_player_stats(
                 pts,
                 (fp_projection or espn_projection),
                 ('fp' if fp_projection is not None else 'espn'),
-                ppr
+                ppr,
+                (pts - constants.VOR_REPLACEMENTS[position]) / constants.VOR_MARGINAL_POINTS
             ))
 
     Database().batch_insert(
         table='schedule_switcher',
-        columns='id, season, week, espn_id, fp_id, name, position, team_id, lineup_slot, actual, projection, source, ppr',
+        columns='id, season, week, espn_id, fp_id, name, position, team_id, lineup_slot, actual, projection, source, ppr, vor',
         rows=rows,
         upsert=upsert,
         update_columns=upsert_cols

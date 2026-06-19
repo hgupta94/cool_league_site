@@ -18,6 +18,23 @@ function createRankChart(container, data, options = {}) {
   const teams = Array.from(new Set(data.map(d => d.team)));
   const grouped = d3.group(data, d => d.team);
 
+  const el = typeof container === 'string' ? document.querySelector(container) : container;
+  el.innerHTML = '';
+  d3.select(el).style('position', 'relative');
+
+  const tooltip = d3.select(el).append('div')
+    .style('position', 'absolute')
+    .style('background', 'rgba(255,255,255,0.95)')
+    .style('border', '1px solid rgba(0,0,0,0.1)')
+    .style('border-radius', '6px')
+    .style('padding', '6px 10px')
+    .style('font-size', '13px')
+    .style('color', 'rgba(0,0,0,0.7)')
+    .style('pointer-events', 'none')
+    .style('box-shadow', '0 2px 6px rgba(0,0,0,0.1)')
+    .style('text-align', 'left')
+    .style('display', 'none');
+
   // Order legend by the y-value of each team's last point (descending)
   const teamsOrderedByLastY = [...grouped.entries()]
     .map(([team, pts]) => {
@@ -26,9 +43,6 @@ function createRankChart(container, data, options = {}) {
     })
     .sort((a, b) => a.lastY - b.lastY)
     .map(d => d.team);
-
-  const el = typeof container === 'string' ? document.querySelector(container) : container;
-  el.innerHTML = '';
 
   const innerWidth  = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -45,10 +59,18 @@ function createRankChart(container, data, options = {}) {
     .range([0, innerHeight]);
 
   const svg = d3.select(el).append('svg')
-    .attr('viewBox', `0 0 ${width} ${totalHeight}`)
     .attr('width', width)
     .attr('height', totalHeight)
     .style('overflow', 'visible');
+
+  function tooltipPos(event) {
+    const svgRect = svg.node().getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    return [
+      event.offsetX + (svgRect.left - elRect.left),
+      event.offsetY + (svgRect.top  - elRect.top)
+    ];
+  }
 
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -136,7 +158,23 @@ function createRankChart(container, data, options = {}) {
       .attr('fill', TEAM_COLORS[team])
       .attr('stroke', isDark ? '#1a1a1a' : '#f5f5f5')
       .attr('stroke-width', 1.5)
-      .style('pointer-events', 'none');
+      .style('cursor', 'pointer')
+      .on('mouseenter', (event, d) => {
+        boldLine(d.team)
+        tooltip
+          .style('display', 'block')
+          .html(`<strong>${d.team}</strong><br>Week: ${d.week}<br>Rank: ${d.y}`);
+      })
+      .on('mousemove', (event) => {
+        const [px, py] = tooltipPos(event)
+        tooltip
+          .style('left', `${px + 14}px`)
+          .style('top',  `${py - 28}px`);
+      })
+      .on('mouseleave', () => {
+        resetLines()
+        tooltip.style('display', 'none');
+      })
   });
 
   // Hover helpers
@@ -149,7 +187,9 @@ function createRankChart(container, data, options = {}) {
       }
     });
     Object.entries(legendItems).forEach(([t, label]) => {
-      label.style('opacity', t === team ? 1 : 0.2);
+      label.style('opacity', t === team ? 1 : 0.2)
+        .attr('font-weight', t === team ? '800' : '400')
+        .attr('font-size', t === team ? 15 : 14);
     });
     g.selectAll('circle')
       .style('opacity', d => d.team === team ? 1 : 0)

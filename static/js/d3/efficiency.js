@@ -10,14 +10,15 @@ function drawEfficiencyChart(selector, data) {
 
   el.innerHTML = "";
 
-  d3.select(el).style("position", "relative");
+  d3.select(el).style("position", "relative").style("height", totalH + "px");
   const tooltip = d3.select(el).append("div")
     .style("position", "absolute")
+    .style("z-index", "10")
     .style("background", "rgba(255,255,255,0.95)")
     .style("border", "1px solid rgba(0,0,0,0.1)")
     .style("border-radius", "6px")
     .style("padding", "6px 10px")
-    .style("width", "160px")
+    .style("width", "145px")
     .style("box-sizing", "border-box")
     .style("font-size", "13px")
     .style("color", "rgba(0,0,0,0.7)")
@@ -28,6 +29,9 @@ function drawEfficiencyChart(selector, data) {
   const svg = d3.select(el).append("svg")
     .attr("width", totalW)
     .attr("height", totalH)
+    .style("position", "absolute")
+    .style("left", "0")
+    .style("top", "0")
     .attr("role", "img")
     .attr("aria-label", "Scatter plot of optimal points versus difference from optimal, by team");
 
@@ -54,6 +58,41 @@ function drawEfficiencyChart(selector, data) {
   const xMedian = d3.median(data, d => d.difference_from_optimal);
   const yMedian = d3.median(data, d => d.optimal_lineup_score);
   const effMedian = d3.median(data, d => d.efficiency);
+
+  // Efficiency heatmap background
+  // efficiency(x, y) = (optimal + difference) / optimal, i.e. (y + x) / y
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  canvas.style.position = "absolute";
+  canvas.style.left = margin.left + "px";
+  canvas.style.top = margin.top + "px";
+  el.insertBefore(canvas, el.firstChild); // behind everything else
+  const ctx = canvas.getContext("2d");
+
+  const blockSize = 4;
+  let effMin = Infinity, effMax = -Infinity;
+  for (let py = 0; py <= H; py += blockSize) {
+    const yVal = yScale.invert(py + blockSize / 2);
+    for (let px = 0; px <= W; px += blockSize) {
+      const xVal = xScale.invert(px + blockSize / 2);
+      const eff = (yVal + xVal) / yVal;
+      if (eff < effMin) effMin = eff;
+      if (eff > effMax) effMax = eff;
+    }
+  }
+
+  const heatColor = d3.scaleSequential(t => d3.interpolateBlues(t * 0.6)).domain([effMin, effMax]);
+
+  for (let py = 0; py < H; py += blockSize) {
+    const yVal = yScale.invert(py + blockSize / 2);
+    for (let px = 0; px < W; px += blockSize) {
+      const xVal = xScale.invert(px + blockSize / 2);
+      const eff = (yVal + xVal) / yVal;
+      ctx.fillStyle = heatColor(eff);
+      ctx.fillRect(px, py, blockSize, blockSize);
+    }
+  }
 
   const textCol = "rgba(0,0,0,0.4)";
   const gridCol = "rgba(0,0,0,0.2)";
@@ -172,7 +211,7 @@ function drawEfficiencyChart(selector, data) {
   g.selectAll(".point")
     .data(data)
     .join("circle")
-    .attr("class", "point")
+    .attr("class", d => `point point-${d.team}`)
     .attr("cx", d => xScale(d.difference_from_optimal))
     .attr("cy", d => yScale(d.optimal_lineup_score))
     .attr("r", 6)
@@ -181,12 +220,14 @@ function drawEfficiencyChart(selector, data) {
     .attr("stroke-width", 1.5)
     .style("cursor", "pointer")
     .on("mouseenter", function(event, d) {
-      d3.select(this).attr("r", 8);
-      showTooltip(d);
+       g.select(`.point-${d.team}`).attr("r", 8);
+       g.select(`.label-${d.team}`).attr("font-weight", "bold").attr("font-size", 15);
+       showTooltip(d);
     })
     .on("mousemove", moveTooltip)
     .on("mouseleave", function(event, d) {
-      d3.select(this).attr("r", 6);
+      g.select(`.point-${d.team}`).attr("r", 6);
+      g.select(`.label-${d.team}`).attr("font-weight", "normal").attr("font-size", 13);
       hideTooltip();
     });
 
@@ -196,12 +237,30 @@ function drawEfficiencyChart(selector, data) {
     .join("text")
     .attr("class", "point-label")
     .attr("x", d => xScale(d.difference_from_optimal) + 10)
+    .attr("x", d => {
+      const px = xScale(d.difference_from_optimal);
+      const labelW = 35;
+      return (px + 10 + labelW <= W) ? px + 10 : px - 10;
+    })
+    .attr("text-anchor", d => {
+      const px = xScale(d.difference_from_optimal);
+      const labelW = 35;
+      return (px + 10 + labelW <= W) ? "start" : "end";
+    })
     .attr("y", d => yScale(d.optimal_lineup_score) + 4)
     .attr("font-size", 13)
-    .attr("fill", textCol)
+    .attr("fill", "rgba(0,0,0,0.6)")
     .style("cursor", "pointer")
     .text(d => d.team)
-    .on("mouseenter", function(event, d) { showTooltip(d); })
+    .on("mouseenter", function(event, d) {
+       g.select(`.point-${d.team}`).attr("r", 8);
+       g.select(`.label-${d.team}`).attr("font-weight", "bold").attr("font-size", 15);
+       showTooltip(d);å
+    })
     .on("mousemove", moveTooltip)
-    .on("mouseleave", hideTooltip);
+    .on("mouseleave", function(event, d) {
+      g.select(`.point-${d.team}`).attr("r", 6);
+      g.select(`.label-${d.team}`).attr("font-weight", "normal").attr("font-size", 13);
+      hideTooltip();
+    });
 }

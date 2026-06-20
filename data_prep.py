@@ -45,7 +45,7 @@ if week > 1:
     # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
 
 
-pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=week)
+pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=week-1)
 pr_data['team'] = pr_data.team.map(id_map)
 pr_data[['power_score_norm', 'score_norm_change']] = pr_data[['power_score_norm', 'score_norm_change']] * 100
 pr_table = pr_data[pr_data.week == week-1]
@@ -139,10 +139,10 @@ season_sim_ranks_table = season_sim_ranks_table.reindex(order).reset_index().ren
 # SCENARIOS PAGE
 h2h_data = db.retrieve_data(how='season', table='h2h', season=params.season, week=params.as_of_week)
 h2h_data = h2h_data[h2h_data.week <= params.regular_season_end]
-total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week)
+total_wins = scenarios.get_total_wins(h2h_data=h2h_data, teams=teams, week=week-1)
 if week > 1:
     wins_by_week = scenarios.get_wins_by_week(h2h_data=h2h_data, total_wins=total_wins, params=params, teams=teams)
-    wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week)
+    wins_vs_opp = scenarios.get_wins_vs_opp(h2h_data=h2h_data, total_wins=total_wins, wins_by_week=wins_by_week, week=week-1)
     wins_by_week['team'] = wins_by_week.team.map(id_map)
     wins_vs_opp['team'] = wins_vs_opp.team.map(id_map)
     wins_vs_opp = wins_vs_opp.rename(columns=id_map)
@@ -159,7 +159,7 @@ total_wins['team'] = total_wins.team.map(id_map)
 
 
 # TEAM EFFICIENCY PAGE
-eff = Database().retrieve_data(how='season', table='efficiency', season=params.season, week=week)
+eff = Database().retrieve_data(how='season', table='efficiency', season=params.season, week=week-1)
 eff['team'] = eff.team.map(id_map)
 cols = eff.select_dtypes(include=['float']).columns.tolist()
 eff_df = eff.groupby('team')[cols].sum() / eff.week.max()

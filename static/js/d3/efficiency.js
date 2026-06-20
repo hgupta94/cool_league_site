@@ -235,7 +235,7 @@ function drawEfficiencyChart(selector, data) {
   g.selectAll(".point-label")
     .data(data)
     .join("text")
-    .attr("class", "point-label")
+    .attr("class", d => `point-label label-${d.team}`)
     .attr("x", d => xScale(d.difference_from_optimal) + 10)
     .attr("x", d => {
       const px = xScale(d.difference_from_optimal);
@@ -255,7 +255,7 @@ function drawEfficiencyChart(selector, data) {
     .on("mouseenter", function(event, d) {
        g.select(`.point-${d.team}`).attr("r", 8);
        g.select(`.label-${d.team}`).attr("font-weight", "bold").attr("font-size", 15);
-       showTooltip(d);å
+       showTooltip(d);
     })
     .on("mousemove", moveTooltip)
     .on("mouseleave", function(event, d) {

@@ -27,12 +27,8 @@ class FantasyPros:
         self.base_url = 'https://api.fantasypros.com/public/v2/json/nfl'
         self.headers = {'x-api-key': api_key}
 
-        self.season = season
-        if not season:
-            self.season = constants.SEASON
-        self.week = week
-        if not week:
-            self.week = constants.WEEK
+        self.season = season if season is not None else constants.SEASON
+        self.week = week if week is not None else constants.WEEK
 
         self.league_settings = LeagueSettings(dataloader=dataloader)
         self.roster_settings = RosterSettings(dataloader=dataloader)

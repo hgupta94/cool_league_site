@@ -279,6 +279,8 @@ DEFAULT_POSITION_MAP_ESPN = {
     3: 'WR',
     4: 'TE',
     5: 'K',
+    7: 'K',  # PK?
+    9: 'RB',  # really FB
     16: 'DST'
 }
 

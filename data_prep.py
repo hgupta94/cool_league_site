@@ -160,15 +160,16 @@ total_wins['team'] = total_wins.team.map(id_map)
 
 # TEAM EFFICIENCY PAGE
 eff = Database().retrieve_data(how='season', table='efficiency', season=params.season, week=week-1)
-eff['team'] = eff.team.map(id_map)
-cols = eff.select_dtypes(include=['float']).columns.tolist()
-eff_df = eff.groupby('team')[cols].sum() / eff.week.max()
-eff_df['efficiency'] = eff_df['actual_lineup_score'] / eff_df['optimal_lineup_score']
-eff_df['difference_from_optimal'] = eff_df.actual_lineup_score - eff_df.optimal_lineup_score
-eff_df['act_bestproj_perc'] = eff_df.actual_lineup_score / eff_df.best_projected_lineup_score
-eff_chart_data = eff_df[['optimal_lineup_score', 'difference_from_optimal', 'efficiency']].reset_index().to_dict(orient='records')
-eff_chart_data = json.dumps(eff_chart_data, indent=2)
-eff_chart_data = {'efficiencies': eff_chart_data}
+if len(eff) > 0:
+    eff['team'] = eff.team.map(id_map)
+    cols = eff.select_dtypes(include=['float']).columns.tolist()
+    eff_df = eff.groupby('team')[cols].sum() / eff.week.max()
+    eff_df['efficiency'] = eff_df['actual_lineup_score'] / eff_df['optimal_lineup_score']
+    eff_df['difference_from_optimal'] = eff_df.actual_lineup_score - eff_df.optimal_lineup_score
+    eff_df['act_bestproj_perc'] = eff_df.actual_lineup_score / eff_df.best_projected_lineup_score
+    eff_chart_data = eff_df[['optimal_lineup_score', 'difference_from_optimal', 'efficiency']].reset_index().to_dict(orient='records')
+    eff_chart_data = json.dumps(eff_chart_data, indent=2)
+    eff_chart_data = {'efficiencies': eff_chart_data}
 
 # HISTORY/CHAMPIONS PAGE
 champs = pd.read_csv(r'champions.csv').sort_values('Season', ascending=False)

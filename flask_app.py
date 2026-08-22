@@ -21,12 +21,12 @@ def home():
     data_st = standings_to_flask
 
     cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if week == params.regular_season_end else 'Clinch Over', 'Clinch Probability']
-    headings_cl = tuple(cl_cols) if clinches['clinches'] else tuple()
-    data_cl = ut.flask_get_data(clinches['clinches']) if clinches['clinches'] else tuple()
+    headings_cl = tuple(cl_cols) if 'clinches' in clinches else tuple()
+    data_cl = ut.flask_get_data(clinches['clinches']) if 'clinches' in clinches else tuple()
 
     el_cols = ['Team', 'Elim. From', 'Net Wins', 'Elim. By (Net Pts)' if week == params.regular_season_end else 'Elim. By', 'Elim. Probability']
-    headings_el = tuple(el_cols) if clinches['elims'] else tuple()
-    data_el = ut.flask_get_data(clinches['elims']) if clinches['elims'] else tuple()
+    headings_el = tuple(el_cols) if 'elims' in clinches else tuple()
+    data_el = ut.flask_get_data(clinches['elims']) if 'elims' in clinches else tuple()
 
     headings_pr = tuple(['Team', 'Season', 'Recency', 'Consistency', 'Manager', 'Luck', 'Rank', '1 Week \u0394', 'Score', '1 Week \u0394'])
     data_pr = ut.flask_get_data(pr_table[pr_cols])

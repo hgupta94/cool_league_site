@@ -6,7 +6,6 @@ from scripts.utils import constants
 from scripts.utils import utils
 from scripts.simulations.simulations import Simulation
 
-from datetime import datetime as dt
 import time
 # import json
 #
@@ -16,22 +15,18 @@ import time
 
 
 def load_betting_table(dataloader:DataLoader, fpros: FantasyPros, n_sims: int=100_000):
-    # TODO only run simulation if a roster move was made
-    # load parameters
     day = constants._TODAY.strftime('%a')
 
+    # load parameters
     teams = TeamSettings(dataloader)
     start = time.perf_counter()
     sim_results = Simulation(dataloader, fpros=fpros).simulate_week(n_sims=n_sims)
     end = time.perf_counter()
     print((end-start) / 60)
 
-
     rows = []
     for team in teams.team_ids:
-        db_id = f'{constants.SEASON}_{constants.WEEK:02}_{team:02}'
-        if day in ['Thu', 'Sun']:  # save out on gameday. TODO check if game is being played today (ie saturday/christmas/weird schedule)
-            db_id += f'_{day}'
+        db_id = f'{constants.SEASON}_{constants.WEEK:02}_{team:02}_{day}'  # save out every day
         matchup_id = utils.get_matchup_id(teams=teams, week=constants.WEEK, team_id=team)
         if matchup_id is None:  # byes?
             matchup_id = 99

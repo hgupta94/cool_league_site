@@ -73,13 +73,54 @@ score_data = {'score_data': score_data}
 
 
 # SIMULATIONS PAGE
-betting_table = (
-    db
-    .retrieve_data(how='season', table='betting_table', season=params.season, week=params.current_week)  # show previous week on Tues
-    .sort_values('created')
-    .tail(n_teams)  # most recent db updates
-)
+# betting_table = (
+#     db
+#     .retrieve_data(how='season', table='betting_table', season=params.season, week=params.current_week)  # show previous week on Tues
+#     .sort_values('created')
+# )
+import numpy as np
+rng = np.random.default_rng(42)
+teams_ls = [1, 2, 4, 5, 6, 8, 9, 10, 11, 12]
+
+# Pick any Wednesday as start date
+start_wed = pd.Timestamp("2026-08-19")  # Wednesday
+dates = pd.date_range(start=start_wed, periods=5, freq="D")  # Wed..Sun
+
+rows = []
+for d in dates:
+    for i, team in enumerate(teams_ls, start=1):
+        rows.append({
+            "team": team,
+            "matchup_id": (i - 1) // 2 + 1,   # pairs of teams: 1..5
+            "created": d.strftime("%Y-%m-%d"),
+            "p_win": round(float(rng.uniform(0, 1)), 4),
+            "p_tophalf": round(float(rng.uniform(0, 1)), 4),
+            "p_highest": round(float(rng.uniform(0, 1)), 4),
+            "p_lowest": round(float(rng.uniform(0, 1)), 4),
+            "avg_score": round(float(rng.uniform(80, 150)), 2),
+        })
+day6 = dates[-1] + pd.Timedelta(days=1)
+for i, team in enumerate(teams_ls, start=1):
+    rows.append({
+        "team": team,
+        "matchup_id": (i - 1) // 2 + 1,
+        "created": day6.strftime("%Y-%m-%d"),
+        "p_win": int(rng.integers(0, 2)),
+        "p_tophalf": int(rng.integers(0, 2)),
+        "p_highest": int(rng.integers(0, 2)),
+        "p_lowest": int(rng.integers(0, 2)),
+        "avg_score": round(float(rng.uniform(80, 150)), 2),
+    })
+betting_table = pd.DataFrame(rows)
+
 betting_table['team'] = betting_table.team.map(id_map)
+betting_table['date'] = pd.to_datetime(betting_table.created).dt.date.astype(str)
+# betting_chart_data = betting_table.drop(['id', 'season', 'week', 'created'], axis=1).to_dict(orient='records')
+betting_chart_data = betting_table.drop(['created'], axis=1).to_dict(orient='records')
+betting_chart_data = json.dumps(betting_chart_data, indent=2)
+betting_chart_data = {'betting': betting_chart_data}
+
+betting_table = betting_table.tail(n_teams)
 timestamp_betting = pd.to_datetime(betting_table.created.values[0]).strftime("%A, %b %d %Y")
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(2).apply(lambda x: f'{x:.2f}')

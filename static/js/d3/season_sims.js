@@ -197,15 +197,6 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
 }
 
   // Title
-<!--  svg.append('text')-->
-<!--  .attr('x', margin.left + W / 2)-->
-<!--  .attr('y', 35)-->
-<!--  .attr('text-anchor', 'middle')-->
-<!--  .attr('font-size', 32)-->
-<!--  .attr('font-weight', 500)-->
-<!--  .attr('fill', 'rgba(0,0,0,0.7)')-->
-<!--  .text(METRIC_LABELS[metric] ?? metric);-->
-
   // X label
   svg.append('text')
   .attr('x', margin.left + W / 2)

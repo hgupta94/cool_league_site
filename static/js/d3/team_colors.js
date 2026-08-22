@@ -3,10 +3,11 @@ const TEAM_COLORS = {
   'Adit': '#1D9E75',
   'Aide': '#D85A30',
   'Aksh': '#7F77DD',
+  'Arju': '#888780',
   'Ayaz': '#639922',
   'Char': '#BA7517',
   'Hars': '#D4537E',
-  'Hirs': '#888780',
+  'Hirs': '#20B2C8',
   'Nick': '#E07B39',
   'Varu': '#C0392B',
 };

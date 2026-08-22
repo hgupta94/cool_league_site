@@ -15,6 +15,7 @@ table.center {
 </style>
 <p>All simulations are ran using each team's optimal lineup</p>
 <h1>{{ week }} Betting Table</h1>
+<script src="{{ url_for('static', filename='js/d3/betting.js') }}"></script>
 <div class="tscroll" style="overflow-x:auto;">
     <table class="table table-hover center content-table betting" style="table-layout:auto; width:40%">
         <caption><i>Updated: {{ tstamp_bets }}</i></caption>
@@ -35,6 +36,12 @@ table.center {
         {% endfor %}
         </tbody>
     </table>
+    <div id="betting-chart" style="max-width:780px; width:100%; margin: 0 auto;">
+        <script>
+            const oddsData = {{ betting.betting | safe }}
+            createOddsChart('#betting-chart', oddsData)
+        </script>
+    </div>
 </div>
 <br>
 <h1>Season Simulation Results</h1>
@@ -84,17 +91,17 @@ table.center {
     <div id="sim-chart-inner" style="width:700px; margin: 0 auto;"></div>
     <script>
         // Populate dropdown from data
-        const data = {{ probs.probs | safe }}
+        const simData = {{ probs.probs | safe }}
         const metricSelect = document.getElementById("metric-select");
 
         metricSelect.addEventListener("change", () =>
-          drawTeamProbChart("#sim-chart-inner", data, getSelectedMetric())
+          drawTeamProbChart("#sim-chart-inner", simData, getSelectedMetric())
         );
 
         function getSelectedMetric() {
           return metricSelect.value;
         }
-        drawTeamProbChart("#sim-chart-inner", data, getSelectedMetric())
+        drawTeamProbChart("#sim-chart-inner", simData, getSelectedMetric())
     </script>
 </div>
 </div>

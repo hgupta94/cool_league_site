@@ -224,7 +224,7 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
       .on("mouseleave", () => setHighlight(null));
 
     gItem.append("rect")
-      .attr("width", 12).attr("height", 12).attr("rx", 2)
+      .attr("width", 10).attr("height", 10).attr("rx", 2)
       .attr("fill", TEAM_COLORS[team]);
 
     gItem.append("text")

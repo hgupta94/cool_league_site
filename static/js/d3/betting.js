@@ -347,10 +347,12 @@ function createOddsChart(container, data, options = {}) {
     // ---- line generator: raw value for 'value' metrics, odds position for 'odds' metrics ----
     const line = isValueMetric
       ? d3.line()
+          .curve(d3.curveMonotoneX)
           .defined(d => d[metric] != null && isFinite(d[metric]))
           .x(d => x(d.date))
           .y(d => y(d[metric]))
       : d3.line()
+          .curve(d3.curveMonotoneX)
           .defined(d => isFinite(pctToOdds(metricPct(d, metric))))
           .x(d => x(d.date))
           .y(d => y(oddsToAxisPos(pctToOdds(metricPct(d, metric)))));
@@ -510,8 +512,12 @@ function createOddsChart(container, data, options = {}) {
       return d3.ascending(+aId, +bId) || d3.ascending(a, b);
     });
 
+    const numTeams = teams.length;
+    const itemSpacing = 20;
+    const totalLegendHeight = numTeams * itemSpacing;
+
     const legend = svg.append('g')
-      .attr('transform', `translate(${margin.left + innerWidth + 12}, ${margin.top})`);
+      .attr('transform', `translate(${margin.left + innerWidth + 20},  ${margin.top + (innerHeight - totalLegendHeight) / 2})`);
     const legendRowHeight = 18;
     const pairGap = 8;
     const pairSize = 2;
@@ -558,7 +564,7 @@ function createOddsChart(container, data, options = {}) {
 
       row.append('text')
         .attr('x', 16).attr('y', 9)
-        .attr('font-size', 12)
+        .attr('font-size', 14)
         .attr('fill', teamColor(team))
         .text(team);
 

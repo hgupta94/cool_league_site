@@ -33,7 +33,7 @@ function createOddsChart(container, data, options = {}) {
   const {
     width = 780,
     height = 380,
-    margin = { top: 50, right: 150, bottom: 50, left: 62 },
+    margin = { top: 10, right: 150, bottom: 50, left: 62 },
     metrics = [
       { key: 'p_win', label: 'Matchup Win', type: 'Odds', scale: 100 },
       { key: 'p_tophalf', label: 'Top Half Win', type: 'Odds', scale: 100 },
@@ -127,11 +127,11 @@ function createOddsChart(container, data, options = {}) {
       .style('color', textColor);
     wrap.append('span').text(labelText);
     return wrap.append('select')
-      .style('font-size', '13px')
+      .style('font-size', '16px')
       .style('padding', '6px 10px')
       .style('border-radius', '6px')
       .style('border', `1px solid ${gridColor}`)
-      .style('background', '#fff')
+      .style('background', '#f0f0f0')
       .style('color', '#111');
   }
 
@@ -213,8 +213,8 @@ function createOddsChart(container, data, options = {}) {
       const icon = d3.select(this);
       const match = icon.attr('data-team') === team;
       icon.attr('opacity', match ? 1 : 0.2);
-      icon.select('.icon-circle').attr('r', match ? 10 : 8).attr('stroke-width', match ? 2.5 : 1.5);
-      icon.select('.icon-check').attr('font-size', match ? '11px' : '10px');
+      icon.select('.icon-circle').attr('r', match ? 8 : 6).attr('stroke-width', match ? 2.5 : 1.5);
+      icon.select('.icon-check').attr('font-size', match ? '10px' : '8px');
     });
     svg.selectAll('.legend-row').each(function () {
       const row = d3.select(this);
@@ -229,8 +229,8 @@ function createOddsChart(container, data, options = {}) {
     svg.selectAll('.team-dot').attr('opacity', 1).attr('r', 3.5);
     svg.selectAll('.team-icon').attr('opacity', 1).each(function () {
       const icon = d3.select(this);
-      icon.select('.icon-circle').attr('r', 8).attr('stroke-width', 1.5);
-      icon.select('.icon-check').attr('font-size', '10px');
+      icon.select('.icon-circle').attr('r', 6).attr('stroke-width', 1.5);
+      icon.select('.icon-check').attr('font-size', '8px');
     });
     svg.selectAll('.legend-row').attr('opacity', 1).attr('font-weight', '400');
   }
@@ -297,11 +297,11 @@ function createOddsChart(container, data, options = {}) {
         .attr('x1', 0).attr('x2', 0).attr('y1', 0).attr('y2', innerHeight)
         .attr('stroke', axisColor);
 
-      const magTicks = [100, 200, 500, 1000, 2000, 5000, 10000];
+      const magTicks = [100, 300, 1000, 3000, 10000];
       magTicks.forEach(mag => {
         [-1, 1].forEach(sign => {
           const odds = sign * mag;
-          if (mag === 100 && sign === -1) return; // draw ±100 once
+          if (mag === 100 && sign === -1) return; // draw +/-100 once
           const cy = y(oddsToAxisPos(odds));
           yAxisG.append('g')
             .attr('transform', `translate(0,${cy})`)
@@ -323,16 +323,6 @@ function createOddsChart(container, data, options = {}) {
         .attr('stroke', axisColor)
         .attr('stroke-dasharray', '4,3');
     }
-
-    // title
-    svg.append('text')
-      .attr('x', margin.left + innerWidth / 2)
-      .attr('y', margin.top / 2)
-      .attr('text-anchor', 'middle')
-      .attr('font-size', 20)
-      .attr('font-weight', 600)
-      .attr('fill', titleColor)
-      .text('Weekly Odds');
 
     // y-axis label
     svg.append('text')

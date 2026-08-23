@@ -36,13 +36,14 @@ table.center {
         {% endfor %}
         </tbody>
     </table>
-    <div id="betting-chart" style="max-width:780px; width:100%; margin: 0 auto;">
-        <script>
-            const oddsData = {{ betting.betting | safe }}
-            createOddsChart('#betting-chart', oddsData)
-        </script>
-    </div>
 </div>
+<div style="overflow-x:auto; width:100%;">
+    <div id="betting-chart" style="width:780px; margin: 0 auto;"></div>
+</div>
+<script>
+    const oddsData = {{ betting.betting | safe }}
+    createOddsChart('#betting-chart', oddsData)
+</script>
 <br>
 <h1>Season Simulation Results</h1>
 <h3>Projected Standings</h3>
@@ -73,18 +74,18 @@ table.center {
     <div style="position:sticky; left:50%; top:20px; z-index:10; width:0;">
         <label for="metric-select" style="font-size:16px; font-weight:500; position:absolute; left:0; transform:translateX(-50%); white-space:nowrap;">
             <select id="metric-select">
-                <option value="playoffs">Make Playoffs</option>
-                <option value="third">Third Place</option>
-                <option value="finals">Make Finals</option>
-                <option value="champion">Win Championship</option>
+                <option value="playoffs">Playoffs</option>
+                <option value="third">Third</option>
+                <option value="finals">Finals</option>
+                <option value="champion">Champion</option>
                 <option value="matchup_wins">Matchup Wins</option>
                 <option value="tophalf_wins">Top Half Wins</option>
                 <option value="total_wins">Total Wins</option>
                 <option value="total_points">Total Points</option>
                 <option value="most_wins">Most Wins</option>
                 <option value="most_points">Most Points</option>
-                <option value="top_scores">Top Score Weeks</option>
-                <option value="xpo">Expected Payout</option>
+                <option value="top_scores">Top Scores</option>
+                <option value="xpo">Payout</option>
             </select>
         </label>
     </div>

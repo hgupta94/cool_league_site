@@ -59,8 +59,8 @@
 }
 
 .navbar-toggler .top-bar {
-    transform: rotate(45deg);
-    transform-origin: 15% 13%;
+    transform: translateY(10px) rotate(45deg);
+    transform-origin: center center;
 }
 
 .navbar-toggler .middle-bar {
@@ -69,8 +69,8 @@
 }
 
 .navbar-toggler .bottom-bar {
-    transform: rotate(-45deg);
-    transform-origin: 5% 3%;
+    transform: translateY(-10px) rotate(-45deg);
+    transform-origin: center center;
 }
 
 .navbar-toggler.collapsed .top-bar {

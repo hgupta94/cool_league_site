@@ -71,7 +71,7 @@ function createOddsChart(container, data, options = {}) {
     (typeof TEAM_COLORS !== 'undefined' && TEAM_COLORS[team]) ||
     fallbackColor(team);
 
-  const axisColor = 'rgba(0,0,0,0.35)';
+  const axisColor = 'rgba(0,0,0,0.2)';
   const textColor = 'rgba(0,0,0,0.5)';
   const gridColor = 'rgba(0,0,0,0.07)';
   const titleColor = 'rgba(0,0,0,0.75)';
@@ -280,23 +280,19 @@ function createOddsChart(container, data, options = {}) {
       .call(d3.axisBottom(x).tickValues(uniqueDates).tickFormat(dayFmt))
       .call(ax => ax.select('.domain').attr('stroke', axisColor))
       .call(ax => ax.selectAll('line').attr('stroke', axisColor))
-      .call(ax => ax.selectAll('text').attr('fill', textColor).attr('font-size', 11));
+      .call(ax => ax.selectAll('text').attr('fill', textColor).style('font-size', 12).attr('dx', '1.0em'));
 
     // y-axis
     const yAxisG = g.append('g');
     if (isValueMetric) {
       yAxisG
         .call(d3.axisLeft(y).ticks(6))
-        .call(ax => ax.select('.domain').attr('stroke', axisColor))
+        .call(ax => ax.select('.domain').remove())
         .call(ax => ax.selectAll('.tick line')
           .attr('stroke', gridColor)
           .attr('x2', innerWidth))
-        .call(ax => ax.selectAll('text').attr('fill', textColor).attr('font-size', 10.5));
+        .call(ax => ax.selectAll('text').attr('fill', textColor).style('font-size', 12));
     } else {
-      yAxisG.append('line')
-        .attr('x1', 0).attr('x2', 0).attr('y1', 0).attr('y2', innerHeight)
-        .attr('stroke', axisColor);
-
       const magTicks = [100, 300, 1000, 3000, 10000];
       magTicks.forEach(mag => {
         [-1, 1].forEach(sign => {
@@ -306,11 +302,10 @@ function createOddsChart(container, data, options = {}) {
           yAxisG.append('g')
             .attr('transform', `translate(0,${cy})`)
             .call(tick => {
-              tick.append('line').attr('x1', -5).attr('x2', 0).attr('stroke', axisColor);
               tick.append('line').attr('x1', 0).attr('x2', innerWidth).attr('stroke', gridColor);
               tick.append('text')
-                .attr('x', -10).attr('dy', '0.32em').attr('text-anchor', 'end')
-                .attr('fill', textColor).attr('font-size', 10.5)
+                .attr('x', -7).attr('dy', '0.32em').attr('text-anchor', 'end')
+                .attr('font-size', 12)
                 .text(mag === 100 ? '\u00B1100' : (odds > 0 ? '+' + odds : odds));
             });
         });

@@ -44,15 +44,15 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
     playoffs: "Make Playoffs",
     third: "Third Place",
     finals: "Make Finals",
-    champion: "Win Championship",
+    champion: "Champion",
     most_wins: "Most Wins",
     most_points: "Most Points",
     matchup_wins: "Matchup Wins",
     tophalf_wins: "Top Half Wins",
     total_wins: "Total Wins",
     total_points: "Total Points",
-    top_scores: "Top Score Weeks",
-    xpo: "Expected Payout"
+    top_scores: "Top Score Wks",
+    xpo: "Exp. Payout"
   };
 
   const values = data.map(d => d[metric]).filter(v => v != null);
@@ -89,7 +89,7 @@ function drawTeamProbChart(selector, data, metric = "playoffs") {
   ).call(ax => {
     ax.select(".domain").remove();
     ax.selectAll(".tick line").remove();
-    ax.selectAll("text").attr("fill", textCol).style("font-size", 12);
+    ax.selectAll("text").style("font-size", 12);
   });
 
   g.append("g").attr("transform", `translate(0,${H})`).call(

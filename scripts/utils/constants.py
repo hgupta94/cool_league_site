@@ -36,14 +36,14 @@ CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
-# _TODAY = dt.datetime.now()
-_TODAY = dt.datetime(2025, 12, 3)
+_TODAY = dt.datetime.now()
+# _TODAY = dt.datetime(2025, 12, 3)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
-_SEASON_START = dt.datetime(2025, 9, 7)  # monday before first game
-_SEASON_END = dt.datetime(2026, 1, 11)  # monday after last game
-# _SEASON_START = dt.datetime(2026, 9, 7)  # monday before first game
-# _SEASON_END = dt.datetime(2027, 1, 11)  # monday after last game
+# _SEASON_START = dt.datetime(2025, 9, 7)  # monday before first game
+# _SEASON_END = dt.datetime(2026, 1, 11)  # monday after last game
+_SEASON_START = dt.datetime(2026, 9, 7)  # monday before first game
+_SEASON_END = dt.datetime(2027, 1, 11)  # monday after last game
 SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 8 else _CURRENT_YEAR-1
 WEEK = -(-(_TODAY - _SEASON_START).days // 7)
 WEEK = 1 if WEEK <= 0 else WEEK
@@ -68,43 +68,56 @@ RECORDS_COLUMNS_FLASK = ['category', 'record', 'holder', 'season', 'week']
 ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc', 'matchup_rec', 'tophalf_rec', 'points']
 
 
-VOR_REPLACEMENTS = {
-    # calculated in player_war.py
-    # avg of top 3 free agents from 2021-2025
-    0 : 14.4,
-    2 : 10.1,
-    4 : 8.9,
-    6 : 6.8,
-    16: 7.9,
-    17: 6.8,  # 2018-2021
+# player war constants
+BENCH_PCT = {  # percent of players at each position that occupy a bench spot
+    0: 0.1048,
+    2: 0.3556,
+    4: 0.3977,
+    6: 0.1021,
+    16: 0.0398,
+    17: 0,
 
-    'QB' : 14.4,
-    'RB' : 10.1,
-    'WR' : 8.9,
-    'TE' : 6.8,
-    'DST': 7.9,
-    'K': 6.8  # 2018-2021
+    'QB': 0.1048,
+    'RB': 0.3556,
+    'WR': 0.3977,
+    'TE': 0.1021,
+    'DST': 0.0398,
+    'K': 0
 }
-VOR_MARGINAL_POINTS = 21.5  # points needed to turn 50% of historical losses into a win
 
-VOR_REPLACEMENTS_2018_2020 = {
-    # for standard scoring
-    # calculated in player_war.py
-    # avg of top 3 free agents from 2024-2025
-    0 : 16.3,
-    2 : 7.6,
-    4 : 8.9,
-    6 : 5.8,
-    16: 6.7,
-    17: 6.8,  # 2018-2021
+FLEX_PCT = {  # percent of players at each position that are in the flex position
+    0: 0,
+    2: 0.5706,
+    4: 0.4074,
+    6: 0.0213,
+    16: 0,
+    17: 0,
 
-    'QB' : 16.3,
-    'RB' : 7.6,
-    'WR' : 8.9,
-    'TE' : 5.8,
-    'DST': 6.7,
-    'K': 6.8  # 2018-2021
+    'QB': 0,
+    'RB': 0.5706,
+    'WR': 0.4074,
+    'TE': 0.0213,
+    'DST': 0,
+    'K': 0,
 }
+
+IS_FLEX = {  # flex-eligible positions
+    0: 0,
+    2: 1,
+    4: 1,
+    6: 1,
+    16: 0,
+    17: 0,
+
+    'QB': 0,
+    'RB': 1,
+    'WR': 1,
+    'TE': 1,
+    'DST': 0,
+    'K': 0,
+}
+VOR_MARGINAL_POINTS = 47.0  # points needed to turn 50% of historical losses into a win
+
 
 # Gamma distribution values for simulations
     # mean: average score of rostered players since 2021

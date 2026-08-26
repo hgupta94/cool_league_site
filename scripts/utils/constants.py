@@ -44,7 +44,7 @@ _CURRENT_MONTH = _TODAY.month
 # _SEASON_END = dt.datetime(2026, 1, 11)  # monday after last game
 _SEASON_START = dt.datetime(2026, 9, 7)  # monday before first game
 _SEASON_END = dt.datetime(2027, 1, 11)  # monday after last game
-SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 8 else _CURRENT_YEAR-1
+SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
 WEEK = -(-(_TODAY - _SEASON_START).days // 7)
 WEEK = 1 if WEEK <= 0 else WEEK
 
@@ -70,33 +70,33 @@ ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc
 
 # player war constants
 BENCH_PCT = {  # percent of players at each position that occupy a bench spot
-    0: 0.1048,
-    2: 0.3556,
-    4: 0.3977,
-    6: 0.1021,
-    16: 0.0398,
+    0: 0.1073,
+    2: 0.3831,
+    4: 0.3608,
+    6: 0.1017,
+    16: 0.0470,
     17: 0,
 
-    'QB': 0.1048,
-    'RB': 0.3556,
-    'WR': 0.3977,
-    'TE': 0.1021,
-    'DST': 0.0398,
+    'QB': 0.1073,
+    'RB': 0.3831,
+    'WR': 0.3608,
+    'TE': 0.1017,
+    'DST': 0.0470,
     'K': 0
 }
 
 FLEX_PCT = {  # percent of players at each position that are in the flex position
     0: 0,
-    2: 0.5706,
-    4: 0.4074,
-    6: 0.0213,
+    2: 0.5980,
+    4: 0.3697,
+    6: 0.0322,
     16: 0,
     17: 0,
 
     'QB': 0,
-    'RB': 0.5706,
-    'WR': 0.4074,
-    'TE': 0.0213,
+    'RB': 0.5980,
+    'WR': 0.3697,
+    'TE': 0.0322,
     'DST': 0,
     'K': 0,
 }
@@ -116,7 +116,7 @@ IS_FLEX = {  # flex-eligible positions
     'DST': 0,
     'K': 0,
 }
-VOR_MARGINAL_POINTS = 47.0  # points needed to turn 50% of historical losses into a win
+WAR_MARGINAL_POINTS = 47.0  # points needed to turn 50% of losses by a replacement-level team into a win (marginal_points.py)
 
 
 # Gamma distribution values for simulations

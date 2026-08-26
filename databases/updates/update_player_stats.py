@@ -1,6 +1,7 @@
-from scripts.api.dataloader import DataLoader
+from scripts.utils.war import replacement_players
 from scripts.api.fantasy_pros import FantasyPros
-from scripts.api.settings import LeagueSettings
+from scripts.api.settings import LeagueSettings, RosterSettings
+from scripts.api.dataloader import DataLoader
 from scripts.utils.database import Database
 from scripts.utils import constants
 
@@ -13,11 +14,15 @@ def load_player_stats(
         upsert: bool = False,
         upsert_cols: list[str] | None = None
 ):
-    ls = LeagueSettings(dataloader)
+    ls = LeagueSettings(dataloader=dataloader)
+    rs = RosterSettings(dataloader=dataloader)
     ppr = ls.ppr_type
     oprojections = fpros.get_projections()
     projections = {v['espn_id']: v for v in oprojections if v['espn_id']}
     rosters = dataloader.rosters()
+
+    war_repl = replacement_players(league_settings=ls, roster_settings=rs, season=season, week=week)
+
     rows = []
     for team in rosters['teams']:
         tid = team['id']
@@ -61,12 +66,12 @@ def load_player_stats(
                 (fp_projection or espn_projection),
                 ('fp' if fp_projection is not None else 'espn'),
                 ppr,
-                (pts - constants.VOR_REPLACEMENTS[position]) / constants.VOR_MARGINAL_POINTS
+                ((pts - war_repl[position]) / constants.WAR_MARGINAL_POINTS) if pts is not None else None
             ))
 
     Database().batch_insert(
-        table='schedule_switcher',
-        columns='id, season, week, espn_id, fp_id, name, position, team_id, lineup_slot, actual, projection, source, ppr, vor',
+        table='player_stats',
+        columns='id, season, week, espn_id, fp_id, name, position, team_id, lineup_slot, actual, projection, source, ppr, war',
         rows=rows,
         upsert=upsert,
         update_columns=upsert_cols

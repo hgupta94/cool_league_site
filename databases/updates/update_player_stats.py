@@ -1,3 +1,5 @@
+import pandas as pd
+
 from scripts.utils.war import replacement_players
 from scripts.api.fantasy_pros import FantasyPros
 from scripts.api.settings import LeagueSettings, RosterSettings
@@ -52,6 +54,11 @@ def load_player_stats(
                 fp_projection = None
                 fpid = None
 
+            projection = fp_projection or espn_projection
+            war = None
+            if pts is not None and projection > 0:
+                war = ((pts - war_repl[position]) / constants.WAR_MARGINAL_POINTS) if pts is not None else None
+
             rows.append((
                 f'{pid}{season}{week:02}',
                 season,
@@ -63,10 +70,10 @@ def load_player_stats(
                 tid,
                 lineup_slot,
                 pts,
-                (fp_projection or espn_projection),
-                ('fp' if fp_projection is not None else 'espn'),
+                projection,
+                'fp' if fp_projection is not None else 'espn',
                 ppr,
-                ((pts - war_repl[position]) / constants.WAR_MARGINAL_POINTS) if pts is not None else None
+                war
             ))
 
     Database().batch_insert(

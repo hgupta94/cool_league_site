@@ -1,4 +1,4 @@
-CREATE TABLE player_stats (
+CREATE TABLE rosters (
     id VARCHAR(50) PRIMARY KEY,
     season INT,
     week INT,
@@ -12,5 +12,6 @@ CREATE TABLE player_stats (
     projection DECIMAL(4, 2),
     source VARCHAR(4),
     ppr FLOAT,
+    war DECIMAL(3, 2),
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

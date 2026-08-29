@@ -1,5 +1,3 @@
-import pandas as pd
-
 from scripts.utils.war import replacement_players
 from scripts.api.fantasy_pros import FantasyPros
 from scripts.api.settings import LeagueSettings, RosterSettings
@@ -24,8 +22,19 @@ def load_player_stats(
     rosters = dataloader.rosters()
 
     war_repl = replacement_players(league_settings=ls, roster_settings=rs, season=season, week=week)
+    rows_repl_pts = []
+    for pos, pts in war_repl.items():
+        rows_repl_pts.append((
+            f'{season}{week:02}{pos:02}',
+            season,
+            week,
+            pos,
+            constants.POSITION_MAP_ESPN[pos],
+            pts
+        ))
 
-    rows = []
+    war_repl = {constants.POSITION_MAP_ESPN[k]: v for k, v in war_repl.items()}  # need to use position string for mapping
+    rows_rosters = []
     for team in rosters['teams']:
         tid = team['id']
         for player in team['roster']['entries']:
@@ -55,11 +64,18 @@ def load_player_stats(
                 fpid = None
 
             projection = fp_projection or espn_projection
-            war = None
-            if pts is not None and projection > 0:
-                war = ((pts - war_repl[position]) / constants.WAR_MARGINAL_POINTS) if pts is not None else None
 
-            rows.append((
+            # calculate WAR if:
+            #   player is in lineup, regardless of injury status
+            #   player was active (has a valid projection)
+            is_in_lineup = lineup_slot not in ['BE', 'IR']
+            has_points = pts is not None
+            has_projection = (projection is not None and projection > 0)
+            war = None
+            if is_in_lineup or (has_points and has_projection):
+                war = (((pts or 0.0) - war_repl[position]) / constants.WAR_MARGINAL_POINTS)
+
+            rows_rosters.append((
                 f'{pid}{season}{week:02}',
                 season,
                 week,
@@ -77,9 +93,17 @@ def load_player_stats(
             ))
 
     Database().batch_insert(
-        table='player_stats',
+        table='rosters',
         columns='id, season, week, espn_id, fp_id, name, position, team_id, lineup_slot, actual, projection, source, ppr, war',
-        rows=rows,
+        rows=rows_rosters,
+        upsert=upsert,
+        update_columns=upsert_cols
+    )
+
+    Database().batch_insert(
+        table='repl_points',
+        columns='id, season, week, position_id, position, points',
+        rows=rows_repl_pts,
         upsert=upsert,
         update_columns=upsert_cols
     )

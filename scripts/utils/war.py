@@ -49,7 +49,7 @@ def replacement_players(
         season: int,
         week: int,
 ):
-    band = 5
+    band = 0.1
 
     n_teams = league_settings.league_size
     lineup_size = roster_settings.lineup_position_limits
@@ -68,13 +68,18 @@ def replacement_players(
         team_rostered = starters + avg_flex + avg_bench
         total_rostered = n_teams * team_rostered
 
-        # average of top `band` scorers
         vals = [
             pl[-2] for pl in player_stats
             if pl[4] == p_str and pl[-2] is not None
         ]
-        window = vals[int(total_rostered):int(total_rostered + band)]
-        pts = (sum(window) / len(window)) if window else 0.0
-        repl_pts_dict[p_str] = pts
+
+        # use total_rostered +/- 10% as the replacement player band
+        diff = max(2.0, total_rostered * band)
+        start = total_rostered - diff
+        end = total_rostered + diff + 1
+        window = vals[int(start):int(end)]
+
+        pts = (sum(window) / len(window))
+        repl_pts_dict[p] = pts
 
     return repl_pts_dict

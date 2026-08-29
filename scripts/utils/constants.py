@@ -813,7 +813,7 @@ TEAM_IDS = {
     },
 
     '{C152DDDA-D6A5-4B19-B4C8-3B60D3A5784F}': {
-        'active': False,
+        'active': True,
         'name': {
             'first': 'Harsh',
             'last': 'Randhawa',
@@ -858,7 +858,7 @@ TEAM_IDS = {
     },
 
     '{95160076-FE63-41C0-9600-76FE63B1C0DD}': {
-        'active': True,
+        'active': False,
         'name': {
             'first': 'Arjun',
             'last': 'Bains',

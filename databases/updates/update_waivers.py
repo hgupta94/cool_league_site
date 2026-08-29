@@ -24,6 +24,7 @@ def load_waivers(
                     team = max(ids)
                 bid = tran['bidAmount']
                 completed = dt.fromtimestamp(tran['processDate'] / 1000).date()
+                is_commish = tran['isLeagueManager'] or tran['isActingAsTeamOwner']
                 added = None
                 dropped = None
                 for i in tran['items']:
@@ -32,12 +33,12 @@ def load_waivers(
                     else:
                         dropped = i['playerId']
 
-                row = (season, week, team, bid, added, dropped, completed)
+                row = (season, week, team, bid, added, dropped, completed, is_commish)
                 rows.append(row)
 
     Database().batch_insert(
         table='draft',
-        columns='season, week, team, bid, added, dropped, completed',
+        columns='season, week, team, bid, added, dropped, completed. is_commish',
         rows=rows
     )
 

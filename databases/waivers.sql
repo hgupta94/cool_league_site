@@ -7,5 +7,6 @@ CREATE TABLE waivers (
     added INT,
     dropped INT,
     completed DATE,
+    is_commish BOOL,
     created timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

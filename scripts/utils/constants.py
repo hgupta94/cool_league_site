@@ -62,7 +62,7 @@ SCHEDULE_SWITCH_COLUMNS = 'id, season, week, team, schedule_of, result'
 WEEK_SIM_COLUMNS = 'id, season, week, matchup_id, team, avg_score, p_win, p_tophalf, p_highest, p_lowest'
 SEASON_SIM_COLUMNS = 'id, season, week, team, matchup_wins, tophalf_wins, total_wins, total_points, most_wins, most_points, top_scores, playoffs, third, finals, champion'
 RECORDS_COLUMNS = 'id, category, record, holder, season, week'
-ALLTIME_STANDINGS_COLUMNS = 'id, team, seasons, playoffs, overall_rec, win_perc, matchup_rec, tophalf_rec, points'
+ALLTIME_STANDINGS_COLUMNS = 'team, seasons, playoffs, overall_rec, win_perc, matchup_rec, tophalf_rec, points'
 
 RECORDS_COLUMNS_FLASK = ['category', 'record', 'holder', 'season', 'week']
 ALLTIME_COLUMNS_FLASK = ['team', 'seasons', 'playoffs', 'overall_rec', 'win_perc', 'matchup_rec', 'tophalf_rec', 'points']

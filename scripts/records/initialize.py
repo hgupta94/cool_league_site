@@ -9,6 +9,7 @@ from scripts.utils.utils import (
 )
 
 import pandas as pd
+from pathlib import Path
 
 
 def get_all_time_standings(last_season):
@@ -16,7 +17,21 @@ def get_all_time_standings(last_season):
     Calculate all-time standings dating back to the 2014 season
     Includes total seasons played and number of times making the playoffs
     """
-    table = Database(table='matchups').retrieve_data(how='all')
+    db = Database()
+    id_query = f'select season, t.team_id team, m.display_name from team_ids t left join managers m on t.manager_id=m.manager_id;'
+    id_mapping = db.query(query=id_query)
+
+    table = db.retrieve_data(table='matchups', how='all')
+    table = pd.merge(
+        table[table.game_type=='REG'],
+        id_mapping,
+        on=['season', 'team'],
+        how='left'
+    ).drop(
+        'team', axis=1
+    ).rename(
+        {'display_name': 'team'}, axis=1
+    )
     table = table.groupby('team').aggregate({
         'score':'sum',
         'matchup_result':'sum',
@@ -29,8 +44,8 @@ def get_all_time_standings(last_season):
     table['th_losses'] = table.games - table.th_wins
     table['ov_wins'] = table.wins + table.th_wins
     table['ov_losses'] = table.losses + table.th_losses
-    table['win_perc'] = round(table['ov_wins'] / (table['ov_wins'] + table['ov_losses']), 3).map('{:.3f}'.format)
-    table['points'] = round(table.points, 2).map('{:,.2f}'.format)
+    table['win_perc'] = round(table['ov_wins'] / (table['ov_wins'] + table['ov_losses']), 3)
+    table['points'] = round(table.points, 2)
     table['ov_wl'] = table.ov_wins.astype(int).astype(str) + '-' + table.ov_losses.astype(int).astype(str)
     table['m_wl'] = table.wins.astype(int).astype(str) + '-' + table.losses.astype(int).astype(str)
     table['th_wl'] = table.th_wins.astype(int).astype(str) + '-' + table.th_losses.astype(int).astype(str)
@@ -40,12 +55,12 @@ def get_all_time_standings(last_season):
     team_name = []
     lg_season = []
     playoffs = []
-    for season in range(2018, last_season + 1):
+    for season in range(2018, last_season):
         print(season)
         # get playoff appearances
         data = DataLoader(year=season)
-        params = LeagueSettings(data=data)
-        teams = TeamSettings(data=data)
+        params = LeagueSettings(dataloader=data)
+        teams = TeamSettings(dataloader=data)
         team_data = data.teams()
         for team in team_data['teams']:
             playoff_seed = team['rankCalculatedFinal']
@@ -103,7 +118,7 @@ def get_streaks_records():
         weeks = ', '.join([f'{x-record+1}-{x}' for x in df.week.tolist()])
         return [cat, record, holder, season, weeks]
 
-    matchups = Database(table='matchups').retrieve_data(how='all')
+    matchups = Database().retrieve_data(table='matchups', how='all')
     matchups = matchups.replace(0, -1)
     matchups['overall_result'] = matchups.matchup_result + matchups.tophalf_result
 
@@ -140,7 +155,7 @@ def get_standings_records(last_season):
         data = DataLoader(year=s)
         params = LeagueSettings(data)
         regular_season_end = params.regular_season_end
-        standings = Standings(season=s, week=regular_season_end+1)
+        standings = Standings(dataloader=data, season=s, week=regular_season_end+1)
         standings_df = standings.format_standings()
         standings_df = standings_df[['team', 'matchup', 'top_half', 'total_points']]
         standings_df['m_wins'] = standings_df.matchup.str.split('-').str[0].astype('Int32')
@@ -223,7 +238,7 @@ def get_tophalf_records():
     - Largest disparity
     """
 
-    matchups = Database(table='matchups').retrieve_data(how='all')[['season', 'week', 'team', 'score']]
+    matchups = Database().retrieve_data(table='matchups', how='all')[['season', 'week', 'team', 'score']]
     matchups = matchups.sort_values(['season', 'week', 'score'], ascending=False)
     matchups['med_rank'] = matchups.groupby(['season', 'week']).score.rank()
     matchups['med'] = matchups.groupby(['season', 'week']).score.transform('median')
@@ -366,8 +381,8 @@ def get_per_stat_records(last_season):
     for s in range(2019, last_season + 1):
         print(s)
         data = DataLoader(year=s)
-        params = LeagueSettings(data)
-        teams = TeamSettings(data=data)
+        params = LeagueSettings(dataloader=data)
+        teams = TeamSettings(dataloader=data)
         regular_season_end = params.regular_season_end
         matchups = data.matchups()
         for m in matchups['schedule']:
@@ -413,7 +428,7 @@ def get_stat_group_records(last_season):
         print(s)
         data = DataLoader(year=s)
         params = LeagueSettings(data)
-        teams = TeamSettings(data=data)
+        teams = TeamSettings(dataloader=data)
         regular_season_end = params.regular_season_end
         matchups = data.matchups()
         for m in matchups['schedule']:
@@ -459,10 +474,10 @@ def get_most_points_by_position(last_season):
         print(s)
         data = DataLoader(year=s)
         params = LeagueSettings(data)
-        teams_info = TeamSettings(data=data)
+        teams_info = TeamSettings(dataloader=data)
         regular_season_end = params.regular_season_end
         for w in range(1, regular_season_end + 1):
-            teams_data = data.load_week(w)['teams']
+            teams_data = DataLoader(year=s, week=w)['teams']
             for t in teams_data:
                 team = teamid_to_name(ids=constants.TEAM_IDS, teams=teams_info, teamid=t['id'])
                 for idx, (k, v) in enumerate(records_dict.items()):  # loop over each record type

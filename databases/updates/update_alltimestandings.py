@@ -5,11 +5,12 @@ from scripts.utils import constants
 
 season=constants.SEASON+1
 standings = get_all_time_standings(season)
-standings = standings.reset_index(drop=True).reset_index().rename(columns={'index': 'id'})
+rows = list(standings.itertuples(index=False, name=None))
 
-records_table = 'alltime_standings'
-records_cols = constants.ALLTIME_STANDINGS_COLUMNS
-for idx, row in standings.iterrows():
-    db = Database(table=records_table, columns=records_cols, values=tuple(row))
-    db.sql_insert_query()
-    db.commit_row()
+Database().batch_insert(
+    table='alltime_standings',
+    columns=constants.ALLTIME_STANDINGS_COLUMNS,
+    rows=rows,
+    upsert=False,
+    update_columns=None
+)

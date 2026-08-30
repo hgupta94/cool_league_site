@@ -33,8 +33,9 @@ def load_waivers(
                     else:
                         dropped = i['playerId']
 
-                row = (season, week, team, bid, added, dropped, completed, is_commish)
-                rows.append(row)
+                if added or dropped:
+                    row = (season, week, team, bid, added, dropped, completed, is_commish)
+                    rows.append(row)
 
     Database().batch_insert(
         table='draft',

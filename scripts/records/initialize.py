@@ -118,9 +118,14 @@ def get_streaks_records():
         weeks = ', '.join([f'{x-record+1}-{x}' for x in df.week.tolist()])
         return [cat, record, holder, season, weeks]
 
+    db = Database()
+    id_query = f'select season, t.team_id as team, m.display_name from team_ids t left join managers m on t.manager_id=m.manager_id;'
+    id_mapping = db.query(query=id_query)
+
     matchups = Database().retrieve_data(table='matchups', how='all')
     matchups = matchups.replace(0, -1)
     matchups['overall_result'] = matchups.matchup_result + matchups.tophalf_result
+    matchups = pd.merge(matchups[matchups.game_type=='REG'], id_mapping, on=['season', 'team'], how='left').drop('team', axis=1).rename({'display_name': 'team'}, axis=1)
 
     ## head-to-head streaks
     mws = matchups.matchup_result.groupby([matchups.season, matchups.team]).transform(lambda x: x.diff().ne(0).cumsum())
@@ -149,21 +154,27 @@ def get_standings_records(last_season):
     - Most matchup and top half wins and losses
     - Highest/lowest PPG
     """
+    db = Database()
+    id_query = f'select season, t.team_id, m.display_name from team_ids t left join managers m on t.manager_id=m.manager_id;'
+    id_mapping = db.query(query=id_query)
+
     df = pd.DataFrame()
     for s in range(2018, last_season + 1):
         print(s)
+        s_id = id_mapping[id_mapping.season==s]
         data = DataLoader(year=s)
         params = LeagueSettings(data)
         regular_season_end = params.regular_season_end
-        standings = Standings(dataloader=data, season=s, week=regular_season_end+1)
-        standings_df = standings.format_standings()
-        standings_df = standings_df[['team', 'matchup', 'top_half', 'total_points']]
+        standings = Standings(dataloader=DataLoader(year=s, week=regular_season_end+1), season=s, week=regular_season_end+1)
+        standings_data = standings.format_standings()
+        standings_df = pd.DataFrame(standings_data)
+        standings_df = standings_df[['team_id', 'matchup', 'tophalf', 'points']]
+        standings_df = pd.merge(standings_df, s_id, on='team_id', how='left').drop('team_id', axis=1).rename({'display_name': 'team'}, axis=1)
         standings_df['m_wins'] = standings_df.matchup.str.split('-').str[0].astype('Int32')
         standings_df['m_losses'] = standings_df.matchup.str.split('-').str[1].astype('Int32')
-        standings_df['th_wins'] = standings_df.top_half.str.split('-').str[0].astype('Int32')
-        standings_df['th_losses'] = standings_df.top_half.str.split('-').str[1].astype('Int32')
-        standings_df['ppg'] = round(standings_df.total_points / regular_season_end, 2)
-        standings_df['season'] = s
+        standings_df['th_wins'] = standings_df.tophalf.str.split('-').str[0].astype('Int32')
+        standings_df['th_losses'] = standings_df.tophalf.str.split('-').str[1].astype('Int32')
+        standings_df['ppg'] = round(standings_df.points / regular_season_end, 2)
         df = pd.concat([df, standings_df])
 
 
@@ -237,13 +248,18 @@ def get_tophalf_records():
     - Closest win/loss
     - Largest disparity
     """
+    db = Database()
+    id_query = f'select season, t.team_id as team, m.display_name from team_ids t left join managers m on t.manager_id=m.manager_id;'
+    id_mapping = db.query(query=id_query)
 
-    matchups = Database().retrieve_data(table='matchups', how='all')[['season', 'week', 'team', 'score']]
+
+    matchups = Database().retrieve_data(table='matchups', how='all')[['season', 'week', 'team', 'score', 'game_type']]
     matchups = matchups.sort_values(['season', 'week', 'score'], ascending=False)
     matchups['med_rank'] = matchups.groupby(['season', 'week']).score.rank()
     matchups['med'] = matchups.groupby(['season', 'week']).score.transform('median')
     matchups['med_diff'] = abs(matchups.score - matchups.med)
     matchups['n_teams'] = matchups.groupby(['season', 'week']).team.transform('nunique') // 2
+    matchups = pd.merge(matchups[matchups.game_type=='REG'], id_mapping, on=['season', 'team'], how='left').drop('team', axis=1).rename({'display_name': 'team'}, axis=1)
 
     # highest median score
     highest = matchups[matchups.med == matchups.med.max()]
@@ -418,9 +434,9 @@ def get_stat_group_records(last_season):
     Calculate team stat totals
     """
     records_dict = {
-        'Most Total Yards': [[3, 24, 42], -99],
-        'Most Total Touchdowns': [[4, 25, 43, 93, 101, 102, 103, 104], -99],
-        'Most Total Turnovers': [[20, 72], -99],
+        'Most Total Yards': [[3, 24, 42], -99],  # passing, rushing, receiving
+        'Most Total Touchdowns': [[4, 25, 43, 93, 101, 102, 103, 104], -99],  # passing, rushing, receiving, defensive block TD, kick/punt returns, pick 6, fumble 6
+        'Most Total Turnovers': [[20, 72], -99],  # INTs, lost fumbles
     }
     rows = [[] for k in records_dict]
 
@@ -477,7 +493,8 @@ def get_most_points_by_position(last_season):
         teams_info = TeamSettings(dataloader=data)
         regular_season_end = params.regular_season_end
         for w in range(1, regular_season_end + 1):
-            teams_data = DataLoader(year=s, week=w)['teams']
+            dl = DataLoader(year=s, week=w)
+            teams_data = dl.rosters()['teams']
             for t in teams_data:
                 team = teamid_to_name(ids=constants.TEAM_IDS, teams=teams_info, teamid=t['id'])
                 for idx, (k, v) in enumerate(records_dict.items()):  # loop over each record type

@@ -13,14 +13,16 @@ class Status(str, Enum):
     ELIMINATED_DISP = 'x'
 
 class Standings:
-    def __init__(self, dataloader: DataLoader, season, week):
+    def __init__(self, dataloader: DataLoader, season, week, playoff_scenarios=False):
         self.dataloader = dataloader
         self.season = season
         self.week = week
         self.league_settings = LeagueSettings(dataloader=self.dataloader)
         self.team_settings = TeamSettings(dataloader=self.dataloader)
         self.matchups: dict = TeamResult.get_all_team_schedules(dataloader=self.dataloader)
-        self.playoff_scenarios = PlayoffScenarios(dataloader=self.dataloader)
+        self.playoff_scenarios = None
+        if playoff_scenarios:
+            self.playoff_scenarios = PlayoffScenarios(dataloader=self.dataloader)
 
     @staticmethod
     def _format_points_back(value):

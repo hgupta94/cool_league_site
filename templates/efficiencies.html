@@ -7,11 +7,20 @@ h1 {text-align: center;}
 </style>
 <h1>Lineup Efficiency</h1>
 <script src="{{ url_for('static', filename='js/d3/efficiency.js') }}"></script>
+<script src="{{ url_for('static', filename='js/d3/position_war.js') }}"></script>
 <div style="overflow-x:auto; width:100%;">
     <div id="eff-chart" style="width:500px; margin: 0 auto;"></div>
     <script>
         const effData = {{ eff_chart_data.efficiencies | safe }}
         drawEfficiencyChart("#eff-chart", effData)
+    </script>
+</div>
+<h1>Team WAR by Position</h1>
+<div style="overflow-x:auto; width:100%;">
+    <div id="war-pos" style="width:640px; margin: 0 auto;"></div>
+    <script>
+        const posWarData = {{ pos_war_data.data | safe }}
+        createWarChart("#war-pos", posWarData)
     </script>
 </div>
 {% endblock %}

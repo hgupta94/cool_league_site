@@ -13,7 +13,7 @@ class Status(str, Enum):
     ELIMINATED_DISP = 'x'
 
 class Standings:
-    def __init__(self, dataloader: DataLoader, season, week, playoff_scenarios=False):
+    def __init__(self, dataloader: DataLoader, season, week, playoff_scenarios=True):
         self.dataloader = dataloader
         self.season = season
         self.week = week

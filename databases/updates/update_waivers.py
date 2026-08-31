@@ -4,7 +4,7 @@ from scripts.utils.constants import SEASON, WEEK
 
 from datetime import datetime as dt
 
-
+# TODO: add a check for if the move was made today
 def load_waivers(
         dataloader:DataLoader,
         season: int = SEASON,

@@ -202,7 +202,7 @@ total_wins['team'] = total_wins.team.map(id_map)
 
 
 # TEAM EFFICIENCY PAGE
-eff = Database().retrieve_data(how='season', table='efficiency', season=params.season, week=week+1)
+eff = db.retrieve_data(how='season', table='efficiency', season=params.season, week=week+1)
 if len(eff) > 0:
     eff['team'] = eff.team.map(id_map)
     cols = eff.select_dtypes(include=['float']).columns.tolist()
@@ -213,6 +213,18 @@ if len(eff) > 0:
     eff_chart_data = eff_df[['optimal_lineup_score', 'difference_from_optimal', 'efficiency']].reset_index().to_dict(orient='records')
     eff_chart_data = json.dumps(eff_chart_data, indent=2)
     eff_chart_data = {'efficiencies': eff_chart_data}
+
+rosters = db.retrieve_data(table='rosters', how='season', season=params.season, week=week+1)
+rosters['team_id'] = rosters.team_id.map(id_map)
+pos_war_data = (
+    rosters[(~rosters.lineup_slot.isin(['BE', 'IR']))]
+    .groupby(['team_id', 'position']).war.sum()
+    .reset_index()
+    .sort_values(['team_id', 'war'])
+    .to_dict(orient='records')
+)
+pos_war_data = json.dumps(pos_war_data, indent=2)
+pos_war_data = {'data': pos_war_data}
 
 # HISTORY/CHAMPIONS PAGE
 champs = pd.read_csv(r'champions.csv').sort_values('Season', ascending=False)

@@ -103,7 +103,11 @@ def scenarios():
 
 @app.route("/efficiency/")
 def eff():
-    return render_template("efficiencies.html", eff_chart_data=eff_chart_data)
+    return render_template(
+        "efficiencies.html",
+        eff_chart_data=eff_chart_data,
+        pos_war_data=pos_war_data
+    )
 
 @app.route("/champions/")
 def champs():

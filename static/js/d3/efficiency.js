@@ -59,41 +59,6 @@ function drawEfficiencyChart(selector, data) {
   const yMedian = d3.median(data, d => d.optimal_lineup_score);
   const effMedian = d3.median(data, d => d.efficiency);
 
-  // Efficiency heatmap background
-  // efficiency(x, y) = (optimal + difference) / optimal, i.e. (y + x) / y
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  canvas.style.position = "absolute";
-  canvas.style.left = margin.left + "px";
-  canvas.style.top = margin.top + "px";
-  el.insertBefore(canvas, el.firstChild); // behind everything else
-  const ctx = canvas.getContext("2d");
-
-  const blockSize = 4;
-  let effMin = Infinity, effMax = -Infinity;
-  for (let py = 0; py <= H; py += blockSize) {
-    const yVal = yScale.invert(py + blockSize / 2);
-    for (let px = 0; px <= W; px += blockSize) {
-      const xVal = xScale.invert(px + blockSize / 2);
-      const eff = (yVal + xVal) / yVal;
-      if (eff < effMin) effMin = eff;
-      if (eff > effMax) effMax = eff;
-    }
-  }
-
-  const heatColor = d3.scaleSequential(t => d3.interpolateBlues(t * 0.6)).domain([effMin, effMax]);
-
-  for (let py = 0; py < H; py += blockSize) {
-    const yVal = yScale.invert(py + blockSize / 2);
-    for (let px = 0; px < W; px += blockSize) {
-      const xVal = xScale.invert(px + blockSize / 2);
-      const eff = (yVal + xVal) / yVal;
-      ctx.fillStyle = heatColor(eff);
-      ctx.fillRect(px, py, blockSize, blockSize);
-    }
-  }
-
   const textCol = "rgba(0,0,0,0.4)";
   const gridCol = "rgba(0,0,0,0.2)";
 
@@ -232,6 +197,7 @@ function drawEfficiencyChart(selector, data) {
     });
 
   // Team labels next to each point
+  DIST = 8
   g.selectAll(".point-label")
     .data(data)
     .join("text")
@@ -240,16 +206,16 @@ function drawEfficiencyChart(selector, data) {
     .attr("x", d => {
       const px = xScale(d.difference_from_optimal);
       const labelW = 35;
-      return (px + 10 + labelW <= W) ? px + 10 : px - 10;
+      return (px + DIST + labelW <= W) ? px + DIST : px - DIST;
     })
     .attr("text-anchor", d => {
       const px = xScale(d.difference_from_optimal);
       const labelW = 35;
-      return (px + 10 + labelW <= W) ? "start" : "end";
+      return (px + DIST + labelW <= W) ? "start" : "end";
     })
     .attr("y", d => yScale(d.optimal_lineup_score) + 4)
     .attr("font-size", 13)
-    .attr("fill", "rgba(0,0,0,0.6)")
+    .attr("fill", d => TEAM_COLORS[d.team] ?? defaultColor)
     .style("cursor", "pointer")
     .text(d => d.team)
     .on("mouseenter", function(event, d) {

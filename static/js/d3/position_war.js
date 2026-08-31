@@ -20,7 +20,7 @@ function createWarChart(container, data, options = {}) {
   const {
     width = 600,
     height = 400,
-    margin = { top: 20, right: 100, bottom: 20, left: 44 },
+    margin = { top: 40, right: 100, bottom: 20, left: 44 },
     positions = ['RB', 'WR', 'QB', 'TE', 'DST'],
     positionColors = null,
   } = options;
@@ -83,7 +83,7 @@ function createWarChart(container, data, options = {}) {
     yMaxRaw = Math.max(yMaxRaw, pos);
     yMinRaw = Math.min(yMinRaw, neg);
   });
-  const y = d3.scaleLinear().domain([yMinRaw * 1.35, yMaxRaw * 1.1]).nice().range([innerHeight, 0]);
+  const y = d3.scaleLinear().domain([yMinRaw * 1.35, yMaxRaw * 0.95]).nice().range([innerHeight, 0]);
 
   // gridlines
   g.append('g')
@@ -126,19 +126,27 @@ function createWarChart(container, data, options = {}) {
   const tooltip = d3.select(el).append('div')
     .attr('class', 'war-tooltip')
     .style('position', 'absolute')
+    .style('z-index', '10')
+    .style('background', 'rgba(255,255,255,0.95)')
+    .style('border', '1px solid rgba(0,0,0,0.1)')
+    .style('border-radius', '6px')
+    .style('padding', '6px 10px')
+    .style('box-sizing', 'border-box')
+    .style('font-size', '13px')
+    .style('color', 'rgba(0,0,0,0.7)')
     .style('pointer-events', 'none')
-    .style('opacity', 0)
+    .style('box-shadow', '0 2px 6px rgba(0,0,0,0.1)')
     .style('display', 'none');
 
   function showTooltip(html, event) {
     const [px, py] = d3.pointer(event, el);
-    tooltip.style('display', 'block').style('opacity', 1).html(html)
+    tooltip.style('display', 'block').html(html)
       .style('left', `${px + 14}px`)
       .style('top', `${py - 28}px`);
   }
 
   function hideTooltip() {
-    tooltip.style('display', 'none').style('opacity', 0);
+    tooltip.style('display', 'none');
   }
 
   // ---- build stacked segment data (fixed position order, split at zero) ----
@@ -169,7 +177,7 @@ function createWarChart(container, data, options = {}) {
     .style('cursor', 'pointer')
     .on('mousemove', function (event, d) {
       d3.select(this).attr('opacity', 0.75);
-      showTooltip(`<strong style="color:${colorFor(d.key)}">${d.key}</strong><br>${d.value.toFixed(2)} WAR`, event);
+      showTooltip(`<strong style="color:${colorFor(d.key)}">${d.key}</strong><br>${d.value.toFixed(1)} WAR`, event);
     })
     .on('mouseleave', function () {
       d3.select(this).attr('opacity', 1);

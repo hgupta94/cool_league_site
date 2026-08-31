@@ -9,7 +9,6 @@ from scripts.home.standings import Standings
 from scripts.utils import constants
 from scripts.utils.utils import calculate_odds
 import scripts.scenarios.scenarios as scenarios
-from scripts.efficiency.xxefficiencies import plot_efficiency
 
 
 dataloader = DataLoader(week=constants.WEEK)

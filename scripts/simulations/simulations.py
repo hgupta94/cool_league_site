@@ -25,7 +25,6 @@ import scipy.stats as st
 class Simulation:
     def __init__(self, dataloader: DataLoader, fpros: FantasyPros):
         print('Starting simulations')
-        # TODO: add fantasypros projections
         self.dataloader = dataloader
         self.fpros = fpros
 
@@ -161,19 +160,30 @@ class Simulation:
             finals_matchup = None
             champion = None
             for i, week in enumerate(playoff_weeks[-playoff_wks_left:]):
-                n_bye = 2 if week == start_wk else None
-                playoff_teams = self._simulate_round(lineups=lineups, round_teams=playoff_teams, week=week, n_bye=n_bye)
-                if week == start_wk:  # quarterfinals
-                    sf_teams = set(playoff_teams)
+                n_bye = 2 if week == self.league_settings.regular_season_end + 1 else None
+                if week == self.league_settings.regular_season_end + 1:  # quarterfinals
+                    sf_teams = self._simulate_round(lineups=lineups, round_teams=playoff_teams, week=week, n_bye=n_bye)
                 if week == champ_wk - 1:  # semifinals
-                    finals_matchup = set(playoff_teams)
+                    if not sf_teams:
+                        sf_teams = [tid for m in self.matchups[week][:2] for tid in m.teams]
+                        sf_teams = {k: v for k, v in for_playoffs.items() if k in sf_teams}
+                    finals_matchup = self._simulate_round(lineups=lineups, round_teams=sf_teams, week=week, n_bye=n_bye)
                     third_place_matchup = set(t for t in sf_teams if t not in finals_matchup)
                 if week == champ_wk:  # championship
                     # sim third place matchup
+                    if not third_place_matchup:
+                        finals_matchup = [tid for m in self.matchups[week][:1] for tid in m.teams]
+                        finals_matchup = {k: v for k, v in for_playoffs.items() if k in finals_matchup}
+
+                        third_place_matchup = [tid for m in self.matchups[week][1:2] for tid in m.teams]
+                        third_place_matchup = {k: v for k, v in for_playoffs.items() if k in third_place_matchup}
+
                     third_place_lineups = {tid: l for tid, l in lineups[week].items() if tid in third_place_matchup}
                     third_place_sim = {tid: self._simulate_lineup(l) for tid, l in third_place_lineups.items()}
                     third = {max(third_place_sim.items(), key=lambda x: x[1])[0]}
-                    champion = set(playoff_teams.copy())
+
+                    f_winner = self._simulate_round(lineups=lineups, round_teams=finals_matchup, week=week, n_bye=n_bye)
+                    champion = set(f_winner)
 
             # update sim stats
             most_wins = max(s['total_wins'] for s in standings.values())
@@ -199,7 +209,7 @@ class Simulation:
                 if tid in qf_teams:
                     sim_results[tid]['playoffs'] += 1
 
-                if tid in finals_matchup:
+                if tid in set(finals_matchup):
                     sim_results[tid]['finals'] += 1
 
                 if tid in third:
@@ -580,15 +590,17 @@ class Simulation:
 
         non_bye_teams = [tid for tid in team_ids if tid not in advances]
 
-        if week > self.league_settings.regular_season_end:
+        if week == self.league_settings.current_week and week > self.league_settings.regular_season_end:
             # if actual week is in the playoffs, simulate current matchup
-            round_lineups = {tid: lineups[week][tid] for tid in team_ids}
+            round_lineups = {tid: lineups[week][tid] for tid in non_bye_teams}
             results = self._simulate_matchups(lineups=round_lineups)
             winners = [r.team_id for r in results if r.matchup_result.value == 1 and r.team_id in round_teams]
             advances.extend(winners)
-            return advances
+
+            advances_dict = {k: v for k, v in round_teams.items() if k in advances}
+            return advances_dict
         else:
-            # if not in the playoffs, simulate lineup and get winners
+            # if not in the playoffs, or current sim week is in the future, simulate lineup and get winners
             # assumes top remaining seed plays lowest scoring team
             scores = {tid: self._simulate_lineup(lineups[week][tid]) for tid in non_bye_teams}
 

@@ -13,7 +13,7 @@ class Status(str, Enum):
     ELIMINATED_DISP = 'x'
 
 class Standings:
-    def __init__(self, dataloader: DataLoader, season, week, playoff_scenarios=True):
+    def __init__(self, dataloader: DataLoader, season, week):
         self.dataloader = dataloader
         self.season = season
         self.week = week
@@ -21,7 +21,7 @@ class Standings:
         self.team_settings = TeamSettings(dataloader=self.dataloader)
         self.matchups: dict = TeamResult.get_all_team_schedules(dataloader=self.dataloader)
         self.playoff_scenarios = None
-        if playoff_scenarios:
+        if self.week <= self.league_settings.regular_season_end:
             self.playoff_scenarios = PlayoffScenarios(dataloader=self.dataloader)
 
     @staticmethod
@@ -208,7 +208,11 @@ class Standings:
         - 2022-present: 6 team playoffs, top 5 by record, 6th seed by most points of remaining teams
         """
         n_playoff_teams = self.league_settings.playoff_teams
-        as_of_week = self.league_settings.as_of_week
+        as_of_week = (  # get regular season weeks if currently in the playoffs
+            self.league_settings.regular_season_end
+            if self.week > self.league_settings.regular_season_end
+            else self.league_settings.as_of_week
+        )
         standings = []
         for team_id in self.team_settings.team_ids:
             # standings data for each team

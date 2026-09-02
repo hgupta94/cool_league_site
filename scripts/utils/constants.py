@@ -36,14 +36,14 @@ CLINCHED_DISP = 'c'
 ELIMINATED_DISP = 'x'
 
 # ESPN API parameters
-# _TODAY = dt.datetime.now()
-_TODAY = dt.datetime(2025, 12, 3)
+_TODAY = dt.datetime.now()
+# _TODAY = dt.datetime(2025, 12, 17)
 _CURRENT_YEAR = _TODAY.year
 _CURRENT_MONTH = _TODAY.month
-_SEASON_START = dt.datetime(2025, 9, 7)  # monday before first game
-_SEASON_END = dt.datetime(2026, 1, 11)  # monday after last game
-# _SEASON_START = dt.datetime(2026, 9, 7)  # monday before first game
-# _SEASON_END = dt.datetime(2027, 1, 11)  # monday after last game
+# _SEASON_START = dt.datetime(2025, 9, 7)  # monday before first game
+# _SEASON_END = dt.datetime(2026, 1, 11)  # monday after last game
+_SEASON_START = dt.datetime(2026, 9, 7)  # monday before first game
+_SEASON_END = dt.datetime(2027, 1, 11)  # monday after last game
 SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
 WEEK = -(-(_TODAY - _SEASON_START).days // 7)
 WEEK = 1 if WEEK <= 0 else WEEK

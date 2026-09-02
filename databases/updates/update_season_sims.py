@@ -10,11 +10,6 @@ from scripts.api.models.team import Team
 import time
 
 import pandas as pd
-import json
-
-
-# with open(r'/Users/hirshgupta/PycharmProjects/cool_league_site/tables/fp_espn_lookup.json', 'r') as f:
-#     mapping = json.load(f)
 
 
 def load_season_sims(dataloader: DataLoader, fpros: FantasyPros, n_sims: int = 100_000):

@@ -71,5 +71,8 @@ def get_matchup_id(teams: TeamSettings,
     matchups = [m for m in teams.matchups if m['week'] == week]
     for m in matchups:
         if any([t['team_id'] == team_id for t in m['teams']]):  # the current team name is present in the matchup
-            return int((len(teams.team_ids) // 2) - ((week * len(teams.team_ids) / 2) - m['matchup_id']))
+            if len(m['teams']) == 2:
+                return int((len(teams.team_ids) // 2) - ((week * len(teams.team_ids) / 2) - m['matchup_id']))
+            else:
+                return None
     return None

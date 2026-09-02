@@ -25,11 +25,13 @@ def load_betting_table(dataloader:DataLoader, fpros: FantasyPros, n_sims: int=10
     print((end-start) / 60)
 
     rows = []
+    bye_id = 0
     for team in teams.team_ids:
         db_id = f'{constants.SEASON}_{constants.WEEK:02}_{team:02}_{day}'  # save out every day
         matchup_id = utils.get_matchup_id(teams=teams, week=constants.WEEK, team_id=team)
-        if matchup_id is None:  # byes?
-            matchup_id = 99
+        if not matchup_id:  # byes?
+            bye_id -= 1
+            matchup_id = bye_id
         avg_score = sim_results['scores'][team] / n_sims
         p_win = sim_results['n_wins'][team] / n_sims
         p_tophalf = sim_results['n_tophalf'][team] / n_sims

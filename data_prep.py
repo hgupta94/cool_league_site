@@ -117,12 +117,10 @@ betting_table = pd.DataFrame(rows)
 
 betting_table['team'] = betting_table.team.map(id_map)
 betting_table['date'] = pd.to_datetime(betting_table.created).dt.date.astype(str)
-# betting_chart_data = betting_table.drop(['id', 'season', 'week', 'created'], axis=1).to_dict(orient='records')
 betting_chart_data = betting_table.drop(['created'], axis=1).to_dict(orient='records')
 betting_chart_data = json.dumps(betting_chart_data, indent=2)
 betting_chart_data = {'betting': betting_chart_data}
 
-betting_table = betting_table.tail(n_teams)
 timestamp_betting = pd.to_datetime(betting_table.created.values[0]).strftime("%A, %b %d %Y")
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(2).apply(lambda x: f'{x:.2f}')

@@ -23,7 +23,8 @@ class PlayoffScenarios:
 
         self.standings = self._load_standings()
         self.betting_table = self._load_betting_table()
-        self.scenarios = self._get_scenarios()
+        if 1 < self.params.current_week <= self.params.regular_season_end:
+            self.scenarios = self._get_scenarios()
 
     @staticmethod
     def _sort_standings(standings: list[dict]) -> list[dict]:

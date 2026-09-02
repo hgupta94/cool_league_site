@@ -31,7 +31,8 @@ records_df = db.retrieve_data(how='all', table='records')
 
 
 # HOME PAGE
-standings = Standings(dataloader=dataloader, season=params.season, week=week)
+s_week = week if week <= params.regular_season_end else params.regular_season_end
+standings = Standings(dataloader=dataloader, season=params.season, week=s_week)
 standings_final = standings.format_standings()
 # standings.final_week_playoff_scenarios(standings_final, seed=2)
 standings_to_flask = []
@@ -41,7 +42,7 @@ for t in standings_final:
         t['points_disp'], t['wb2'], t['wb5'], t['pb6'], t['bye_magic_disp'], t['po_magic_disp']
     ))
 clinches = {'clinches': [], 'eliminations': []}
-if week > 1:
+if 1 < week <= params.regular_season_end:
     clinches = standings.get_playoff_scenarios(id_map=id_map)
     # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
 

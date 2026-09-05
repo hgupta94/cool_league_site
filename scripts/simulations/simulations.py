@@ -20,6 +20,7 @@ from scripts.api.settings import (
 from scripts.utils import constants
 
 import scipy.stats as st
+from scipy.optimize import brentq
 
 
 class Simulation:
@@ -220,6 +221,50 @@ class Simulation:
             all_results.append(sim_results)
         return all_results
 
+    @staticmethod
+    def _truncated_mean(scale: float, shape: float, max_val: float) -> float:
+        """Mean of a Gamma(shape, scale) distribution truncated at max_val."""
+        cdf_max_shape = st.gamma.cdf(max_val, a=shape, scale=scale)
+        cdf_max_shape_plus1 = st.gamma.cdf(max_val, a=shape + 1, scale=scale)
+        if cdf_max_shape <= 0:
+            # scale is so large that essentially all mass is above max_val
+            return 0.0
+        return shape * scale * cdf_max_shape_plus1 / cdf_max_shape
+
+    def _solve_scale_trunc_mean(
+            self,
+            proj: float,
+            shape: float,
+            max_val: float,
+    ) -> float:
+        """
+        Find the scale parameter such that a Gamma(shape, scale) distribution,
+        truncated at max_val, has mean == proj.
+        """
+        if proj <= 0:
+            return 1e-6  # degenerate case, avoid solver issues
+
+        # naive (untruncated) scale is a safe lower bound: truncation only
+        # pulls the mean down, so the corrected scale must be >= naive scale
+        naive_scale = proj / shape
+
+        def f(scale: float) -> float:
+            return self._truncated_mean(scale, shape, max_val) - proj
+
+        # upper bound: push scale up until f(scale) goes negative or clearly bounded.
+        # cap the search so we don't loop forever on pathological inputs.
+        upper = naive_scale
+        for _ in range(50):
+            upper *= 1.5
+            if f(upper) < 0:
+                break
+        else:
+            # couldn't bracket - max_val is probably too close to naive mean
+            # or something is degenerate; fall back to naive scale
+            return naive_scale
+
+        return brentq(f, naive_scale, upper, xtol=1e-6)
+
     def _get_best_lineup(
             self,
             team: Team,
@@ -335,7 +380,7 @@ class Simulation:
                 shape = gamma_values['shape']
                 max_val = gamma_values['max']
                 proj = (player.pts_proj_fp or player.pts_proj)
-                scale = proj / shape
+                scale = self._solve_scale_trunc_mean(proj=proj, shape=shape, max_val=max_val)
                 cdf_max = st.gamma.cdf(max_val, a=shape, loc=0, scale=scale)
 
                 u = st.uniform.rvs(loc=0, scale=cdf_max, size=n_sims)

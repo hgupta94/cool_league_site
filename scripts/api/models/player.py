@@ -2,6 +2,7 @@ from scripts.api.dataloader import DataLoader
 from scripts.api.fantasy_pros import FantasyPros
 from scripts.utils.constants import SEASON, WEEK, POSITION_MAP_ESPN
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
 
@@ -39,6 +40,7 @@ class Player:
     source_view: ParseContext
     pts_proj_fp: float | None = None
     pts_proj_fp_breakdown: dict | None = None
+    sim_scores: Iterator[float] | None = None
 
     def __repr__(self) -> str:
         return f'Player(name={self.name})'

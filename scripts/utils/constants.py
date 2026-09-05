@@ -46,7 +46,7 @@ _SEASON_START = dt.datetime(2026, 9, 7)  # monday before first game
 _SEASON_END = dt.datetime(2027, 1, 11)  # monday after last game
 SEASON = _CURRENT_YEAR if _CURRENT_MONTH >= 9 else _CURRENT_YEAR-1
 WEEK = -(-(_TODAY - _SEASON_START).days // 7)
-WEEK = 1 if WEEK <= 0 else WEEK
+WEEK = 1 if WEEK < 0 else WEEK
 
 LEAGUE_ID = os.getenv('LEAGUE_ID')
 SWID = os.getenv('SWID')

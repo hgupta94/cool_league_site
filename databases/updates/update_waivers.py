@@ -14,32 +14,34 @@ def load_waivers(
     rows = []
     if 'transactions' in waivers:
         for tran in waivers['transactions']:
-            if tran['type'] == 'WAIVER' and tran['status'] == 'EXECUTED':
-                team = tran['teamId']
-                if team < 0:
-                    ids = []
+            if (tran['type'] == 'WAIVER' or tran['type'] == 'FREEAGENT') and tran['status'] == 'EXECUTED':
+                timestamp = tran['processDate'] if 'processDate' in tran else tran['proposedDate']
+                completed = dt.fromtimestamp(timestamp / 1000).date()
+                if completed == dt.now().date():
+                    team = tran['teamId']
+                    if team < 0:
+                        ids = []
+                        for i in tran['items']:
+                            ids.append(i['fromTeamId'])
+                            ids.append(i['toTeamId'])
+                        team = max(ids)
+                    bid = tran['bidAmount']
+                    is_commish = tran['isLeagueManager'] or tran['isActingAsTeamOwner']
+                    added = None
+                    dropped = None
                     for i in tran['items']:
-                        ids.append(i['fromTeamId'])
-                        ids.append(i['toTeamId'])
-                    team = max(ids)
-                bid = tran['bidAmount']
-                completed = dt.fromtimestamp(tran['processDate'] / 1000).date()
-                is_commish = tran['isLeagueManager'] or tran['isActingAsTeamOwner']
-                added = None
-                dropped = None
-                for i in tran['items']:
-                    if i['type'] == 'ADD':
-                        added = i['playerId']
-                    else:
-                        dropped = i['playerId']
+                        if i['type'] == 'ADD':
+                            added = i['playerId']
+                        else:
+                            dropped = i['playerId']
 
-                if added or dropped:
-                    row = (season, week, team, bid, added, dropped, completed, is_commish)
-                    rows.append(row)
+                    if added or dropped:
+                        row = (season, 0, team, bid, added, dropped, completed, is_commish)
+                        rows.append(row)
 
     Database().batch_insert(
-        table='draft',
-        columns='season, week, team, bid, added, dropped, completed. is_commish',
+        table='waivers',
+        columns='season, week, team, bid, added, dropped, completed, is_commish',
         rows=rows
     )
 

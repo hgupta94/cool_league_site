@@ -301,7 +301,12 @@ class Simulation:
             if position_played:
                 lineup.extend(position_played.values())
 
-            pool = {k: v for k, v in team.roster.items() if v.position_id == position_id and v.is_locked == False and (v.pts_proj_fp or v.pts_proj)}
+            pool = {
+                k: v for k, v in team.roster.items()
+                if v.position_id == position_id
+                   and v.is_locked == False
+                   and (v.pts_proj_fp or v.pts_proj  or 0) > 0
+            }
             remaining = limit-len(position_played)
             if remaining:
                 selector = sorted(
@@ -502,10 +507,11 @@ class Simulation:
         end = self.league_settings.regular_season_end + self.league_settings.playoff_length
         for week in range(self.league_settings.current_week, end+1):
             dataloader = DataLoader(week=week)
+            fpros = FantasyPros(dataloader=dataloader, season=self.league_settings.season, week=week)
             ctx = ParseContext(view=PlayerView.WEEK, week=week)
             teams_obj = dataloader.teams()
             rosters_obj = dataloader.rosters()
-            teams = Team.get_teams(dataloader=self.dataloader, fpros=self.fpros, obj=teams_obj, roster_obj=rosters_obj, ctx=ctx)
+            teams = Team.get_teams(dataloader=dataloader, fpros=fpros, obj=teams_obj, roster_obj=rosters_obj, ctx=ctx)
             lineups = {i: self._get_best_lineup(team=t, n_sims=n_sims) for i, t in teams.items()}
             ros_lineups[week] = lineups
         return ros_lineups

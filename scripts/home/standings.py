@@ -285,12 +285,12 @@ class Standings:
                 )
                 row['bye_magic_disp'] = (
                     '-' if row['bye_magic'] <= 0
-                           or row['bye_magic'] >= self.league_settings.as_of_week-1
+                           or row['bye_magic'] >= (self.league_settings.weeks_left * 2 + 1)
                     else f'{int(row['bye_magic'])}'
                 )
                 row['po_magic_disp'] = (
                     '-' if row['po_magic'] <= 0
-                           or row['po_magic'] >= self.league_settings.as_of_week-1
+                           or row['po_magic'] >= (self.league_settings.weeks_left * 2 + 1)
                     else f'{int(row['po_magic'])}'
                 )
         return standings

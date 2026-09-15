@@ -144,7 +144,8 @@ class TeamResult:
                 tophalf_result = None
                 if opp_tm_id:
                     matchup_result = Result.WIN if points > opp_points else Result.LOSS
-                    tophalf_result = Result.WIN if points > medians[week] else Result.LOSS
+                    if medians:
+                        tophalf_result = Result.WIN if points > medians[week] else Result.LOSS
                 schedule[week] = TeamResult(
                         season=season,
                         week=week,

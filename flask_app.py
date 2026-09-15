@@ -16,15 +16,15 @@ fa = FontAwesome(app)
 
 @app.route("/")
 def home():
-    week_str = 'Final' if week > 14 else f'Week {week-1}'
+    week_str = 'Final' if report_week > 14 else f'Week {report_week-1}'
     headings_st = tuple(['Rk', 'Team', 'Overall', 'Win%', 'Matchup', 'TopHalf', 'Points', 'WB-Bye', 'WB-5', 'PB-6', 'E#-Bye', 'E#-5'])
     data_st = standings_to_flask
 
-    cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if week == params.regular_season_end else 'Clinch Over', 'Clinch Probability']
+    cl_cols = ['Team', 'To Clinch', 'Net Wins', 'Clinch Over (Net Pts)' if report_week == params.regular_season_end else 'Clinch Over', 'Clinch Probability']
     headings_cl = tuple(cl_cols) if 'clinches' in clinches else tuple()
     data_cl = ut.flask_get_data(clinches['clinches']) if 'clinches' in clinches else tuple()
 
-    el_cols = ['Team', 'Elim. From', 'Net Wins', 'Elim. By (Net Pts)' if week == params.regular_season_end else 'Elim. By', 'Elim. Probability']
+    el_cols = ['Team', 'Elim. From', 'Net Wins', 'Elim. By (Net Pts)' if report_week == params.regular_season_end else 'Elim. By', 'Elim. Probability']
     headings_el = tuple(el_cols) if 'elims' in clinches else tuple()
     data_el = ut.flask_get_data(clinches['elims']) if 'elims' in clinches else tuple()
 
@@ -55,7 +55,7 @@ def sims():
     data_r = ut.flask_get_data(season_sim_ranks_table)
 
     return render_template(
-        "simulations.html", week=f'Week {week}',
+        "simulations.html", week=f'Week {report_week}',
         headings_bets=headings_bets, data_bets=data_bets,
         headings_s=headings_season_sim, data_s=data_season_sim,
         headings_w=headings_w, data_w=data_w,

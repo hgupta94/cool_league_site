@@ -7,11 +7,6 @@ from scripts.utils import utils
 from scripts.simulations.simulations import Simulation
 
 import time
-# import json
-#
-#
-# with open(r'/Users/hirshgupta/PycharmProjects/cool_league_site/tables/fp_espn_lookup.json', 'r') as f:
-#     mapping = json.load(f)
 
 
 def load_betting_table(dataloader:DataLoader, fpros: FantasyPros, n_sims: int=100_000):

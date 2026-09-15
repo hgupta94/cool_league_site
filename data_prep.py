@@ -46,10 +46,10 @@ if 1 < report_week <= params.regular_season_end:
     # TODO: fix last week clinches/elims. for wild card, net wins and probability should be blank (or save all sims to get prob of team getting outscored by x pts)
 
 
-pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=report_week-1)
+pr_data = Database().retrieve_data(how='season', table='power_ranks', season=params.season, week=params.as_of_week)
 pr_data['team'] = pr_data.team.map(id_map)
 pr_data[['power_score_norm', 'score_norm_change']] = pr_data[['power_score_norm', 'score_norm_change']] * 100
-pr_table = pr_data[pr_data.week == report_week-1]
+pr_table = pr_data.sort_values('created').tail(n_teams)
 pr_table = pr_table.sort_values('power_score_raw', ascending=False)
 pr_table[['power_score_norm', 'score_norm_change']] = round(pr_table[['power_score_norm', 'score_norm_change']]).astype('Int32')
 pr_table['rank_change'] = -pr_table.rank_change
@@ -76,7 +76,7 @@ score_data = {'score_data': score_data}
 # SIMULATIONS PAGE
 betting_table = (
     db
-    .retrieve_data(how='week', table='betting_table', season=params.season, week=params.current_week)  # show previous week on Tues
+    .retrieve_data(how='week', table='betting_table', season=params.season, week=params.current_week)
     .sort_values('created')
 )
 
@@ -86,6 +86,7 @@ betting_chart_data = betting_table.drop(['created'], axis=1).to_dict(orient='rec
 betting_chart_data = json.dumps(betting_chart_data, indent=2)
 betting_chart_data = {'betting': betting_chart_data}
 
+betting_table = betting_table.tail(n_teams)
 timestamp_betting = pd.to_datetime(betting_table.created.values[0]).strftime("%A, %b %d %Y")
 betting_table = betting_table.sort_values(['matchup_id', 'avg_score'])
 betting_table['avg_score'] = betting_table.avg_score.round(2).apply(lambda x: f'{x:.2f}')

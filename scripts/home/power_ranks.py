@@ -51,19 +51,32 @@ def power_rank(params: LeagueSettings,
     wks_rem_factor = (params.regular_season_end - week) / params.regular_season_end
 
     # scoring weights
-    if week < 2:
-        ts_idx_wt = 0.45  # total score (actual & projected points)
-        ws_idx_wt = 0.45  # week score
-        c_idx_wt  = 0.00  # consistency
-        l_idx_wt  = 0.05  # luck
-        m_idx_wt  = 0.05  # manager
-    else:
-        ts_idx_wt = 0.40
-        ws_idx_wt = 0.30
-        c_idx_wt  = 0.15
-        m_idx_wt  = 0.10
-        l_idx_wt  = 0.05
-    consistency_factor = 1 if week >= 5 else week / 5  # increase by 20% each week
+    # baseline
+    base = {
+        "ts": 0.60,
+        "ws": 0.30,
+        "c": 0.00,
+        "l": 0.05,
+        "m": 0.05,
+    }
+
+    # final target
+    target = {
+        "ts": 0.50,
+        "ws": 0.20,
+        "c": 0.15,
+        "l": 0.05,
+        "m": 0.10,
+    }
+
+    # +20% progress each week
+    progress = min(max(week, 1), 5) / 5
+
+    ts_idx_wt = base["ts"] + (target["ts"] - base["ts"]) * progress
+    ws_idx_wt = base["ws"] + (target["ws"] - base["ws"]) * progress
+    c_idx_wt = base["c"] + (target["c"] - base["c"]) * progress
+    l_idx_wt = base["l"] + (target["l"] - base["l"]) * progress
+    m_idx_wt = base["m"] + (target["m"] - base["m"]) * progress
 
     # load data from db
     db = Database()
@@ -77,6 +90,7 @@ def power_rank(params: LeagueSettings,
 
     sim_ppg_med = (season_sim.total_points.median() / params.regular_season_end) * wks_rem_factor
     ppg_med = (0 if week == 0 else matchups.groupby('team').score.mean().median()) * wks_played_factor
+    opt_med = eff.groupby('team').optimal_lineup_score.mean().median()
     eff_med = eff.groupby('team').actual_lineup_score.mean().median() / eff.groupby('team').optimal_lineup_score.mean().median()
     wts = [1] if week == 0 else exp_decay(week=week, reverse=False)
     pr_dict = {}
@@ -121,12 +135,13 @@ def power_rank(params: LeagueSettings,
             sd = pr_tm.score.std()
             tm_ppg = pr_tm.score.mean()
             c_idx = 0 if len(pr_tm) < 2 else consistency_index(sd=sd, ppg=tm_ppg, ppg_median=ppg_med)
-            c_scores[t] = c_idx * consistency_factor
+            c_scores[t] = c_idx
 
             # Manager Index
             tm_eff = eff[eff.team==t]
             lineup_eff = tm_eff.actual_lineup_score.sum() / tm_eff.optimal_lineup_score.sum()
-            m_idx = scoring_index(score=lineup_eff, median=eff_med, weight=1)
+            lineup_opt = tm_eff.optimal_lineup_score.values[0]
+            m_idx = (scoring_index(score=lineup_eff, median=eff_med, weight=1) + scoring_index(score=lineup_opt, median=opt_med, weight=1)) / 2  # avg of lineup efficiency and optimal lineup
             pr_dict[t].update({'manager_idx': m_idx})
         else:
             pr_dict[t].update({'week_idx': 1})

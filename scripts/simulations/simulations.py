@@ -340,9 +340,6 @@ class Simulation:
                                     pts_proj_breakdown={}, percent_owned=None, percent_start=None, source_view=None,
                                 )
                             ])
-
-                if position_id in flex_positions:
-                    flex_pool.extend(selector[remaining:])
             else:
                 continue
 
@@ -351,12 +348,21 @@ class Simulation:
         if flex_played:
             lineup.extend(flex_played.values())
         else:
-            flex_selector = sorted(
-                flex_pool,
-                key=lambda i: (i.pts_proj_fp or i.pts_proj),
-                reverse=True
-            )
-            if flex_selector:
+            flex_pool = []
+            for pos_id in [2, 4, 6]:  # RB, WR, TE
+                pos_flex_pool = {
+                    k: v for k, v in team.roster.items()
+                    if v.position_id == pos_id
+                       and v.is_locked == False
+                       and (v.pts_proj_fp or v.pts_proj or 0) > 0
+                }
+                flex_pool.extend(pos_flex_pool.values())
+            if flex_pool:
+                flex_selector = sorted(
+                    flex_pool,
+                    key=lambda i: (i.pts_proj_fp or i.pts_proj),
+                    reverse=True
+                )
                 lineup.extend(flex_selector[:n_flex])
             else:
                 flex_id = 23

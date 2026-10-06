@@ -348,6 +348,7 @@ class Simulation:
         if flex_played:
             lineup.extend(flex_played.values())
         else:
+            lineup_ids = {p.id for p in lineup}
             flex_pool = []
             for pos_id in [2, 4, 6]:  # RB, WR, TE
                 pos_flex_pool = {
@@ -355,6 +356,7 @@ class Simulation:
                     if v.position_id == pos_id
                        and v.is_locked == False
                        and (v.pts_proj_fp or v.pts_proj or 0) > 0
+                       and v.id not in lineup_ids
                 }
                 flex_pool.extend(pos_flex_pool.values())
             if flex_pool:

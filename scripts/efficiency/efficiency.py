@@ -26,7 +26,7 @@ def get_efficiency_scores(
     scores = []
     for t_id, team in teams.items():
         roster = team.roster
-        act_lineup_act = sum(p.pts_act for p in roster.values() if p.lineup_slot_id in starter_limits.keys())
+        act_lineup_act = sum(p.pts_act or 0 for p in roster.values() if p.lineup_slot_id in starter_limits.keys())
         act_lineup_proj = sum(p.pts_proj for p in roster.values() if p.lineup_slot_id in starter_limits.keys())
 
         # optimal lineup

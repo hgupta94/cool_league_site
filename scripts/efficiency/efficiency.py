@@ -1,4 +1,4 @@
-from scripts.api.settings import RosterSettings
+from scripts.api.settings import RosterSettings, TeamSettings
 from scripts.api.dataloader import DataLoader
 from scripts.api.models.team import Team
 from scripts.utils import constants
@@ -12,6 +12,7 @@ def get_efficiency_scores(
 ) -> list[dict]:
     # roster settings
     roster_settings = RosterSettings(dataloader=dataloader)
+    team_settings = TeamSettings(dataloader=dataloader)
     position_map = roster_settings.slotcodes
     slot_limits = roster_settings.roster_limits
     starter_limits = {i: v for i, v in slot_limits.items() if i not in {19, 20, 21, 22, 24, 25}}  # 23 is FLEX
@@ -26,8 +27,8 @@ def get_efficiency_scores(
     scores = []
     for t_id, team in teams.items():
         roster = team.roster
-        act_lineup_act = sum(p.pts_act or 0 for p in roster.values() if p.lineup_slot_id in starter_limits.keys())
-        act_lineup_proj = sum(p.pts_proj for p in roster.values() if p.lineup_slot_id in starter_limits.keys())
+        act_lineup_act = team_settings.team_scores(t_id)[-1]
+        act_lineup_proj = sum(p.pts_proj or 0 for p in roster.values() if p.lineup_slot_id in starter_limits.keys())
 
         # optimal lineup
         best_proj_lineup = []

@@ -41,5 +41,5 @@ def load_efficiency(
 
 if __name__ == '__main__':
     d = DataLoader(year=constants.SEASON, week=constants.WEEK-1)
-    fp = FantasyPros(dataloader=d)
+    fp = FantasyPros(dataloader=d, week=constants.WEEK-1)
     load_efficiency(dataloader=d, fpros=fp)
